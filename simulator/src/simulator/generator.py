@@ -25,7 +25,7 @@ def _targets(sim: Sim, injector: Injector) -> list[Target]:
         case "refundable_order":
             return list(sim.claim_orders(count, refundable=True))
         case "settlement":
-            return list(sim.claim_settlements(count))
+            return list(sim.claim_settlements(injector.name))
         case "none":
             return [None] * count
 
@@ -79,6 +79,9 @@ def _anomaly_entry(index: int, anomaly: Anomaly, currency: str) -> dict[str, Any
 def generate(config: Config, seed: int) -> Dataset:
     sim = Sim(config, seed)
     sim.generate_orders_and_payments()
+    for injector in INJECTORS:
+        if injector.target == "settlement":
+            sim.reserve_batches(injector.name, injector.count(sim))
     anomalies = _inject(sim, "records")
     sim.generate_refunds()
     sim.build_settlements()

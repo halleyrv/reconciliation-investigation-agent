@@ -44,7 +44,7 @@ class Injector:
 
     def count(self, sim: Sim) -> int:
         """The type's rate applies to this injector's target population."""
-        population = len(sim.settlements) if self.target == "settlement" else sim.config.orders
+        population = len(sim.batch_keys()) if self.target == "settlement" else sim.config.orders
         return count_for(sim.config.anomaly_rates[self.anomaly_type], population)
 
     def apply(self, sim: Sim, target: Target) -> Anomaly:
@@ -73,7 +73,9 @@ def _credit_of(sim: Sim, settlement: Settlement) -> BankTransaction:
 def duplicate_payment(sim: Sim, target: Target) -> Effect:
     order = _order(target)
     original = sim.payment_of(order)
-    captured = original.captured_at + timedelta(seconds=sim.rng.randint(30, 600))
+    # Same capture day, so the copy settles in the original's (non-reserved) batch.
+    end_of_day = datetime.combine(original.captured_at.date(), time(23, 59, 59), UTC)
+    captured = min(original.captured_at + timedelta(seconds=sim.rng.randint(30, 600)), end_of_day)
     duplicate = sim.add_payment(order.order_id, original.gateway, original.amount, captured)
     records = (
         ("orders", order.order_id),
@@ -87,7 +89,9 @@ def unauthorized_refund(sim: Sim, target: Target) -> Effect:
     order = _order(target)
     payment = sim.payment_of(order)
     amount = round_cents(payment.amount * sim.rng.randint(20, 100) / Decimal(100))
-    refund = sim.add_refund(payment, amount, sim.refund_time(payment), authorize=False)
+    refund = sim.add_refund(
+        payment, amount, sim.refund_time(payment), authorize=False, anomalous=True
+    )
     records = (
         ("orders", order.order_id),
         ("payments", payment.payment_id),
@@ -106,13 +110,9 @@ def incorrect_fee(sim: Sim, target: Target) -> Effect:
 
 
 def missing_in_orders(sim: Sim, target: Target) -> Effect:
-    config = sim.config
-    day = config.period_start + timedelta(
-        days=sim.rng.randint(0, (config.period_end - config.period_start).days)
-    )
+    day, gateway = sim.rng.choice(sim.unreserved_batch_keys())
     captured = datetime.combine(day, time(), UTC) + timedelta(seconds=sim.rng.randint(0, 86_399))
     amount = cents(sim.rng.randint(1_000, 50_000))
-    gateway = sim.rng.choice(sorted(config.gateways))
     payment = sim.add_payment(sim.next_id("ORD"), gateway, amount, captured)
     fee = sim.fees[-1]
     records = (("payments", payment.payment_id), ("fees", fee.fee_id))
@@ -156,10 +156,12 @@ def duplicate_refund(sim: Sim, target: Target) -> Effect:
     order = _order(target)
     payment = sim.payment_of(order)
     amount = round_cents(payment.amount * sim.rng.randint(60, 100) / Decimal(100))
-    first = sim.add_refund(payment, amount, sim.refund_time(payment), authorize=True)
+    first = sim.add_refund(
+        payment, amount, sim.refund_time(payment), authorize=True, anomalous=True
+    )
     authorization = sim.authorizations[-1]
     later = first.refunded_at + timedelta(minutes=sim.rng.randint(1, 120))
-    second = sim.add_refund(payment, amount, later, authorize=False)
+    second = sim.add_refund(payment, amount, later, authorize=False, anomalous=True)
     records = (
         ("orders", order.order_id),
         ("payments", payment.payment_id),

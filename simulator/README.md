@@ -53,7 +53,7 @@ One JSON Schema (draft 2020-12) per record type and one for the ground truth, in
 - Orders are spread over the period, totals between 10.00 and 500.00 USD. Customer names and emails come from Faker, seeded from the run seed.
 - Each order has one gateway payment for its full total, captured 30 s to 1 h after the order, and one processing fee: `amount × bps / 10000 + fixed`, rounded once to cents with `ROUND_HALF_EVEN`.
 - `refund_rate` of the orders get a full or partial refund 1 to 5 days after the payment, each with an authorization approved 5 to 240 minutes before it.
-- Each gateway settles one batch per capture day. A batch nets its payments minus their fees minus the refunds it absorbs (a refund goes to the first batch of its gateway on or after its date that stays positive). Fees are not returned on refunds.
+- Each gateway settles one batch per capture day. A batch nets its payments minus their fees minus the refunds it absorbs (a refund goes to the first batch of its gateway on or after its date that stays positive; if none exists late in the period, the refund and its authorization are moved earlier, to the first batch since the payment that can absorb it). Fees are not returned on refunds.
 - Each batch is paid as one bank credit, dated the batch date plus `settlement_lag_business_days` (Monday to Friday, no holidays).
 
 ## Configuration
@@ -91,13 +91,13 @@ A run with every anomaly rate at 0 satisfies all of them (checked by `simulate-v
 
 ## Anomaly catalog
 
-Each anomaly owns its records: no record belongs to two anomalies. Each type breaks exactly the invariants listed, and no others.
+Each anomaly owns its records: no record belongs to two anomalies, and no payment, fee or refund of an anomaly sits inside a batch picked by a settlement-level anomaly (those batches are reserved before any other anomaly is injected). Each type breaks exactly the invariants listed, and no others.
 
 | Type | Subtype | What is injected | Breaks | `expected_delta` |
 |------|---------|------------------|--------|------------------|
 | `duplicate_payment` | | A second gateway capture of the same order and amount | I1 | + payment amount |
 | `unauthorized_refund` | | A refund with no authorization | I3 | − refund amount |
-| `incorrect_fee` | | A fee 0.05 to 2.00 above the schedule | I4 | + overcharge |
+| `incorrect_fee` | | A fee 0.05 to 2.00 above the schedule | I4 | + overcharge (fee charged minus fee due) |
 | `missing_transaction` | `missing_in_orders` | A gateway payment for an order the shop never sent | I1 | + payment amount |
 | `missing_transaction` | `missing_in_bank` | A settlement batch with no bank credit | I5 | − batch net |
 | `missing_transaction` | `missing_in_gateway` | A bank credit naming a batch the gateway never reported | I5 | + credit amount |

@@ -13,7 +13,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass, fields
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
@@ -22,7 +22,7 @@ from jsonschema import Draft202012Validator
 
 from simulator.config import Config, parse_config
 from simulator.records import RECORD_TYPES
-from simulator.sim import add_business_days, round_cents
+from simulator.sim import add_business_days
 
 type RecordRef = tuple[str, str]
 type Row = dict[str, Any]
@@ -159,9 +159,10 @@ def _i4(run: _Run) -> list[Violation]:
         if schedule is None or amount is None:
             found.append(Violation("I4", (run.ref("fees", f),), "no fee schedule applies"))
             continue
-        expected = round_cents(
+        # Rounded here on purpose, not with the generator's helper: an independent check.
+        expected = (
             amount * schedule.percentage_bps / Decimal(10_000) + schedule.fixed_fee
-        )
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
         if _amount(f["amount"]) != expected:
             refs = (run.ref("payments", payment), run.ref("fees", f))
             found.append(Violation("I4", refs, f"fee {f['amount']}, schedule gives {expected}"))
