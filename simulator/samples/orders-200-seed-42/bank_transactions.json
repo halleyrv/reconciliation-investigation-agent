@@ -3,481 +3,481 @@
   "record_type": "bank_transactions",
   "records": [
     {
-      "bank_transaction_id": "BNK-EC3BC1A987",
+      "bank_transaction_id": "BNK-A0CA8F3653",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-05",
       "amount": "663.97",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000001 TRACE 45507920"
+      "description": "GATEWAY_A PAYOUT STL-000001 TRACE 89160218"
     },
     {
-      "bank_transaction_id": "BNK-CAC9AF18F8",
+      "bank_transaction_id": "BNK-CDA9434AA0",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-05",
+      "value_date": "2026-10-07",
       "amount": "582.41",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000002 TRACE 93893865"
-    },
-    {
-      "bank_transaction_id": "BNK-A996FC734D",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-06",
-      "amount": "2055.42",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000003 TRACE 36550845"
-    },
-    {
-      "bank_transaction_id": "BNK-A5398D1CA6",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-06",
-      "amount": "348.60",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000005 TRACE 29997018"
-    },
-    {
-      "bank_transaction_id": "BNK-0F1247EA4E",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-06",
-      "amount": "1711.29",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000007 TRACE 32269779"
+      "description": "GATEWAY_B PAYOUT STL-000002 TRACE 36550845"
     },
     {
       "bank_transaction_id": "BNK-1D6CD5E859",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-06",
-      "amount": "792.14",
+      "amount": "1650.63",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000004 TRACE 83089925"
+      "description": "GATEWAY_A PAYOUT STL-000003 TRACE 83089925"
     },
     {
       "bank_transaction_id": "BNK-44E88DA719",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-06",
-      "amount": "175.73",
+      "amount": "271.11",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000006 TRACE 29090631"
+      "description": "GATEWAY_A PAYOUT STL-000005 TRACE 29090631"
     },
     {
       "bank_transaction_id": "BNK-4ECAE9B4A7",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-06",
-      "amount": "600.32",
+      "amount": "1223.03",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000008 TRACE 89865458"
+      "description": "GATEWAY_A PAYOUT STL-000007 TRACE 89865458"
+    },
+    {
+      "bank_transaction_id": "BNK-A5398D1CA6",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-06",
+      "amount": "792.14",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000004 TRACE 29997018"
+    },
+    {
+      "bank_transaction_id": "BNK-0F1247EA4E",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-08",
+      "amount": "175.73",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000006 TRACE 32269779"
     },
     {
       "bank_transaction_id": "BNK-D3BFBBB17F",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-07",
-      "amount": "235.84",
+      "value_date": "2026-10-06",
+      "amount": "600.32",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000009 TRACE 86397676"
+      "description": "GATEWAY_B PAYOUT STL-000008 TRACE 86397676"
     },
     {
       "bank_transaction_id": "BNK-49EBD34616",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-07",
-      "amount": "860.28",
+      "amount": "308.69",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000010 TRACE 68942178"
+      "description": "GATEWAY_A PAYOUT STL-000009 TRACE 68942178"
     },
     {
       "bank_transaction_id": "BNK-771FD5A423",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-08",
-      "amount": "1158.51",
+      "value_date": "2026-10-07",
+      "amount": "860.28",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000011 TRACE 50814428"
+      "description": "GATEWAY_B PAYOUT STL-000010 TRACE 50814428"
     },
     {
       "bank_transaction_id": "BNK-67B321BF21",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-08",
-      "amount": "120.78",
+      "amount": "1272.90",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000012 TRACE 46540265"
+      "description": "GATEWAY_A PAYOUT STL-000011 TRACE 46540265"
     },
     {
       "bank_transaction_id": "BNK-8A801EF1DA",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-09",
-      "amount": "561.05",
+      "value_date": "2026-10-08",
+      "amount": "120.78",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000013 TRACE 76276072"
+      "description": "GATEWAY_B PAYOUT STL-000012 TRACE 76276072"
     },
     {
       "bank_transaction_id": "BNK-147010F719",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-09",
-      "amount": "36.22",
+      "amount": "357.39",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000014 TRACE 90267122"
+      "description": "GATEWAY_A PAYOUT STL-000013 TRACE 90267122"
     },
     {
       "bank_transaction_id": "BNK-E30A3450FC",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-12",
-      "amount": "1347.43",
+      "value_date": "2026-10-09",
+      "amount": "36.22",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000015 TRACE 67985905"
+      "description": "GATEWAY_B PAYOUT STL-000014 TRACE 67985905"
     },
     {
       "bank_transaction_id": "BNK-52BC0A6A5D",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-12",
-      "amount": "321.68",
+      "amount": "934.49",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000016 TRACE 91029073"
+      "description": "GATEWAY_A PAYOUT STL-000015 TRACE 91029073"
     },
     {
       "bank_transaction_id": "BNK-0640181C6E",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-13",
-      "amount": "583.04",
+      "value_date": "2026-10-12",
+      "amount": "566.94",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000017 TRACE 22257687"
-    },
-    {
-      "bank_transaction_id": "BNK-F3964DB03F",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-13",
-      "amount": "880.80",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000019 TRACE 12784407"
-    },
-    {
-      "bank_transaction_id": "BNK-0A9384EC2B",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-13",
-      "amount": "106.04",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000021 TRACE 33513701"
+      "description": "GATEWAY_B PAYOUT STL-000016 TRACE 22257687"
     },
     {
       "bank_transaction_id": "BNK-F63A9ACA5E",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-13",
-      "amount": "1070.42",
+      "amount": "551.14",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000018 TRACE 87201917"
+      "description": "GATEWAY_A PAYOUT STL-000017 TRACE 87201917"
     },
     {
       "bank_transaction_id": "BNK-C3FFE3FA49",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-13",
-      "amount": "1168.56",
+      "amount": "880.80",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000020 TRACE 46173157"
+      "description": "GATEWAY_A PAYOUT STL-000019 TRACE 46173157"
+    },
+    {
+      "bank_transaction_id": "BNK-847872BDEB",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-13",
+      "amount": "158.39",
+      "currency": "USD",
+      "description": "GATEWAY_A PAYOUT STL-000021 TRACE 97444123"
+    },
+    {
+      "bank_transaction_id": "BNK-F3964DB03F",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-13",
+      "amount": "1070.42",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000018 TRACE 12784407"
+    },
+    {
+      "bank_transaction_id": "BNK-0A9384EC2B",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-13",
+      "amount": "1054.89",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000020 TRACE 33513701"
     },
     {
       "bank_transaction_id": "BNK-EA7135F221",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-19",
-      "amount": "1027.03",
+      "value_date": "2026-10-13",
+      "amount": "1978.25",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000023 TRACE 47333543"
+      "description": "GATEWAY_B PAYOUT STL-000022 TRACE 47333543"
     },
     {
       "bank_transaction_id": "BNK-FF2E76128B",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-19",
-      "amount": "1187.96",
+      "value_date": "2026-10-14",
+      "amount": "1027.03",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000024 TRACE 88561612"
+      "description": "GATEWAY_A PAYOUT STL-000023 TRACE 88561612"
     },
     {
       "bank_transaction_id": "BNK-A26F962882",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-15",
-      "amount": "1283.10",
+      "value_date": "2026-10-14",
+      "amount": "852.05",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000025 TRACE 75998319"
+      "description": "GATEWAY_B PAYOUT STL-000024 TRACE 75998319"
     },
     {
       "bank_transaction_id": "BNK-17F8140102",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-15",
-      "amount": "1181.18",
+      "amount": "1283.10",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000026 TRACE 73083727"
+      "description": "GATEWAY_A PAYOUT STL-000025 TRACE 73083727"
     },
     {
       "bank_transaction_id": "BNK-685913F9D3",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-16",
-      "amount": "865.73",
+      "value_date": "2026-10-15",
+      "amount": "1181.18",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000027 TRACE 54735895"
+      "description": "GATEWAY_B PAYOUT STL-000026 TRACE 54735895"
     },
     {
       "bank_transaction_id": "BNK-AB5230DFBD",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-16",
-      "amount": "329.70",
+      "amount": "865.73",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000028 TRACE 24039158"
+      "description": "GATEWAY_A PAYOUT STL-000027 TRACE 24039158"
     },
     {
       "bank_transaction_id": "BNK-29DB946570",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-19",
-      "amount": "1093.11",
+      "value_date": "2026-10-16",
+      "amount": "334.40",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000029 TRACE 54265498"
+      "description": "GATEWAY_B PAYOUT STL-000028 TRACE 54265498"
     },
     {
       "bank_transaction_id": "BNK-B16961929E",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-19",
-      "amount": "85.22",
+      "amount": "236.40",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000030 TRACE 76500726"
+      "description": "GATEWAY_A PAYOUT STL-000029 TRACE 76500726"
     },
     {
       "bank_transaction_id": "BNK-A949C8A43F",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-20",
-      "amount": "597.11",
+      "value_date": "2026-10-19",
+      "amount": "1046.36",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000031 TRACE 63747791"
-    },
-    {
-      "bank_transaction_id": "BNK-740964FBBF",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-20",
-      "amount": "148.19",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000033 TRACE 21819185"
-    },
-    {
-      "bank_transaction_id": "BNK-F81DAD09B2",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-20",
-      "amount": "321.28",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000035 TRACE 64247457"
+      "description": "GATEWAY_B PAYOUT STL-000030 TRACE 63747791"
     },
     {
       "bank_transaction_id": "BNK-C2D045DD1C",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-20",
-      "amount": "381.12",
+      "amount": "221.80",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000032 TRACE 83832717"
+      "description": "GATEWAY_A PAYOUT STL-000031 TRACE 83832717"
     },
     {
       "bank_transaction_id": "BNK-4050843242",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-20",
-      "amount": "495.79",
+      "amount": "180.81",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000034 TRACE 53389073"
+      "description": "GATEWAY_A PAYOUT STL-000033 TRACE 53389073"
     },
     {
       "bank_transaction_id": "BNK-83DD6AC7B8",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-20",
-      "amount": "615.92",
+      "amount": "321.28",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000036 TRACE 10154493"
+      "description": "GATEWAY_A PAYOUT STL-000035 TRACE 10154493"
+    },
+    {
+      "bank_transaction_id": "BNK-740964FBBF",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-20",
+      "amount": "480.29",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000032 TRACE 21819185"
+    },
+    {
+      "bank_transaction_id": "BNK-F81DAD09B2",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-20",
+      "amount": "495.79",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000034 TRACE 64247457"
     },
     {
       "bank_transaction_id": "BNK-DEA85C6E4A",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-21",
-      "amount": "798.70",
+      "value_date": "2026-10-20",
+      "amount": "615.92",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000037 TRACE 82825679"
+      "description": "GATEWAY_B PAYOUT STL-000036 TRACE 82825679"
     },
     {
       "bank_transaction_id": "BNK-69764414FD",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-21",
-      "amount": "512.68",
+      "amount": "399.87",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000038 TRACE 17275149"
+      "description": "GATEWAY_A PAYOUT STL-000037 TRACE 17275149"
     },
     {
       "bank_transaction_id": "BNK-84300568D2",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-22",
-      "amount": "1226.26",
+      "value_date": "2026-10-21",
+      "amount": "511.79",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000039 TRACE 58557203"
+      "description": "GATEWAY_B PAYOUT STL-000038 TRACE 58557203"
     },
     {
       "bank_transaction_id": "BNK-C19F64EEED",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-22",
-      "amount": "531.72",
+      "amount": "1226.26",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000040 TRACE 76906611"
+      "description": "GATEWAY_A PAYOUT STL-000039 TRACE 76906611"
     },
     {
       "bank_transaction_id": "BNK-71A01AC992",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-23",
-      "amount": "1449.74",
+      "value_date": "2026-10-22",
+      "amount": "692.73",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000041 TRACE 16927215"
+      "description": "GATEWAY_B PAYOUT STL-000040 TRACE 16927215"
     },
     {
       "bank_transaction_id": "BNK-44341C6494",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-23",
-      "amount": "1289.14",
+      "amount": "1449.74",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000042 TRACE 83715012"
+      "description": "GATEWAY_A PAYOUT STL-000041 TRACE 83715012"
     },
     {
       "bank_transaction_id": "BNK-ED218A1536",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-26",
-      "amount": "301.26",
+      "value_date": "2026-10-23",
+      "amount": "1289.14",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000043 TRACE 48658617"
+      "description": "GATEWAY_B PAYOUT STL-000042 TRACE 48658617"
     },
     {
       "bank_transaction_id": "BNK-E170286046",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-26",
-      "amount": "1058.48",
+      "amount": "301.26",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000044 TRACE 75056916"
+      "description": "GATEWAY_A PAYOUT STL-000043 TRACE 75056916"
     },
     {
       "bank_transaction_id": "BNK-071F15C7B6",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-27",
-      "amount": "359.06",
+      "value_date": "2026-10-26",
+      "amount": "455.40",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000045 TRACE 94560158"
-    },
-    {
-      "bank_transaction_id": "BNK-28B5B453CA",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-27",
-      "amount": "940.01",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000047 TRACE 51708177"
-    },
-    {
-      "bank_transaction_id": "BNK-17687213F9",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-27",
-      "amount": "452.89",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000049 TRACE 40158811"
+      "description": "GATEWAY_B PAYOUT STL-000044 TRACE 94560158"
     },
     {
       "bank_transaction_id": "BNK-CC9BDF0377",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-27",
-      "amount": "1865.87",
+      "amount": "359.06",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000046 TRACE 42117961"
+      "description": "GATEWAY_A PAYOUT STL-000045 TRACE 42117961"
     },
     {
       "bank_transaction_id": "BNK-038D03C91E",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-27",
-      "amount": "869.14",
+      "amount": "1388.09",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000048 TRACE 84121929"
+      "description": "GATEWAY_A PAYOUT STL-000047 TRACE 84121929"
     },
     {
       "bank_transaction_id": "BNK-D7FE049059",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-27",
-      "amount": "854.48",
+      "amount": "634.69",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000050 TRACE 25228493"
+      "description": "GATEWAY_A PAYOUT STL-000049 TRACE 25228493"
+    },
+    {
+      "bank_transaction_id": "BNK-28B5B453CA",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-27",
+      "amount": "1684.20",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000046 TRACE 51708177"
+    },
+    {
+      "bank_transaction_id": "BNK-17687213F9",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-27",
+      "amount": "1010.40",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000048 TRACE 40158811"
     },
     {
       "bank_transaction_id": "BNK-F2762172ED",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-28",
-      "amount": "908.41",
+      "value_date": "2026-10-27",
+      "amount": "913.02",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000051 TRACE 25766039"
-    },
-    {
-      "bank_transaction_id": "BNK-D5A5D04D53",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-28",
-      "amount": "740.74",
-      "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000052 TRACE 30665654"
+      "description": "GATEWAY_B PAYOUT STL-000050 TRACE 25766039"
     },
     {
       "bank_transaction_id": "BNK-EE7F95897C",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-10-29",
-      "amount": "1080.75",
+      "value_date": "2026-10-28",
+      "amount": "434.16",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000053 TRACE 49172995"
+      "description": "GATEWAY_B PAYOUT STL-000052 TRACE 49172995"
     },
     {
       "bank_transaction_id": "BNK-B482456FB4",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-29",
+      "amount": "1080.75",
+      "currency": "USD",
+      "description": "GATEWAY_A PAYOUT STL-000053 TRACE 46698468"
+    },
+    {
+      "bank_transaction_id": "BNK-D56A5D932B",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-29",
       "amount": "1601.51",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000054 TRACE 46698468"
+      "description": "GATEWAY_B PAYOUT STL-000054 TRACE 74759996"
     },
     {
       "bank_transaction_id": "BNK-B9486822B9",
@@ -489,22 +489,22 @@
       "description": "GATEWAY_B PAYOUT STL-000062 TRACE 50071487"
     },
     {
-      "bank_transaction_id": "BNK-D56A5D932B",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-10-30",
-      "amount": "1.50",
-      "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000055 TRACE 74759996"
-    },
-    {
       "bank_transaction_id": "BNK-78FAF14FF0",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-10-30",
-      "amount": "742.54",
+      "amount": "341.04",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000056 TRACE 42713008"
+      "description": "GATEWAY_A PAYOUT STL-000055 TRACE 42713008"
+    },
+    {
+      "bank_transaction_id": "BNK-8D74EFF545",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-10-30",
+      "amount": "651.03",
+      "currency": "USD",
+      "description": "GATEWAY_B PAYOUT STL-000056 TRACE 29413516"
     },
     {
       "bank_transaction_id": "BNK-897250EE18",
@@ -516,49 +516,49 @@
       "description": "GATEWAY_B PAYOUT STL-000063 TRACE 75007200"
     },
     {
-      "bank_transaction_id": "BNK-8D74EFF545",
+      "bank_transaction_id": "BNK-306232B17A",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-11-02",
       "amount": "1747.38",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000057 TRACE 29413516"
-    },
-    {
-      "bank_transaction_id": "BNK-306232B17A",
-      "account_ref": "ACC-0001",
-      "direction": "credit",
-      "value_date": "2026-11-02",
-      "amount": "834.90",
-      "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000058 TRACE 90447099"
+      "description": "GATEWAY_A PAYOUT STL-000057 TRACE 90447099"
     },
     {
       "bank_transaction_id": "BNK-BF821C1336",
       "account_ref": "ACC-0001",
       "direction": "credit",
-      "value_date": "2026-11-03",
-      "amount": "334.85",
+      "value_date": "2026-11-02",
+      "amount": "990.14",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000059 TRACE 28321839"
+      "description": "GATEWAY_B PAYOUT STL-000058 TRACE 28321839"
     },
     {
       "bank_transaction_id": "BNK-11DD30DE89",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-11-03",
-      "amount": "364.50",
+      "amount": "334.85",
       "currency": "USD",
-      "description": "GATEWAY_A PAYOUT STL-000060 TRACE 47077298"
+      "description": "GATEWAY_A PAYOUT STL-000059 TRACE 47077298"
     },
     {
       "bank_transaction_id": "BNK-CAC5CE099C",
       "account_ref": "ACC-0001",
       "direction": "credit",
       "value_date": "2026-11-03",
+      "amount": "364.50",
+      "currency": "USD",
+      "description": "GATEWAY_A PAYOUT STL-000060 TRACE 65692629"
+    },
+    {
+      "bank_transaction_id": "BNK-EF57021049",
+      "account_ref": "ACC-0001",
+      "direction": "credit",
+      "value_date": "2026-11-03",
       "amount": "280.15",
       "currency": "USD",
-      "description": "GATEWAY_B PAYOUT STL-000061 TRACE 65692629"
+      "description": "GATEWAY_B PAYOUT STL-000061 TRACE 78147397"
     }
   ]
 }
