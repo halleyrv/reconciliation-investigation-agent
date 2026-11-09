@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:simulator:schema:payments:1.0.0",
+  "title": "Payment gateway captures",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "records"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "record_type": {
+      "const": "payments"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": [
+        "payment_id",
+        "order_ref",
+        "gateway",
+        "amount",
+        "currency",
+        "captured_at",
+        "settlement_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "payment_id": {
+          "type": "string",
+          "pattern": "^PAY-[0-9]{6}$"
+        },
+        "order_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Order the gateway says it belongs to: a claim, not a verified link"
+        },
+        "gateway": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]{2}$",
+          "description": "Positive decimal string with exactly 2 places"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 code"
+        },
+        "captured_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "description": "UTC instant"
+        },
+        "settlement_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

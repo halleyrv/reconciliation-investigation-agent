@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:simulator:schema:ground_truth:1.0.0",
+  "title": "Ground truth of injected anomalies and expected links",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "seed",
+    "anomalies",
+    "expected_links"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "anomalies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "anomaly_id",
+          "type",
+          "subtype",
+          "records",
+          "expected_delta",
+          "currency",
+          "description",
+          "injector",
+          "invariants_broken"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "anomaly_id": {
+            "type": "string",
+            "pattern": "^ANM-[0-9]{4}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "duplicate_payment",
+              "unauthorized_refund",
+              "incorrect_fee",
+              "missing_transaction",
+              "partial_payment",
+              "delayed_settlement",
+              "incorrect_amount",
+              "inconsistent_reference",
+              "out_of_order_event",
+              "duplicate_refund",
+              "conflicting_resent_record"
+            ]
+          },
+          "subtype": {
+            "type": "string",
+            "description": "Variant, for example the direction of a missing transaction; empty when the type has one form"
+          },
+          "records": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "source",
+                "external_id"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "orders",
+                    "payments",
+                    "fees",
+                    "refunds",
+                    "authorizations",
+                    "settlements",
+                    "bank_transactions"
+                  ]
+                },
+                "external_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "expected_delta": {
+            "type": "string",
+            "pattern": "^-?[0-9]+\\.[0-9]{2}$",
+            "description": "Signed impact: actual minus expected"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "ISO 4217 code"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "injector": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariants_broken": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^I[1-9]$"
+            }
+          }
+        }
+      }
+    },
+    "expected_links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "order_id",
+          "payment_id",
+          "settlement_id",
+          "bank_transaction_id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "pattern": "^ORD-[0-9]{6}$"
+          },
+          "payment_id": {
+            "type": "string",
+            "pattern": "^PAY-[0-9]{6}$"
+          },
+          "settlement_id": {
+            "type": "string",
+            "pattern": "^STL-[0-9]{6}$"
+          },
+          "bank_transaction_id": {
+            "type": "string",
+            "pattern": "^BNK-[0-9A-F]{10}$"
+          }
+        }
+      }
+    }
+  }
+}

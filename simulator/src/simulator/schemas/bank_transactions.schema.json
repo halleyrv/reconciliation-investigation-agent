@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:simulator:schema:bank_transactions:1.0.0",
+  "title": "Bank statement lines",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "records"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "record_type": {
+      "const": "bank_transactions"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": [
+        "bank_transaction_id",
+        "account_ref",
+        "direction",
+        "value_date",
+        "amount",
+        "currency",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bank_transaction_id": {
+          "type": "string",
+          "pattern": "^BNK-[0-9A-F]{10}$"
+        },
+        "account_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "credit",
+            "debit"
+          ]
+        },
+        "value_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "amount": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]{2}$",
+          "description": "Positive decimal string with exactly 2 places"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 code"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Free text; payouts mention the settlement ID"
+        }
+      }
+    }
+  }
+}
