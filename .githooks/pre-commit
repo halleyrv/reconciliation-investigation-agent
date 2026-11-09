@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Runs the quality gate before every commit. Installed with: git config core.hooksPath .githooks
+# shortcut: checks the working tree, not only the staged content; stash unstaged changes if they differ.
+exec "$(git rev-parse --show-toplevel)/scripts/check.sh"

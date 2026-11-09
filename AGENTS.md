@@ -18,6 +18,7 @@ An AI-powered financial reconciliation and investigation system. It ingests reco
 | Bounded contexts, aggregates, events | [`docs/architecture/bounded-contexts.md`](docs/architecture/bounded-contexts.md) |
 | Relational model and denormalization register | [`docs/architecture/data-model.md`](docs/architecture/data-model.md) |
 | Folder layout, layer rules, port inventory | [`docs/architecture/project-structure.md`](docs/architecture/project-structure.md) |
+| How a phase is reviewed before it closes | [`docs/process/phase-review.md`](docs/process/phase-review.md) |
 | Why a decision was made | [`docs/adr/README.md`](docs/adr/README.md) (index with area and one-line decision) |
 
 ## Non-negotiable principles
@@ -47,7 +48,7 @@ An AI-powered financial reconciliation and investigation system. It ingests reco
 1. The owner writes a phase in `docs/roadmap/phase-N-<name>.md`. Agents never rewrite it; approved changes go to its `Amendments` table.
 2. When a phase starts, the agent creates its ODD document in `odd/tasks/` and splits the phase into tasks.
 3. Work goes task by task. A task is `done` only with evidence: a passing test and a commit. Generating files is not evidence.
-4. A phase is `done` only when every acceptance criterion is proven. The agent reports the phase result to the owner **before** starting the next one.
+4. A phase is `done` only when every acceptance criterion is proven and the [phase review](docs/process/phase-review.md) has run with its critical and high findings fixed. The agent reports the phase result to the owner **before** starting the next one.
 5. Any decision with real alternatives gets an ADR in `docs/adr/`, added to the index in the same change. Accepted ADRs are never edited, only superseded.
 6. Decisions marked `Proposed` need the owner's approval before anything that depends on them is built.
 
@@ -60,7 +61,15 @@ One script validates that the repository works: formatting, lint, import contrac
 3. **Never bypass it:** no `--no-verify`, no skipped or deleted tests to get green. A failure you cannot fix is reported to the owner as a blocker.
 4. **Branches:** each phase is developed on its own branch (`feat/pN-<name>`), never directly on `main`.
 
-`scripts/check.sh` is created in Phase 0. Until it exists, there is no quality gate, and that must be stated in the task log.
+Commands (run on this repository):
+
+```bash
+uv sync --locked                          # install the locked environment
+git config core.hooksPath .githooks       # enable the pre-commit hook (once per clone)
+scripts/check.sh                          # run the full gate
+```
+
+Steps of the gate, in order: `ruff format --check .`, `ruff check .`, `lint-imports`, `mypy`, `pytest -q`, each through `uv run --locked`. Import contracts live in `[tool.importlinter]` in the root `pyproject.toml`.
 
 ## Testing: TDD is mandatory
 
@@ -82,7 +91,7 @@ Test types:
 - Domain and application tests use no database and no network (in-memory fakes of ports).
 - Adapter tests run against a real PostgreSQL.
 - Simulator output must be reproducible: same seed and config produce byte-identical output.
-- Commands: defined in Phase 0 (not yet available). Until then, do not assume a test runner exists.
+- Run the tests: `uv run --locked pytest -q`, or one file with `uv run --locked pytest -q <path>`.
 
 ## Conventions
 

@@ -19,7 +19,7 @@ All phases start as pending. A phase is never marked done just because files wer
 
 | Phase | Goal | Status | Spec | Detail |
 |-------|------|--------|------|--------|
-| 0 | Foundations: git, uv workspace, tooling, quality gate | pending | [phase-0](phase-0-foundations.md) | — |
+| 0 | Foundations: git, uv workspace, tooling, quality gate | done | [phase-0](phase-0-foundations.md) | [p0-foundations](../../odd/tasks/p0-foundations.md) |
 | 1 | Financial Data Simulator | pending | [phase-1](phase-1-financial-data-simulator.md) | — |
 | 2 | Backend and reconciliation engine (2a ingestion, 2b engine + evaluation, 2c cases, audit, API) | pending | [phase-2](phase-2-backend-and-reconciliation-engine.md) | — |
 | 3 | Hybrid RAG and evidence verification | pending | [phase-3](phase-3-hybrid-rag-and-evidence-verification.md) | — |
