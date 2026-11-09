@@ -34,3 +34,21 @@ Prepare the repository so Phase 1 (Financial Data Simulator) can be built on a w
 | Backend hexagonal skeleton, FastAPI `/health` | Phase 2 |
 | Langfuse | The phase that introduces the investigation agent |
 | CI (GitHub Actions) | When the repository has a remote (owner decision) |
+
+---
+
+## Amendments
+
+Changes approved by the owner after the original text above. The original is never edited.
+
+| Date | Change | Approved by |
+|------|--------|-------------|
+| 2026-11-09 | **CI moves into this phase.** The repository now has a remote (`github.com/halleyrv/reconciliation-investigation-agent`), which was the condition in *Out of scope*. CI is the last task of the phase, built once `scripts/check.sh` exists. Requirement and criterion below. | Owner |
+
+### Amendment 2026-11-09: CI
+
+**Requirement 9 — CI (GitHub Actions):** one workflow that installs `uv` and runs `scripts/check.sh`, on every push and every pull request. The workflow has no checks of its own: `scripts/check.sh` stays the single definition of the quality gate. Services such as PostgreSQL are added in the phase that first needs them (Phase 2).
+
+| ID | Criterion |
+|----|-----------|
+| AC7 | CI runs `scripts/check.sh` on every push and pull request. It is green on the clean tree. A throwaway branch carrying the deliberate forbidden import from AC2 makes CI fail and name the broken contract. The branch is deleted afterwards and never merged |
