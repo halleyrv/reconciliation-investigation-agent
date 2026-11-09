@@ -6,9 +6,26 @@ All data is synthetic, produced by an independent Financial Data Simulator. No r
 
 ## Status
 
-Phase 0 (foundations) is in progress. There is no runnable code yet. Setup and check commands will be added here once they have actually been run.
+Phase 0 (foundations) is in progress: the Python workspace and the quality gate exist, the simulator is still a skeleton. See the [roadmap](docs/roadmap/README.md) for every phase and its status.
 
-See the [roadmap](docs/roadmap/README.md) for every phase and its status.
+## Setup
+
+Requirements: [`uv`](https://docs.astral.sh/uv/) (verified with 0.12.5). Python 3.14 is pinned in `.python-version`; `uv` uses an installed 3.14 or downloads one.
+
+```bash
+git clone https://github.com/halleyrv/reconciliation-investigation-agent.git
+cd reconciliation-investigation-agent
+uv sync --locked                          # install the locked environment
+git config core.hooksPath .githooks       # run the quality gate before every commit
+```
+
+## Quality gate
+
+```bash
+scripts/check.sh
+```
+
+It runs format check, lint, import contracts, type checks and tests through `uv run --locked`, and stops at the first failure. The pre-commit hook and CI run the same script.
 
 ## Principles
 

@@ -37,10 +37,10 @@ Acceptance criteria (verbatim):
 | T2 | S2 | inline | done | Environment table in Log L3 |
 | T3 | S3 | inline | done | `.python-version` = `3.14`, `uv.lock`, `simulator/` src-layout package (L5) |
 | T4 | S4, AC1 | inline | done | ruff, mypy strict, pytest configured; example test passes (L6) |
-| T5 | S5 | inline | pending | — |
-| T6 | S6, AC1, AC4 | inline | pending | — |
-| T7 | S7, AC2, AC3 | inline | pending | — |
-| T8 | S8, AC5, AC6 | inline | pending | — |
+| T5 | S5 | inline | done | Forbidden contract in root `pyproject.toml`, `aac8a56`; proven broken in L8 |
+| T6 | S6, AC1, AC4 | inline | done | `e33c353`; AC1 and AC4 in L7 |
+| T7 | S7, AC2, AC3 | inline | done | L8 (probe never committed) |
+| T8 | S8, AC5, AC6 | inline | done | README + AGENTS.md commands; AC5 and AC6 in L9 |
 | T9 | S9, AC7 | inline | pending | — |
 | T10 | Phase review | independent reviewer | pending | — |
 
@@ -64,3 +64,6 @@ Route: every task is inline; no writer trigger applies (one sequential unit of s
 - **L4** (2026-11-09) Open decision for the owner: which Python version to pin (T3). The machine is Intel (`x86_64`), which matters for the local embedding and reranker models of ADR-0006 in Phase 3. Waiting for the owner.
 - **L5** (2026-11-09, owner) "dale, borrá la línea y seguimos con 3.14.8". Decision: Python 3.14. Tradeoff accepted: no native Intel-Mac wheels for `torch` (last 2.2.2, up to 3.12) or `onnxruntime` (last 1.23.2, up to 3.13), so Phase 3 local models run in Linux containers. `.python-version` pins `3.14` (not `3.14.8`): uv 0.12.5 only downloads up to 3.14.7, so an exact pin could break a fresh clone or CI (AC4). Local venv built on pyenv 3.14.8 (`uv venv --python 3.14.8`). Owner shell fix outside the repo: removed `pyenv global 3.6.15` from line 17 of `~/.zshrc` (backup `~/.zshrc.bak-2026-11-09`), set `pyenv global 3.14.8`.
 - **L6** (2026-11-09) Tooling versions locked: ruff 0.17.4, mypy 2.4.1+, pytest 9.2.0+, import-linter 2.16+. Observed: `ruff format --check .` (34 files, ruff also formats Python blocks inside Markdown), `ruff check .` passed, `lint-imports` 1 kept 0 broken, `mypy` no issues in 2 files, `pytest -q` 1 passed. TDD exception: configuration with no business behavior; the first test run failed only because `--import-mode=importlib` named the test module `simulator.tests.test_package` and shadowed the real `simulator` package, fixed by dropping that option.
+- **L7** (2026-11-09) T6. `scripts/check.sh` on the clean tree: exit 0, "quality gate passed" (AC1). Hook enabled with `git config core.hooksPath .githooks`; it ran and passed on commit `e33c353`. Fresh clone (`git clone` into `mktemp -d`, then `scripts/check.sh`): exit 0, using uv-managed Python 3.14.7, as the `3.14` pin intends (AC4). Scratch clone removed.
+- **L8** (2026-11-09) T7 negative proof with `simulator/src/simulator/forbidden_probe.py` (`from anthropic import Anthropic`, used so ruff does not flag it). AC2: `scripts/check.sh` exit 1, stopped at `lint-imports`: "Simulator is independent of the backend, LangGraph and LLM SDKs BROKEN", "simulator.forbidden_probe -> anthropic (l.1)". AC3: file staged, `git commit` exit 1 with the same broken contract, `HEAD` did not move. Probe unstaged and deleted; `scripts/check.sh` exit 0 again; `git status` clean.
+- **L9** (2026-11-09) T8. Commands documented in README and AGENTS.md were all run in this phase: `uv sync --locked`, `git config core.hooksPath .githooks`, `scripts/check.sh`, `uv run --locked pytest -q <path>` (1 passed), `git clone` of the GitHub URL (AC5). AC6: grep over `git ls-files` for token, key and password patterns and for `.env`/`.pem`/`id_rsa` files: no matches.

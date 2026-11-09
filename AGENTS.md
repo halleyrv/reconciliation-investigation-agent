@@ -61,7 +61,15 @@ One script validates that the repository works: formatting, lint, import contrac
 3. **Never bypass it:** no `--no-verify`, no skipped or deleted tests to get green. A failure you cannot fix is reported to the owner as a blocker.
 4. **Branches:** each phase is developed on its own branch (`feat/pN-<name>`), never directly on `main`.
 
-`scripts/check.sh` is created in Phase 0. Until it exists, there is no quality gate, and that must be stated in the task log.
+Commands (run on this repository):
+
+```bash
+uv sync --locked                          # install the locked environment
+git config core.hooksPath .githooks       # enable the pre-commit hook (once per clone)
+scripts/check.sh                          # run the full gate
+```
+
+Steps of the gate, in order: `ruff format --check .`, `ruff check .`, `lint-imports`, `mypy`, `pytest -q`, each through `uv run --locked`. Import contracts live in `[tool.importlinter]` in the root `pyproject.toml`.
 
 ## Testing: TDD is mandatory
 
@@ -83,7 +91,7 @@ Test types:
 - Domain and application tests use no database and no network (in-memory fakes of ports).
 - Adapter tests run against a real PostgreSQL.
 - Simulator output must be reproducible: same seed and config produce byte-identical output.
-- Commands: defined in Phase 0 (not yet available). Until then, do not assume a test runner exists.
+- Run the tests: `uv run --locked pytest -q`, or one file with `uv run --locked pytest -q <path>`.
 
 ## Conventions
 
