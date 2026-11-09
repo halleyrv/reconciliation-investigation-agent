@@ -1,0 +1,1842 @@
+{
+  "schema_version": "1.0.0",
+  "record_type": "payments",
+  "records": [
+    {
+      "payment_id": "PAY-000001",
+      "order_ref": "ORD-000001",
+      "gateway": "gateway_b",
+      "amount": "483.23",
+      "currency": "USD",
+      "captured_at": "2026-10-01T04:21:31Z",
+      "settlement_ref": "STL-000002"
+    },
+    {
+      "payment_id": "PAY-000002",
+      "order_ref": "ORD-000002",
+      "gateway": "gateway_a",
+      "amount": "228.59",
+      "currency": "USD",
+      "captured_at": "2026-10-01T04:51:50Z",
+      "settlement_ref": "STL-000001"
+    },
+    {
+      "payment_id": "PAY-000003",
+      "order_ref": "ORD-000003",
+      "gateway": "gateway_b",
+      "amount": "114.63",
+      "currency": "USD",
+      "captured_at": "2026-10-01T07:58:00Z",
+      "settlement_ref": "STL-000002"
+    },
+    {
+      "payment_id": "PAY-000004",
+      "order_ref": "ORD-000004",
+      "gateway": "gateway_a",
+      "amount": "455.83",
+      "currency": "USD",
+      "captured_at": "2026-10-01T14:09:36Z",
+      "settlement_ref": "STL-000001"
+    },
+    {
+      "payment_id": "PAY-000005",
+      "order_ref": "ORD-000005",
+      "gateway": "gateway_a",
+      "amount": "417.19",
+      "currency": "USD",
+      "captured_at": "2026-10-02T00:01:26Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000006",
+      "order_ref": "ORD-000006",
+      "gateway": "gateway_b",
+      "amount": "214.44",
+      "currency": "USD",
+      "captured_at": "2026-10-02T06:22:37Z",
+      "settlement_ref": "STL-000004"
+    },
+    {
+      "payment_id": "PAY-000007",
+      "order_ref": "ORD-000007",
+      "gateway": "gateway_b",
+      "amount": "333.94",
+      "currency": "USD",
+      "captured_at": "2026-10-02T09:39:10Z",
+      "settlement_ref": "STL-000004"
+    },
+    {
+      "payment_id": "PAY-000008",
+      "order_ref": "ORD-000008",
+      "gateway": "gateway_b",
+      "amount": "264.84",
+      "currency": "USD",
+      "captured_at": "2026-10-02T10:35:07Z",
+      "settlement_ref": "STL-000004"
+    },
+    {
+      "payment_id": "PAY-000009",
+      "order_ref": "ORD-000009",
+      "gateway": "gateway_a",
+      "amount": "71.40",
+      "currency": "USD",
+      "captured_at": "2026-10-02T10:59:20Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000010",
+      "order_ref": "ORD-000010",
+      "gateway": "gateway_a",
+      "amount": "172.05",
+      "currency": "USD",
+      "captured_at": "2026-10-02T13:06:56Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000011",
+      "order_ref": "ORD-000011",
+      "gateway": "gateway_a",
+      "amount": "226.54",
+      "currency": "USD",
+      "captured_at": "2026-10-02T13:11:30Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000012",
+      "order_ref": "ORD-000012",
+      "gateway": "gateway_a",
+      "amount": "251.96",
+      "currency": "USD",
+      "captured_at": "2026-10-02T18:28:22Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000013",
+      "order_ref": "ORD-000013",
+      "gateway": "gateway_a",
+      "amount": "318.47",
+      "currency": "USD",
+      "captured_at": "2026-10-02T21:21:09Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000014",
+      "order_ref": "ORD-000014",
+      "gateway": "gateway_a",
+      "amount": "244.49",
+      "currency": "USD",
+      "captured_at": "2026-10-02T23:15:54Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000015",
+      "order_ref": "ORD-000015",
+      "gateway": "gateway_a",
+      "amount": "81.85",
+      "currency": "USD",
+      "captured_at": "2026-10-03T07:37:00Z",
+      "settlement_ref": "STL-000005"
+    },
+    {
+      "payment_id": "PAY-000016",
+      "order_ref": "ORD-000016",
+      "gateway": "gateway_b",
+      "amount": "180.49",
+      "currency": "USD",
+      "captured_at": "2026-10-03T10:57:59Z",
+      "settlement_ref": "STL-000006"
+    },
+    {
+      "payment_id": "PAY-000017",
+      "order_ref": "ORD-000017",
+      "gateway": "gateway_a",
+      "amount": "451.29",
+      "currency": "USD",
+      "captured_at": "2026-10-03T15:11:28Z",
+      "settlement_ref": "STL-000005"
+    },
+    {
+      "payment_id": "PAY-000018",
+      "order_ref": "ORD-000018",
+      "gateway": "gateway_a",
+      "amount": "160.10",
+      "currency": "USD",
+      "captured_at": "2026-10-03T18:05:47Z",
+      "settlement_ref": "STL-000005"
+    },
+    {
+      "payment_id": "PAY-000019",
+      "order_ref": "ORD-000019",
+      "gateway": "gateway_b",
+      "amount": "145.55",
+      "currency": "USD",
+      "captured_at": "2026-10-04T00:59:46Z",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "payment_id": "PAY-000020",
+      "order_ref": "ORD-000020",
+      "gateway": "gateway_b",
+      "amount": "262.16",
+      "currency": "USD",
+      "captured_at": "2026-10-04T02:42:04Z",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "payment_id": "PAY-000021",
+      "order_ref": "ORD-000021",
+      "gateway": "gateway_a",
+      "amount": "437.13",
+      "currency": "USD",
+      "captured_at": "2026-10-04T08:48:45Z",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "payment_id": "PAY-000022",
+      "order_ref": "ORD-000022",
+      "gateway": "gateway_b",
+      "amount": "192.92",
+      "currency": "USD",
+      "captured_at": "2026-10-04T09:37:08Z",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "payment_id": "PAY-000023",
+      "order_ref": "ORD-000023",
+      "gateway": "gateway_b",
+      "amount": "16.10",
+      "currency": "USD",
+      "captured_at": "2026-10-04T13:14:01Z",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "payment_id": "PAY-000024",
+      "order_ref": "ORD-000024",
+      "gateway": "gateway_a",
+      "amount": "462.86",
+      "currency": "USD",
+      "captured_at": "2026-10-04T16:17:39Z",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "payment_id": "PAY-000025",
+      "order_ref": "ORD-000025",
+      "gateway": "gateway_a",
+      "amount": "300.41",
+      "currency": "USD",
+      "captured_at": "2026-10-04T15:53:44Z",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "payment_id": "PAY-000026",
+      "order_ref": "ORD-000026",
+      "gateway": "gateway_a",
+      "amount": "100.68",
+      "currency": "USD",
+      "captured_at": "2026-10-04T22:09:04Z",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "payment_id": "PAY-000027",
+      "order_ref": "ORD-000027",
+      "gateway": "gateway_a",
+      "amount": "318.22",
+      "currency": "USD",
+      "captured_at": "2026-10-05T00:17:17Z",
+      "settlement_ref": "STL-000009"
+    },
+    {
+      "payment_id": "PAY-000028",
+      "order_ref": "ORD-000028",
+      "gateway": "gateway_b",
+      "amount": "195.98",
+      "currency": "USD",
+      "captured_at": "2026-10-05T02:54:30Z",
+      "settlement_ref": "STL-000010"
+    },
+    {
+      "payment_id": "PAY-000029",
+      "order_ref": "ORD-000029",
+      "gateway": "gateway_b",
+      "amount": "245.26",
+      "currency": "USD",
+      "captured_at": "2026-10-05T17:22:39Z",
+      "settlement_ref": "STL-000010"
+    },
+    {
+      "payment_id": "PAY-000030",
+      "order_ref": "ORD-000030",
+      "gateway": "gateway_b",
+      "amount": "441.87",
+      "currency": "USD",
+      "captured_at": "2026-10-05T17:20:38Z",
+      "settlement_ref": "STL-000010"
+    },
+    {
+      "payment_id": "PAY-000031",
+      "order_ref": "ORD-000031",
+      "gateway": "gateway_b",
+      "amount": "98.00",
+      "currency": "USD",
+      "captured_at": "2026-10-06T00:49:35Z",
+      "settlement_ref": "STL-000012"
+    },
+    {
+      "payment_id": "PAY-000032",
+      "order_ref": "ORD-000032",
+      "gateway": "gateway_a",
+      "amount": "288.62",
+      "currency": "USD",
+      "captured_at": "2026-10-06T04:23:29Z",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "payment_id": "PAY-000033",
+      "order_ref": "ORD_000033",
+      "gateway": "gateway_a",
+      "amount": "496.55",
+      "currency": "USD",
+      "captured_at": "2026-10-06T05:01:26Z",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "payment_id": "PAY-000034",
+      "order_ref": "ORD-000034",
+      "gateway": "gateway_a",
+      "amount": "172.95",
+      "currency": "USD",
+      "captured_at": "2026-10-06T07:31:56Z",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "payment_id": "PAY-000035",
+      "order_ref": "ORD-000035",
+      "gateway": "gateway_b",
+      "amount": "26.39",
+      "currency": "USD",
+      "captured_at": "2026-10-06T09:59:49Z",
+      "settlement_ref": "STL-000012"
+    },
+    {
+      "payment_id": "PAY-000036",
+      "order_ref": "ORD-000036",
+      "gateway": "gateway_a",
+      "amount": "181.18",
+      "currency": "USD",
+      "captured_at": "2026-10-06T15:03:06Z",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "payment_id": "PAY-000037",
+      "order_ref": "ORD-000037",
+      "gateway": "gateway_a",
+      "amount": "383.34",
+      "currency": "USD",
+      "captured_at": "2026-10-06T20:20:41Z",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "payment_id": "PAY-000038",
+      "order_ref": "ORD-000038",
+      "gateway": "gateway_a",
+      "amount": "258.07",
+      "currency": "USD",
+      "captured_at": "2026-10-07T02:04:09Z",
+      "settlement_ref": "STL-000013"
+    },
+    {
+      "payment_id": "PAY-000039",
+      "order_ref": "ORD-000039",
+      "gateway": "gateway_a",
+      "amount": "320.35",
+      "currency": "USD",
+      "captured_at": "2026-10-07T03:42:29Z",
+      "settlement_ref": "STL-000013"
+    },
+    {
+      "payment_id": "PAY-000040",
+      "order_ref": "ORD-000040",
+      "gateway": "gateway_b",
+      "amount": "37.41",
+      "currency": "USD",
+      "captured_at": "2026-10-07T04:54:28Z",
+      "settlement_ref": "STL-000014"
+    },
+    {
+      "payment_id": "PAY-000041",
+      "order_ref": "ORD-000041",
+      "gateway": "gateway_a",
+      "amount": "439.95",
+      "currency": "USD",
+      "captured_at": "2026-10-08T04:47:44Z",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "payment_id": "PAY-000042",
+      "order_ref": "ORD-000042",
+      "gateway": "gateway_a",
+      "amount": "295.40",
+      "currency": "USD",
+      "captured_at": "2026-10-08T11:05:26Z",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "payment_id": "PAY-000043",
+      "order_ref": "ORD-000043",
+      "gateway": "gateway_a",
+      "amount": "469.58",
+      "currency": "USD",
+      "captured_at": "2026-10-08T17:55:20Z",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "payment_id": "PAY-000044",
+      "order_ref": "ORD-000044",
+      "gateway": "gateway_b",
+      "amount": "455.96",
+      "currency": "USD",
+      "captured_at": "2026-10-08T19:04:45Z",
+      "settlement_ref": "STL-000016"
+    },
+    {
+      "payment_id": "PAY-000045",
+      "order_ref": "ORD-000045",
+      "gateway": "gateway_b",
+      "amount": "126.03",
+      "currency": "USD",
+      "captured_at": "2026-10-08T21:21:52Z",
+      "settlement_ref": "STL-000016"
+    },
+    {
+      "payment_id": "PAY-000046",
+      "order_ref": "ORD-000046",
+      "gateway": "gateway_a",
+      "amount": "213.84",
+      "currency": "USD",
+      "captured_at": "2026-10-08T23:28:03Z",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "payment_id": "PAY-000047",
+      "order_ref": "ORD-000047",
+      "gateway": "gateway_a",
+      "amount": "258.36",
+      "currency": "USD",
+      "captured_at": "2026-10-09T00:16:07Z",
+      "settlement_ref": "STL-000017"
+    },
+    {
+      "payment_id": "PAY-000048",
+      "order_ref": "ORD-000048",
+      "gateway": "gateway_b",
+      "amount": "413.38",
+      "currency": "USD",
+      "captured_at": "2026-10-09T11:13:36Z",
+      "settlement_ref": "STL-000018"
+    },
+    {
+      "payment_id": "PAY-000049",
+      "order_ref": "ORD-000049",
+      "gateway": "gateway_a",
+      "amount": "342.71",
+      "currency": "USD",
+      "captured_at": "2026-10-09T17:08:35Z",
+      "settlement_ref": "STL-000017"
+    },
+    {
+      "payment_id": "PAY-000050",
+      "order_ref": "ORD-000050",
+      "gateway": "gateway_b",
+      "amount": "492.71",
+      "currency": "USD",
+      "captured_at": "2026-10-09T17:52:07Z",
+      "settlement_ref": "STL-000018"
+    },
+    {
+      "payment_id": "PAY-000051",
+      "order_ref": "ORD-000051",
+      "gateway": "gateway_b",
+      "amount": "192.54",
+      "currency": "USD",
+      "captured_at": "2026-10-09T22:04:17Z",
+      "settlement_ref": "STL-000018"
+    },
+    {
+      "payment_id": "PAY-000052",
+      "order_ref": "ORD-000052",
+      "gateway": "gateway_a",
+      "amount": "204.45",
+      "currency": "USD",
+      "captured_at": "2026-10-10T05:19:18Z",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "payment_id": "PAY-000053",
+      "order_ref": "ORD-000053",
+      "gateway": "gateway_a",
+      "amount": "66.10",
+      "currency": "USD",
+      "captured_at": "2026-10-10T07:25:27Z",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "payment_id": "PAY-000054",
+      "order_ref": "ORD-000054",
+      "gateway": "gateway_a",
+      "amount": "471.74",
+      "currency": "USD",
+      "captured_at": "2026-10-10T08:05:33Z",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "payment_id": "PAY-000055",
+      "order_ref": "ORD-000055",
+      "gateway": "gateway_b",
+      "amount": "271.13",
+      "currency": "USD",
+      "captured_at": "2026-10-10T09:20:16Z",
+      "settlement_ref": "STL-000020"
+    },
+    {
+      "payment_id": "PAY-000056",
+      "order_ref": "ORD-000056",
+      "gateway": "gateway_a",
+      "amount": "59.80",
+      "currency": "USD",
+      "captured_at": "2026-10-10T15:11:42Z",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "payment_id": "PAY-000057",
+      "order_ref": "ORD-000057",
+      "gateway": "gateway_b",
+      "amount": "479.25",
+      "currency": "USD",
+      "captured_at": "2026-10-10T15:55:17Z",
+      "settlement_ref": "STL-000020"
+    },
+    {
+      "payment_id": "PAY-000058",
+      "order_ref": "ORD-000058",
+      "gateway": "gateway_a",
+      "amount": "106.56",
+      "currency": "USD",
+      "captured_at": "2026-10-10T16:03:50Z",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "payment_id": "PAY-000059",
+      "order_ref": "ORD-000059",
+      "gateway": "gateway_b",
+      "amount": "448.91",
+      "currency": "USD",
+      "captured_at": "2026-10-10T22:15:32Z",
+      "settlement_ref": "STL-000020"
+    },
+    {
+      "payment_id": "PAY-000060",
+      "order_ref": "ORD-000060",
+      "gateway": "gateway_b",
+      "amount": "291.73",
+      "currency": "USD",
+      "captured_at": "2026-10-11T05:25:04Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000061",
+      "order_ref": "ORD-000061",
+      "gateway": "gateway_b",
+      "amount": "381.70",
+      "currency": "USD",
+      "captured_at": "2026-10-11T06:03:46Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000062",
+      "order_ref": "ORD-000062",
+      "gateway": "gateway_b",
+      "amount": "190.95",
+      "currency": "USD",
+      "captured_at": "2026-10-11T06:59:39Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000063",
+      "order_ref": "ORD-000063",
+      "gateway": "gateway_b",
+      "amount": "341.53",
+      "currency": "USD",
+      "captured_at": "2026-10-11T08:30:05Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000064",
+      "order_ref": "ORD-000064",
+      "gateway": "gateway_b",
+      "amount": "52.09",
+      "currency": "USD",
+      "captured_at": "2026-10-11T09:44:42Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000065",
+      "order_ref": "ORD-000065",
+      "gateway": "gateway_b",
+      "amount": "314.76",
+      "currency": "USD",
+      "captured_at": "2026-10-11T14:49:40Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000066",
+      "order_ref": "ORD-000066",
+      "gateway": "gateway_b",
+      "amount": "100.65",
+      "currency": "USD",
+      "captured_at": "2026-10-11T15:38:19Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000067",
+      "order_ref": "ORD-000067",
+      "gateway": "gateway_b",
+      "amount": "188.87",
+      "currency": "USD",
+      "captured_at": "2026-10-11T16:12:20Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000068",
+      "order_ref": "ORD-000068",
+      "gateway": "gateway_a",
+      "amount": "8.38",
+      "currency": "USD",
+      "captured_at": "2026-10-11T17:23:07Z",
+      "settlement_ref": "STL-000021"
+    },
+    {
+      "payment_id": "PAY-000069",
+      "order_ref": "ORD-000069",
+      "gateway": "gateway_a",
+      "amount": "101.44",
+      "currency": "USD",
+      "captured_at": "2026-10-11T20:50:14Z",
+      "settlement_ref": "STL-000021"
+    },
+    {
+      "payment_id": "PAY-000070",
+      "order_ref": "ORD-000070",
+      "gateway": "gateway_b",
+      "amount": "51.96",
+      "currency": "USD",
+      "captured_at": "2026-10-11T21:49:24Z",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "payment_id": "PAY-000071",
+      "order_ref": "ORD-000071",
+      "gateway": "gateway_a",
+      "amount": "156.09",
+      "currency": "USD",
+      "captured_at": "2026-10-12T01:55:37Z",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "payment_id": "PAY-000072",
+      "order_ref": "ORD-000072",
+      "gateway": "gateway_a",
+      "amount": "199.65",
+      "currency": "USD",
+      "captured_at": "2026-10-12T02:30:07Z",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "payment_id": "PAY-000073",
+      "order_ref": "ORD-000073",
+      "gateway": "gateway_b",
+      "amount": "76.19",
+      "currency": "USD",
+      "captured_at": "2026-10-12T07:32:43Z",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "payment_id": "PAY-000074",
+      "order_ref": "ORD-000074",
+      "gateway": "gateway_b",
+      "amount": "450.92",
+      "currency": "USD",
+      "captured_at": "2026-10-12T09:54:20Z",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "payment_id": "PAY-000075",
+      "order_ref": "ORD-000075",
+      "gateway": "gateway_b",
+      "amount": "118.99",
+      "currency": "USD",
+      "captured_at": "2026-10-12T11:57:46Z",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "payment_id": "PAY-000076",
+      "order_ref": "ORD-000076",
+      "gateway": "gateway_b",
+      "amount": "192.50",
+      "currency": "USD",
+      "captured_at": "2026-10-12T13:32:50Z",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "payment_id": "PAY-000077",
+      "order_ref": "ORD-000077",
+      "gateway": "gateway_a",
+      "amount": "381.82",
+      "currency": "USD",
+      "captured_at": "2026-10-12T16:44:28Z",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "payment_id": "PAY-000078",
+      "order_ref": "ORD-000078",
+      "gateway": "gateway_b",
+      "amount": "314.55",
+      "currency": "USD",
+      "captured_at": "2026-10-12T20:30:44Z",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "payment_id": "PAY-000079",
+      "order_ref": "ORD-000079",
+      "gateway": "gateway_a",
+      "amount": "321.38",
+      "currency": "USD",
+      "captured_at": "2026-10-12T21:47:19Z",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "payment_id": "PAY-000080",
+      "order_ref": "ORD-000080",
+      "gateway": "gateway_b",
+      "amount": "66.79",
+      "currency": "USD",
+      "captured_at": "2026-10-12T22:32:37Z",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "payment_id": "PAY-000081",
+      "order_ref": "ORD-000081",
+      "gateway": "gateway_b",
+      "amount": "427.89",
+      "currency": "USD",
+      "captured_at": "2026-10-13T00:56:04Z",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "payment_id": "PAY-000082",
+      "order_ref": "ORD-000082",
+      "gateway": "gateway_b",
+      "amount": "89.53",
+      "currency": "USD",
+      "captured_at": "2026-10-13T02:29:49Z",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "payment_id": "PAY-000083",
+      "order_ref": "ORD-000083",
+      "gateway": "gateway_a",
+      "amount": "447.08",
+      "currency": "USD",
+      "captured_at": "2026-10-13T03:08:01Z",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "payment_id": "PAY-000084",
+      "order_ref": "ORD-000084",
+      "gateway": "gateway_b",
+      "amount": "233.04",
+      "currency": "USD",
+      "captured_at": "2026-10-13T13:41:19Z",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "payment_id": "PAY-000085",
+      "order_ref": "ORD-000085",
+      "gateway": "gateway_b",
+      "amount": "115.89",
+      "currency": "USD",
+      "captured_at": "2026-10-13T17:50:09Z",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "payment_id": "PAY-000086",
+      "order_ref": "ORD_000086",
+      "gateway": "gateway_b",
+      "amount": "38.47",
+      "currency": "USD",
+      "captured_at": "2026-10-13T20:48:26Z",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "payment_id": "PAY-000087",
+      "order_ref": "ORD-000087",
+      "gateway": "gateway_a",
+      "amount": "101.50",
+      "currency": "USD",
+      "captured_at": "2026-10-13T21:27:48Z",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "payment_id": "PAY-000088",
+      "order_ref": "ORD-000088",
+      "gateway": "gateway_b",
+      "amount": "308.19",
+      "currency": "USD",
+      "captured_at": "2026-10-13T21:28:24Z",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "payment_id": "PAY-000089",
+      "order_ref": "ORD-000089",
+      "gateway": "gateway_a",
+      "amount": "35.07",
+      "currency": "USD",
+      "captured_at": "2026-10-13T21:58:39Z",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "payment_id": "PAY-000090",
+      "order_ref": "ORD-000090",
+      "gateway": "gateway_a",
+      "amount": "269.38",
+      "currency": "USD",
+      "captured_at": "2026-10-13T22:14:09Z",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "payment_id": "PAY-000091",
+      "order_ref": "ORD-000091",
+      "gateway": "gateway_a",
+      "amount": "469.94",
+      "currency": "USD",
+      "captured_at": "2026-10-13T23:45:11Z",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "payment_id": "PAY-000092",
+      "order_ref": "ORD-000092",
+      "gateway": "gateway_b",
+      "amount": "230.10",
+      "currency": "USD",
+      "captured_at": "2026-10-14T05:11:37Z",
+      "settlement_ref": "STL-000028"
+    },
+    {
+      "payment_id": "PAY-000093",
+      "order_ref": "ORD-000093",
+      "gateway": "gateway_a",
+      "amount": "374.24",
+      "currency": "USD",
+      "captured_at": "2026-10-14T10:28:20Z",
+      "settlement_ref": "STL-000027"
+    },
+    {
+      "payment_id": "PAY-000094",
+      "order_ref": "ORD-000094",
+      "gateway": "gateway_a",
+      "amount": "111.89",
+      "currency": "USD",
+      "captured_at": "2026-10-14T12:37:13Z",
+      "settlement_ref": "STL-000027"
+    },
+    {
+      "payment_id": "PAY-000095",
+      "order_ref": "ORD-000095",
+      "gateway": "gateway_a",
+      "amount": "406.38",
+      "currency": "USD",
+      "captured_at": "2026-10-14T17:05:40Z",
+      "settlement_ref": "STL-000027"
+    },
+    {
+      "payment_id": "PAY-000096",
+      "order_ref": "ORD-000096",
+      "gateway": "gateway_b",
+      "amount": "113.38",
+      "currency": "USD",
+      "captured_at": "2026-10-14T20:59:28Z",
+      "settlement_ref": "STL-000028"
+    },
+    {
+      "payment_id": "PAY-000097",
+      "order_ref": "ORD-000097",
+      "gateway": "gateway_b",
+      "amount": "421.98",
+      "currency": "USD",
+      "captured_at": "2026-10-15T06:14:32Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "payment_id": "PAY-000098",
+      "order_ref": "ORD-000098",
+      "gateway": "gateway_a",
+      "amount": "294.92",
+      "currency": "USD",
+      "captured_at": "2026-10-15T06:28:36Z",
+      "settlement_ref": "STL-000029"
+    },
+    {
+      "payment_id": "PAY-000099",
+      "order_ref": "ORD-000099",
+      "gateway": "gateway_a",
+      "amount": "373.33",
+      "currency": "USD",
+      "captured_at": "2026-10-15T08:41:22Z",
+      "settlement_ref": "STL-000029"
+    },
+    {
+      "payment_id": "PAY-000100",
+      "order_ref": "ORD-000100",
+      "gateway": "gateway_b",
+      "amount": "309.64",
+      "currency": "USD",
+      "captured_at": "2026-10-15T14:23:07Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "payment_id": "PAY-000101",
+      "order_ref": "ORD-000101",
+      "gateway": "gateway_b",
+      "amount": "342.34",
+      "currency": "USD",
+      "captured_at": "2026-10-15T14:40:03Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "payment_id": "PAY-000102",
+      "order_ref": "ORD-000102",
+      "gateway": "gateway_a",
+      "amount": "458.43",
+      "currency": "USD",
+      "captured_at": "2026-10-15T16:17:00Z",
+      "settlement_ref": "STL-000029"
+    },
+    {
+      "payment_id": "PAY-000103",
+      "order_ref": "ORD-000103",
+      "gateway": "gateway_b",
+      "amount": "271.48",
+      "currency": "USD",
+      "captured_at": "2026-10-16T03:40:56Z",
+      "settlement_ref": "STL-000032"
+    },
+    {
+      "payment_id": "PAY-000104",
+      "order_ref": "ORD-000104",
+      "gateway": "gateway_a",
+      "amount": "47.46",
+      "currency": "USD",
+      "captured_at": "2026-10-16T06:02:55Z",
+      "settlement_ref": "STL-000031"
+    },
+    {
+      "payment_id": "PAY-000105",
+      "order_ref": "ORD-000105",
+      "gateway": "gateway_a",
+      "amount": "444.75",
+      "currency": "USD",
+      "captured_at": "2026-10-16T06:33:55Z",
+      "settlement_ref": "STL-000031"
+    },
+    {
+      "payment_id": "PAY-000106",
+      "order_ref": "ORD-000106",
+      "gateway": "gateway_b",
+      "amount": "272.90",
+      "currency": "USD",
+      "captured_at": "2026-10-16T07:36:46Z",
+      "settlement_ref": "STL-000032"
+    },
+    {
+      "payment_id": "PAY-000107",
+      "order_ref": "ORD-000107",
+      "gateway": "gateway_a",
+      "amount": "330.21",
+      "currency": "USD",
+      "captured_at": "2026-10-16T17:48:17Z",
+      "settlement_ref": "STL-000031"
+    },
+    {
+      "payment_id": "PAY-000108",
+      "order_ref": "ORD-000108",
+      "gateway": "gateway_b",
+      "amount": "365.60",
+      "currency": "USD",
+      "captured_at": "2026-10-17T01:59:10Z",
+      "settlement_ref": "STL-000034"
+    },
+    {
+      "payment_id": "PAY-000109",
+      "order_ref": "ORD-000109",
+      "gateway": "gateway_a",
+      "amount": "76.98",
+      "currency": "USD",
+      "captured_at": "2026-10-17T08:36:05Z",
+      "settlement_ref": "STL-000033"
+    },
+    {
+      "payment_id": "PAY-000110",
+      "order_ref": "ORD-000110",
+      "gateway": "gateway_b",
+      "amount": "143.42",
+      "currency": "USD",
+      "captured_at": "2026-10-17T16:04:04Z",
+      "settlement_ref": "STL-000034"
+    },
+    {
+      "payment_id": "PAY-000111",
+      "order_ref": "ORD-000111",
+      "gateway": "gateway_a",
+      "amount": "55.08",
+      "currency": "USD",
+      "captured_at": "2026-10-17T23:03:12Z",
+      "settlement_ref": "STL-000033"
+    },
+    {
+      "payment_id": "PAY-000112",
+      "order_ref": "ORD-000112",
+      "gateway": "gateway_b",
+      "amount": "205.69",
+      "currency": "USD",
+      "captured_at": "2026-10-18T02:48:28Z",
+      "settlement_ref": "STL-000036"
+    },
+    {
+      "payment_id": "PAY-000113",
+      "order_ref": "ORD-000113",
+      "gateway": "gateway_b",
+      "amount": "426.53",
+      "currency": "USD",
+      "captured_at": "2026-10-18T14:47:33Z",
+      "settlement_ref": "STL-000036"
+    },
+    {
+      "payment_id": "PAY-000114",
+      "order_ref": "ORD-000114",
+      "gateway": "gateway_a",
+      "amount": "211.53",
+      "currency": "USD",
+      "captured_at": "2026-10-18T14:58:38Z",
+      "settlement_ref": "STL-000035"
+    },
+    {
+      "payment_id": "PAY-000115",
+      "order_ref": "ORD-000115",
+      "gateway": "gateway_a",
+      "amount": "119.96",
+      "currency": "USD",
+      "captured_at": "2026-10-18T22:41:13Z",
+      "settlement_ref": "STL-000035"
+    },
+    {
+      "payment_id": "PAY-000116",
+      "order_ref": "ORD-000116",
+      "gateway": "gateway_a",
+      "amount": "242.83",
+      "currency": "USD",
+      "captured_at": "2026-10-19T00:03:46Z",
+      "settlement_ref": "STL-000037"
+    },
+    {
+      "payment_id": "PAY-000117",
+      "order_ref": "ORD-000117",
+      "gateway": "gateway_a",
+      "amount": "115.87",
+      "currency": "USD",
+      "captured_at": "2026-10-19T04:19:51Z",
+      "settlement_ref": "STL-000037"
+    },
+    {
+      "payment_id": "PAY-000118",
+      "order_ref": "ORD-000118",
+      "gateway": "gateway_b",
+      "amount": "192.35",
+      "currency": "USD",
+      "captured_at": "2026-10-19T10:00:33Z",
+      "settlement_ref": "STL-000038"
+    },
+    {
+      "payment_id": "PAY-000119",
+      "order_ref": "ORD-000119",
+      "gateway": "gateway_a",
+      "amount": "464.78",
+      "currency": "USD",
+      "captured_at": "2026-10-19T15:04:49Z",
+      "settlement_ref": "STL-000037"
+    },
+    {
+      "payment_id": "PAY-000120",
+      "order_ref": "ORD-000120",
+      "gateway": "gateway_b",
+      "amount": "333.99",
+      "currency": "USD",
+      "captured_at": "2026-10-19T15:39:11Z",
+      "settlement_ref": "STL-000038"
+    },
+    {
+      "payment_id": "PAY-000121",
+      "order_ref": "ORD-000121",
+      "gateway": "gateway_b",
+      "amount": "487.24",
+      "currency": "USD",
+      "captured_at": "2026-10-20T14:00:25Z",
+      "settlement_ref": "STL-000040"
+    },
+    {
+      "payment_id": "PAY-000122",
+      "order_ref": "ORD-000122",
+      "gateway": "gateway_a",
+      "amount": "484.59",
+      "currency": "USD",
+      "captured_at": "2026-10-20T16:01:39Z",
+      "settlement_ref": "STL-000039"
+    },
+    {
+      "payment_id": "PAY-000123",
+      "order_ref": "ORD-000123",
+      "gateway": "gateway_a",
+      "amount": "330.19",
+      "currency": "USD",
+      "captured_at": "2026-10-20T18:19:01Z",
+      "settlement_ref": "STL-000039"
+    },
+    {
+      "payment_id": "PAY-000124",
+      "order_ref": "ORD-000124",
+      "gateway": "gateway_b",
+      "amount": "223.76",
+      "currency": "USD",
+      "captured_at": "2026-10-20T20:36:49Z",
+      "settlement_ref": "STL-000040"
+    },
+    {
+      "payment_id": "PAY-000125",
+      "order_ref": "ORD-000125",
+      "gateway": "gateway_a",
+      "amount": "449.03",
+      "currency": "USD",
+      "captured_at": "2026-10-20T23:59:32Z",
+      "settlement_ref": "STL-000039"
+    },
+    {
+      "payment_id": "PAY-000126",
+      "order_ref": "ORD-000126",
+      "gateway": "gateway_a",
+      "amount": "422.72",
+      "currency": "USD",
+      "captured_at": "2026-10-21T03:41:03Z",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "payment_id": "PAY-000127",
+      "order_ref": "ORD-000127",
+      "gateway": "gateway_a",
+      "amount": "362.72",
+      "currency": "USD",
+      "captured_at": "2026-10-21T08:45:31Z",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "payment_id": "PAY-000128",
+      "order_ref": "ORD-000128",
+      "gateway": "gateway_a",
+      "amount": "331.25",
+      "currency": "USD",
+      "captured_at": "2026-10-21T09:54:19Z",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "payment_id": "PAY-000129",
+      "order_ref": "ORD-000129",
+      "gateway": "gateway_b",
+      "amount": "445.76",
+      "currency": "USD",
+      "captured_at": "2026-10-21T10:38:03Z",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "payment_id": "PAY-000130",
+      "order_ref": "ORD-000130",
+      "gateway": "gateway_b",
+      "amount": "279.41",
+      "currency": "USD",
+      "captured_at": "2026-10-21T14:29:45Z",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "payment_id": "PAY-000131",
+      "order_ref": "ORD-000131",
+      "gateway": "gateway_a",
+      "amount": "377.59",
+      "currency": "USD",
+      "captured_at": "2026-10-21T18:25:36Z",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "payment_id": "PAY-000132",
+      "order_ref": "ORD-000132",
+      "gateway": "gateway_b",
+      "amount": "443.53",
+      "currency": "USD",
+      "captured_at": "2026-10-21T19:10:59Z",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "payment_id": "PAY-000133",
+      "order_ref": "ORD-000133",
+      "gateway": "gateway_b",
+      "amount": "98.93",
+      "currency": "USD",
+      "captured_at": "2026-10-21T19:35:06Z",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "payment_id": "PAY-000134",
+      "order_ref": "ORD-000134",
+      "gateway": "gateway_b",
+      "amount": "55.85",
+      "currency": "USD",
+      "captured_at": "2026-10-21T23:12:54Z",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "payment_id": "PAY-000135",
+      "order_ref": "ORD-000135",
+      "gateway": "gateway_b",
+      "amount": "236.54",
+      "currency": "USD",
+      "captured_at": "2026-10-22T02:48:29Z",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "payment_id": "PAY-000136",
+      "order_ref": "ORD-000136",
+      "gateway": "gateway_a",
+      "amount": "11.10",
+      "currency": "USD",
+      "captured_at": "2026-10-22T04:27:58Z",
+      "settlement_ref": "STL-000043"
+    },
+    {
+      "payment_id": "PAY-000137",
+      "order_ref": "ORD-000137",
+      "gateway": "gateway_b",
+      "amount": "60.77",
+      "currency": "USD",
+      "captured_at": "2026-10-22T08:45:49Z",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "payment_id": "PAY-000138",
+      "order_ref": "ORD-000138",
+      "gateway": "gateway_a",
+      "amount": "299.77",
+      "currency": "USD",
+      "captured_at": "2026-10-22T11:18:27Z",
+      "settlement_ref": "STL-000043"
+    },
+    {
+      "payment_id": "PAY-000139",
+      "order_ref": "ORD-000139",
+      "gateway": "gateway_b",
+      "amount": "411.50",
+      "currency": "USD",
+      "captured_at": "2026-10-22T12:35:19Z",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "payment_id": "PAY-000140",
+      "order_ref": "ORD-000140",
+      "gateway": "gateway_b",
+      "amount": "396.18",
+      "currency": "USD",
+      "captured_at": "2026-10-22T20:17:44Z",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "payment_id": "PAY-000141",
+      "order_ref": "ORD-000141",
+      "gateway": "gateway_b",
+      "amount": "426.60",
+      "currency": "USD",
+      "captured_at": "2026-10-23T00:27:16Z",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "payment_id": "PAY-000142",
+      "order_ref": "ORD-000142",
+      "gateway": "gateway_b",
+      "amount": "239.15",
+      "currency": "USD",
+      "captured_at": "2026-10-23T09:14:01Z",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "payment_id": "PAY-000143",
+      "order_ref": "ORD-000143",
+      "gateway": "gateway_b",
+      "amount": "258.67",
+      "currency": "USD",
+      "captured_at": "2026-10-23T11:18:30Z",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "payment_id": "PAY-000144",
+      "order_ref": "ORD-000144",
+      "gateway": "gateway_b",
+      "amount": "447.50",
+      "currency": "USD",
+      "captured_at": "2026-10-23T14:12:57Z",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "payment_id": "PAY-000145",
+      "order_ref": "ORD-000145",
+      "gateway": "gateway_a",
+      "amount": "93.64",
+      "currency": "USD",
+      "captured_at": "2026-10-23T17:00:19Z",
+      "settlement_ref": "STL-000045"
+    },
+    {
+      "payment_id": "PAY-000146",
+      "order_ref": "ORD-000146",
+      "gateway": "gateway_b",
+      "amount": "356.76",
+      "currency": "USD",
+      "captured_at": "2026-10-23T17:57:19Z",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "payment_id": "PAY-000147",
+      "order_ref": "ORD-000147",
+      "gateway": "gateway_a",
+      "amount": "276.77",
+      "currency": "USD",
+      "captured_at": "2026-10-23T23:10:08Z",
+      "settlement_ref": "STL-000045"
+    },
+    {
+      "payment_id": "PAY-000148",
+      "order_ref": "ORD-000148",
+      "gateway": "gateway_a",
+      "amount": "492.31",
+      "currency": "USD",
+      "captured_at": "2026-10-24T00:03:34Z",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "payment_id": "PAY-000149",
+      "order_ref": "ORD-000149",
+      "gateway": "gateway_b",
+      "amount": "304.95",
+      "currency": "USD",
+      "captured_at": "2026-10-24T01:53:57Z",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "payment_id": "PAY-000150",
+      "order_ref": "ORD-000150",
+      "gateway": "gateway_a",
+      "amount": "370.31",
+      "currency": "USD",
+      "captured_at": "2026-10-24T02:03:13Z",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "payment_id": "PAY-000151",
+      "order_ref": "ORD-000151",
+      "gateway": "gateway_b",
+      "amount": "433.29",
+      "currency": "USD",
+      "captured_at": "2026-10-24T03:12:24Z",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "payment_id": "PAY-000152",
+      "order_ref": "ORD-000152",
+      "gateway": "gateway_a",
+      "amount": "339.54",
+      "currency": "USD",
+      "captured_at": "2026-10-24T03:34:17Z",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "payment_id": "PAY-000153",
+      "order_ref": "ORD-000153",
+      "gateway": "gateway_b",
+      "amount": "150.08",
+      "currency": "USD",
+      "captured_at": "2026-10-24T08:53:53Z",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "payment_id": "PAY-000154",
+      "order_ref": "ORD-000154",
+      "gateway": "gateway_a",
+      "amount": "55.35",
+      "currency": "USD",
+      "captured_at": "2026-10-24T14:22:26Z",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "payment_id": "PAY-000155",
+      "order_ref": "ORD-000155",
+      "gateway": "gateway_b",
+      "amount": "149.01",
+      "currency": "USD",
+      "captured_at": "2026-10-24T16:57:09Z",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "payment_id": "PAY-000156",
+      "order_ref": "ORD-000156",
+      "gateway": "gateway_a",
+      "amount": "174.57",
+      "currency": "USD",
+      "captured_at": "2026-10-24T17:17:39Z",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "payment_id": "PAY-000157",
+      "order_ref": "ORD-000157",
+      "gateway": "gateway_b",
+      "amount": "269.28",
+      "currency": "USD",
+      "captured_at": "2026-10-25T05:49:02Z",
+      "settlement_ref": "STL-000050"
+    },
+    {
+      "payment_id": "PAY-000158",
+      "order_ref": "ORD-000158",
+      "gateway": "gateway_a",
+      "amount": "404.53",
+      "currency": "USD",
+      "captured_at": "2026-10-25T13:25:41Z",
+      "settlement_ref": "STL-000049"
+    },
+    {
+      "payment_id": "PAY-000159",
+      "order_ref": "ORD-000159",
+      "gateway": "gateway_b",
+      "amount": "434.37",
+      "currency": "USD",
+      "captured_at": "2026-10-25T13:30:34Z",
+      "settlement_ref": "STL-000050"
+    },
+    {
+      "payment_id": "PAY-000160",
+      "order_ref": "ORD-000160",
+      "gateway": "gateway_a",
+      "amount": "62.50",
+      "currency": "USD",
+      "captured_at": "2026-10-25T15:44:57Z",
+      "settlement_ref": "STL-000049"
+    },
+    {
+      "payment_id": "PAY-000161",
+      "order_ref": "ORD-000161",
+      "gateway": "gateway_b",
+      "amount": "271.93",
+      "currency": "USD",
+      "captured_at": "2026-10-25T17:32:25Z",
+      "settlement_ref": "STL-000050"
+    },
+    {
+      "payment_id": "PAY-000162",
+      "order_ref": "ORD-000162",
+      "gateway": "gateway_a",
+      "amount": "305.88",
+      "currency": "USD",
+      "captured_at": "2026-10-26T03:18:35Z",
+      "settlement_ref": "STL-000051"
+    },
+    {
+      "payment_id": "PAY-000163",
+      "order_ref": "ORD-000163",
+      "gateway": "gateway_a",
+      "amount": "314.44",
+      "currency": "USD",
+      "captured_at": "2026-10-26T04:06:25Z",
+      "settlement_ref": "STL-000051"
+    },
+    {
+      "payment_id": "PAY-000164",
+      "order_ref": "ORD-000164",
+      "gateway": "gateway_a",
+      "amount": "327.58",
+      "currency": "USD",
+      "captured_at": "2026-10-26T07:40:43Z",
+      "settlement_ref": "STL-000051"
+    },
+    {
+      "payment_id": "PAY-000165",
+      "order_ref": "ORD-000165",
+      "gateway": "gateway_b",
+      "amount": "436.28",
+      "currency": "USD",
+      "captured_at": "2026-10-26T08:35:16Z",
+      "settlement_ref": "STL-000052"
+    },
+    {
+      "payment_id": "PAY-000166",
+      "order_ref": "ORD-000166",
+      "gateway": "gateway_b",
+      "amount": "407.53",
+      "currency": "USD",
+      "captured_at": "2026-10-26T15:02:01Z",
+      "settlement_ref": "STL-000052"
+    },
+    {
+      "payment_id": "PAY-000167",
+      "order_ref": "ORD-000167",
+      "gateway": "gateway_b",
+      "amount": "15.12",
+      "currency": "USD",
+      "captured_at": "2026-10-26T17:01:25Z",
+      "settlement_ref": "STL-000052"
+    },
+    {
+      "payment_id": "PAY-000168",
+      "order_ref": "ORD-000168",
+      "gateway": "gateway_a",
+      "amount": "304.00",
+      "currency": "USD",
+      "captured_at": "2026-10-27T01:18:23Z",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "payment_id": "PAY-000169",
+      "order_ref": "ORD-000169",
+      "gateway": "gateway_b",
+      "amount": "184.86",
+      "currency": "USD",
+      "captured_at": "2026-10-27T01:45:02Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000170",
+      "order_ref": "ORD-000170",
+      "gateway": "gateway_b",
+      "amount": "326.86",
+      "currency": "USD",
+      "captured_at": "2026-10-27T03:31:14Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000171",
+      "order_ref": "ORD-000171",
+      "gateway": "gateway_b",
+      "amount": "96.71",
+      "currency": "USD",
+      "captured_at": "2026-10-27T04:32:16Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000172",
+      "order_ref": "ORD-000172",
+      "gateway": "gateway_a",
+      "amount": "488.36",
+      "currency": "USD",
+      "captured_at": "2026-10-27T05:08:41Z",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "payment_id": "PAY-000173",
+      "order_ref": "ORD-000173",
+      "gateway": "gateway_b",
+      "amount": "44.13",
+      "currency": "USD",
+      "captured_at": "2026-10-27T04:43:55Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000174",
+      "order_ref": "ORD-000174",
+      "gateway": "gateway_a",
+      "amount": "19.67",
+      "currency": "USD",
+      "captured_at": "2026-10-27T06:41:46Z",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "payment_id": "PAY-000175",
+      "order_ref": "ORD-000175",
+      "gateway": "gateway_b",
+      "amount": "471.07",
+      "currency": "USD",
+      "captured_at": "2026-10-27T09:35:56Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000176",
+      "order_ref": "ORD-000176",
+      "gateway": "gateway_b",
+      "amount": "66.97",
+      "currency": "USD",
+      "captured_at": "2026-10-27T11:26:33Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000177",
+      "order_ref": "ORD-000177",
+      "gateway": "gateway_a",
+      "amount": "302.23",
+      "currency": "USD",
+      "captured_at": "2026-10-27T15:10:17Z",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "payment_id": "PAY-000178",
+      "order_ref": "ORD-000178",
+      "gateway": "gateway_b",
+      "amount": "10.26",
+      "currency": "USD",
+      "captured_at": "2026-10-27T14:43:40Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000179",
+      "order_ref": "ORD-000179",
+      "gateway": "gateway_b",
+      "amount": "443.76",
+      "currency": "USD",
+      "captured_at": "2026-10-27T23:42:05Z",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "payment_id": "PAY-000180",
+      "order_ref": "ORD-000180",
+      "gateway": "gateway_b",
+      "amount": "153.92",
+      "currency": "USD",
+      "captured_at": "2026-10-28T01:51:38Z",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "payment_id": "PAY-000181",
+      "order_ref": "ORD-000181",
+      "gateway": "gateway_a",
+      "amount": "276.32",
+      "currency": "USD",
+      "captured_at": "2026-10-28T04:35:20Z",
+      "settlement_ref": "STL-000055"
+    },
+    {
+      "payment_id": "PAY-000182",
+      "order_ref": "ORD-000182",
+      "gateway": "gateway_b",
+      "amount": "363.22",
+      "currency": "USD",
+      "captured_at": "2026-10-28T06:53:57Z",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "payment_id": "PAY-000183",
+      "order_ref": "ORD-000183",
+      "gateway": "gateway_a",
+      "amount": "75.52",
+      "currency": "USD",
+      "captured_at": "2026-10-28T08:33:18Z",
+      "settlement_ref": "STL-000055"
+    },
+    {
+      "payment_id": "PAY-000184",
+      "order_ref": "ORD-000184",
+      "gateway": "gateway_b",
+      "amount": "36.91",
+      "currency": "USD",
+      "captured_at": "2026-10-28T11:58:25Z",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "payment_id": "PAY-000185",
+      "order_ref": "ORD-000185",
+      "gateway": "gateway_b",
+      "amount": "259.28",
+      "currency": "USD",
+      "captured_at": "2026-10-28T22:44:34Z",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "payment_id": "PAY-000186",
+      "order_ref": "ORD-000186",
+      "gateway": "gateway_b",
+      "amount": "134.57",
+      "currency": "USD",
+      "captured_at": "2026-10-28T23:49:56Z",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "payment_id": "PAY-000187",
+      "order_ref": "ORD-000187",
+      "gateway": "gateway_a",
+      "amount": "492.17",
+      "currency": "USD",
+      "captured_at": "2026-10-29T03:39:11Z",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "payment_id": "PAY-000188",
+      "order_ref": "ORD-000188",
+      "gateway": "gateway_b",
+      "amount": "380.42",
+      "currency": "USD",
+      "captured_at": "2026-10-29T08:19:57Z",
+      "settlement_ref": "STL-000058"
+    },
+    {
+      "payment_id": "PAY-000189",
+      "order_ref": "ORD-000189",
+      "gateway": "gateway_a",
+      "amount": "465.81",
+      "currency": "USD",
+      "captured_at": "2026-10-29T09:29:05Z",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "payment_id": "PAY-000190",
+      "order_ref": "ORD-000190",
+      "gateway": "gateway_b",
+      "amount": "290.77",
+      "currency": "USD",
+      "captured_at": "2026-10-29T09:30:43Z",
+      "settlement_ref": "STL-000058"
+    },
+    {
+      "payment_id": "PAY-000191",
+      "order_ref": "ORD-000191",
+      "gateway": "gateway_a",
+      "amount": "373.01",
+      "currency": "USD",
+      "captured_at": "2026-10-29T14:06:25Z",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "payment_id": "PAY-000192",
+      "order_ref": "ORD-000192",
+      "gateway": "gateway_a",
+      "amount": "379.87",
+      "currency": "USD",
+      "captured_at": "2026-10-29T17:42:31Z",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "payment_id": "PAY-000193",
+      "order_ref": "ORD-000193",
+      "gateway": "gateway_b",
+      "amount": "185.89",
+      "currency": "USD",
+      "captured_at": "2026-10-29T19:15:36Z",
+      "settlement_ref": "STL-000058"
+    },
+    {
+      "payment_id": "PAY-000194",
+      "order_ref": "ORD-000194",
+      "gateway": "gateway_a",
+      "amount": "36.04",
+      "currency": "USD",
+      "captured_at": "2026-10-29T21:09:01Z",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "payment_id": "PAY-000195",
+      "order_ref": "ORD-000195",
+      "gateway": "gateway_a",
+      "amount": "54.53",
+      "currency": "USD",
+      "captured_at": "2026-10-29T21:44:01Z",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "payment_id": "PAY-000196",
+      "order_ref": "ORD-000196",
+      "gateway": "gateway_a",
+      "amount": "345.16",
+      "currency": "USD",
+      "captured_at": "2026-10-30T10:43:51Z",
+      "settlement_ref": "STL-000059"
+    },
+    {
+      "payment_id": "PAY-000197",
+      "order_ref": "ORD-000197",
+      "gateway": "gateway_a",
+      "amount": "205.58",
+      "currency": "USD",
+      "captured_at": "2026-10-31T08:42:35Z",
+      "settlement_ref": "STL-000060"
+    },
+    {
+      "payment_id": "PAY-000198",
+      "order_ref": "ORD-000198",
+      "gateway": "gateway_a",
+      "amount": "48.58",
+      "currency": "USD",
+      "captured_at": "2026-10-31T15:22:23Z",
+      "settlement_ref": "STL-000060"
+    },
+    {
+      "payment_id": "PAY-000199",
+      "order_ref": "ORD-000199",
+      "gateway": "gateway_b",
+      "amount": "287.59",
+      "currency": "USD",
+      "captured_at": "2026-10-31T19:03:11Z",
+      "settlement_ref": "STL-000061"
+    },
+    {
+      "payment_id": "PAY-000200",
+      "order_ref": "ORD-000200",
+      "gateway": "gateway_a",
+      "amount": "122.15",
+      "currency": "USD",
+      "captured_at": "2026-10-31T19:59:50Z",
+      "settlement_ref": "STL-000060"
+    },
+    {
+      "payment_id": "PAY-000201",
+      "order_ref": "ORD-000005",
+      "gateway": "gateway_a",
+      "amount": "417.19",
+      "currency": "USD",
+      "captured_at": "2026-10-02T00:06:57Z",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "payment_id": "PAY-000202",
+      "order_ref": "ORD-000024",
+      "gateway": "gateway_a",
+      "amount": "462.86",
+      "currency": "USD",
+      "captured_at": "2026-10-04T16:21:55Z",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "payment_id": "PAY-000203",
+      "order_ref": "ORD-000201",
+      "gateway": "gateway_b",
+      "amount": "226.78",
+      "currency": "USD",
+      "captured_at": "2026-10-24T20:02:20Z",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "payment_id": "PAY-000204",
+      "order_ref": "ORD-000202",
+      "gateway": "gateway_b",
+      "amount": "187.54",
+      "currency": "USD",
+      "captured_at": "2026-10-23T16:31:13Z",
+      "settlement_ref": "STL-000046"
+    }
+  ]
+}

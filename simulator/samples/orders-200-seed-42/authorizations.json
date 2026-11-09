@@ -1,0 +1,168 @@
+{
+  "schema_version": "1.0.0",
+  "record_type": "authorizations",
+  "records": [
+    {
+      "authorization_id": "AUT-000001",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000003",
+      "approved_by": "James Martin",
+      "approved_at": "2026-10-25T21:22:26Z",
+      "max_amount": "95.96",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000002",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000005",
+      "approved_by": "Patricia Lamb",
+      "approved_at": "2026-10-14T23:26:57Z",
+      "max_amount": "207.60",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000003",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000007",
+      "approved_by": "Cynthia Allen",
+      "approved_at": "2026-10-15T03:48:20Z",
+      "max_amount": "308.19",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000004",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000008",
+      "approved_by": "Rachel Mckee",
+      "approved_at": "2026-10-03T03:11:30Z",
+      "max_amount": "323.64",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000005",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000009",
+      "approved_by": "Michael Hudson",
+      "approved_at": "2026-10-28T02:48:13Z",
+      "max_amount": "339.54",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000006",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000010",
+      "approved_by": "Randy Strickland",
+      "approved_at": "2026-10-08T12:25:54Z",
+      "max_amount": "28.99",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000007",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000011",
+      "approved_by": "Jennifer Martin",
+      "approved_at": "2026-10-14T09:48:56Z",
+      "max_amount": "32.06",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000008",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000012",
+      "approved_by": "Larry Salas",
+      "approved_at": "2026-10-06T07:17:44Z",
+      "max_amount": "318.47",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000009",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000013",
+      "approved_by": "John Watson",
+      "approved_at": "2026-10-05T13:06:05Z",
+      "max_amount": "72.85",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000010",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000014",
+      "approved_by": "Michelle Black",
+      "approved_at": "2026-10-28T20:56:35Z",
+      "max_amount": "180.42",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000011",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000015",
+      "approved_by": "Bradley Martin",
+      "approved_at": "2026-10-16T07:39:46Z",
+      "max_amount": "149.15",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000012",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000016",
+      "approved_by": "Jose Guerra",
+      "approved_at": "2026-10-23T23:42:25Z",
+      "max_amount": "362.12",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000013",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000017",
+      "approved_by": "Thomas Velasquez",
+      "approved_at": "2026-10-07T22:54:36Z",
+      "max_amount": "245.26",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000014",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000018",
+      "approved_by": "Tara Perry",
+      "approved_at": "2026-10-15T12:36:47Z",
+      "max_amount": "26.86",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000015",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000019",
+      "approved_by": "James Hughes",
+      "approved_at": "2026-10-22T21:47:16Z",
+      "max_amount": "16.76",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000016",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000020",
+      "approved_by": "Danny Flores",
+      "approved_at": "2026-10-26T16:51:46Z",
+      "max_amount": "11.10",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000017",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000021",
+      "approved_by": "Miguel Rogers",
+      "approved_at": "2026-10-23T08:24:12Z",
+      "max_amount": "449.03",
+      "currency": "USD"
+    },
+    {
+      "authorization_id": "AUT-000018",
+      "subject_kind": "refund",
+      "subject_ref": "RFD-000022",
+      "approved_by": "Andrew Lowery",
+      "approved_at": "2026-10-16T13:50:34Z",
+      "max_amount": "200.55",
+      "currency": "USD"
+    }
+  ]
+}

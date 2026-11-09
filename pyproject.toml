@@ -47,4 +47,16 @@ include_external_packages = true
 name = "Simulator is independent of the backend, LangGraph and LLM SDKs"
 type = "forbidden"
 source_modules = ["simulator"]
-forbidden_modules = ["recon", "langgraph", "langchain", "langchain_core", "anthropic", "openai"]
+forbidden_modules = [
+    "recon",
+    "langgraph",
+    "langchain",
+    "langchain_core",
+    "langchain_anthropic",
+    "langchain_openai",
+    "anthropic",
+    "openai",
+    "google",
+    "mistralai",
+    "litellm",
+]

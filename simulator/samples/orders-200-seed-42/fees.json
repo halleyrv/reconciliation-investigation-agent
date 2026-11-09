@@ -1,0 +1,1842 @@
+{
+  "schema_version": "1.0.0",
+  "record_type": "fees",
+  "records": [
+    {
+      "fee_id": "FEE-000001",
+      "payment_ref": "PAY-000001",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "12.33",
+      "currency": "USD",
+      "settlement_ref": "STL-000002"
+    },
+    {
+      "fee_id": "FEE-000002",
+      "payment_ref": "PAY-000002",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "6.93",
+      "currency": "USD",
+      "settlement_ref": "STL-000001"
+    },
+    {
+      "fee_id": "FEE-000003",
+      "payment_ref": "PAY-000003",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.12",
+      "currency": "USD",
+      "settlement_ref": "STL-000002"
+    },
+    {
+      "fee_id": "FEE-000004",
+      "payment_ref": "PAY-000004",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.52",
+      "currency": "USD",
+      "settlement_ref": "STL-000001"
+    },
+    {
+      "fee_id": "FEE-000005",
+      "payment_ref": "PAY-000005",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "12.40",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000006",
+      "payment_ref": "PAY-000006",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.61",
+      "currency": "USD",
+      "settlement_ref": "STL-000004"
+    },
+    {
+      "fee_id": "FEE-000007",
+      "payment_ref": "PAY-000007",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "8.60",
+      "currency": "USD",
+      "settlement_ref": "STL-000004"
+    },
+    {
+      "fee_id": "FEE-000008",
+      "payment_ref": "PAY-000008",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.87",
+      "currency": "USD",
+      "settlement_ref": "STL-000004"
+    },
+    {
+      "fee_id": "FEE-000009",
+      "payment_ref": "PAY-000009",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "2.37",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000010",
+      "payment_ref": "PAY-000010",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "5.29",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000011",
+      "payment_ref": "PAY-000011",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "6.87",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000012",
+      "payment_ref": "PAY-000012",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "7.61",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000013",
+      "payment_ref": "PAY-000013",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.54",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000014",
+      "payment_ref": "PAY-000014",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "7.39",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000015",
+      "payment_ref": "PAY-000015",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "2.67",
+      "currency": "USD",
+      "settlement_ref": "STL-000005"
+    },
+    {
+      "fee_id": "FEE-000016",
+      "payment_ref": "PAY-000016",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "4.76",
+      "currency": "USD",
+      "settlement_ref": "STL-000006"
+    },
+    {
+      "fee_id": "FEE-000017",
+      "payment_ref": "PAY-000017",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.39",
+      "currency": "USD",
+      "settlement_ref": "STL-000005"
+    },
+    {
+      "fee_id": "FEE-000018",
+      "payment_ref": "PAY-000018",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "4.94",
+      "currency": "USD",
+      "settlement_ref": "STL-000005"
+    },
+    {
+      "fee_id": "FEE-000019",
+      "payment_ref": "PAY-000019",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.89",
+      "currency": "USD",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "fee_id": "FEE-000020",
+      "payment_ref": "PAY-000020",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.80",
+      "currency": "USD",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "fee_id": "FEE-000021",
+      "payment_ref": "PAY-000021",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "12.98",
+      "currency": "USD",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "fee_id": "FEE-000022",
+      "payment_ref": "PAY-000022",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.07",
+      "currency": "USD",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "fee_id": "FEE-000023",
+      "payment_ref": "PAY-000023",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "0.65",
+      "currency": "USD",
+      "settlement_ref": "STL-000008"
+    },
+    {
+      "fee_id": "FEE-000024",
+      "payment_ref": "PAY-000024",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.72",
+      "currency": "USD",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "fee_id": "FEE-000025",
+      "payment_ref": "PAY-000025",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.01",
+      "currency": "USD",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "fee_id": "FEE-000026",
+      "payment_ref": "PAY-000026",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.22",
+      "currency": "USD",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "fee_id": "FEE-000027",
+      "payment_ref": "PAY-000027",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.53",
+      "currency": "USD",
+      "settlement_ref": "STL-000009"
+    },
+    {
+      "fee_id": "FEE-000028",
+      "payment_ref": "PAY-000028",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.15",
+      "currency": "USD",
+      "settlement_ref": "STL-000010"
+    },
+    {
+      "fee_id": "FEE-000029",
+      "payment_ref": "PAY-000029",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.38",
+      "currency": "USD",
+      "settlement_ref": "STL-000010"
+    },
+    {
+      "fee_id": "FEE-000030",
+      "payment_ref": "PAY-000030",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.30",
+      "currency": "USD",
+      "settlement_ref": "STL-000010"
+    },
+    {
+      "fee_id": "FEE-000031",
+      "payment_ref": "PAY-000031",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "2.70",
+      "currency": "USD",
+      "settlement_ref": "STL-000012"
+    },
+    {
+      "fee_id": "FEE-000032",
+      "payment_ref": "PAY-000032",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "8.67",
+      "currency": "USD",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "fee_id": "FEE-000033",
+      "payment_ref": "PAY-000033",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "14.70",
+      "currency": "USD",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "fee_id": "FEE-000034",
+      "payment_ref": "PAY-000034",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "5.32",
+      "currency": "USD",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "fee_id": "FEE-000035",
+      "payment_ref": "PAY-000035",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "0.91",
+      "currency": "USD",
+      "settlement_ref": "STL-000012"
+    },
+    {
+      "fee_id": "FEE-000036",
+      "payment_ref": "PAY-000036",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "5.55",
+      "currency": "USD",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "fee_id": "FEE-000037",
+      "payment_ref": "PAY-000037",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.42",
+      "currency": "USD",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "fee_id": "FEE-000038",
+      "payment_ref": "PAY-000038",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "7.78",
+      "currency": "USD",
+      "settlement_ref": "STL-000013"
+    },
+    {
+      "fee_id": "FEE-000039",
+      "payment_ref": "PAY-000039",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.59",
+      "currency": "USD",
+      "settlement_ref": "STL-000013"
+    },
+    {
+      "fee_id": "FEE-000040",
+      "payment_ref": "PAY-000040",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.19",
+      "currency": "USD",
+      "settlement_ref": "STL-000014"
+    },
+    {
+      "fee_id": "FEE-000041",
+      "payment_ref": "PAY-000041",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.06",
+      "currency": "USD",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "fee_id": "FEE-000042",
+      "payment_ref": "PAY-000042",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "8.87",
+      "currency": "USD",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "fee_id": "FEE-000043",
+      "payment_ref": "PAY-000043",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.92",
+      "currency": "USD",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "fee_id": "FEE-000044",
+      "payment_ref": "PAY-000044",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.65",
+      "currency": "USD",
+      "settlement_ref": "STL-000016"
+    },
+    {
+      "fee_id": "FEE-000045",
+      "payment_ref": "PAY-000045",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.40",
+      "currency": "USD",
+      "settlement_ref": "STL-000016"
+    },
+    {
+      "fee_id": "FEE-000046",
+      "payment_ref": "PAY-000046",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "6.50",
+      "currency": "USD",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "fee_id": "FEE-000047",
+      "payment_ref": "PAY-000047",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "7.79",
+      "currency": "USD",
+      "settlement_ref": "STL-000017"
+    },
+    {
+      "fee_id": "FEE-000048",
+      "payment_ref": "PAY-000048",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.58",
+      "currency": "USD",
+      "settlement_ref": "STL-000018"
+    },
+    {
+      "fee_id": "FEE-000049",
+      "payment_ref": "PAY-000049",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "10.24",
+      "currency": "USD",
+      "settlement_ref": "STL-000017"
+    },
+    {
+      "fee_id": "FEE-000050",
+      "payment_ref": "PAY-000050",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "12.57",
+      "currency": "USD",
+      "settlement_ref": "STL-000018"
+    },
+    {
+      "fee_id": "FEE-000051",
+      "payment_ref": "PAY-000051",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.06",
+      "currency": "USD",
+      "settlement_ref": "STL-000018"
+    },
+    {
+      "fee_id": "FEE-000052",
+      "payment_ref": "PAY-000052",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "6.23",
+      "currency": "USD",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "fee_id": "FEE-000053",
+      "payment_ref": "PAY-000053",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "2.22",
+      "currency": "USD",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "fee_id": "FEE-000054",
+      "payment_ref": "PAY-000054",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.98",
+      "currency": "USD",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "fee_id": "FEE-000055",
+      "payment_ref": "PAY-000055",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.03",
+      "currency": "USD",
+      "settlement_ref": "STL-000020"
+    },
+    {
+      "fee_id": "FEE-000056",
+      "payment_ref": "PAY-000056",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "2.03",
+      "currency": "USD",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "fee_id": "FEE-000057",
+      "payment_ref": "PAY-000057",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "12.23",
+      "currency": "USD",
+      "settlement_ref": "STL-000020"
+    },
+    {
+      "fee_id": "FEE-000058",
+      "payment_ref": "PAY-000058",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.39",
+      "currency": "USD",
+      "settlement_ref": "STL-000019"
+    },
+    {
+      "fee_id": "FEE-000059",
+      "payment_ref": "PAY-000059",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.47",
+      "currency": "USD",
+      "settlement_ref": "STL-000020"
+    },
+    {
+      "fee_id": "FEE-000060",
+      "payment_ref": "PAY-000060",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.54",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000061",
+      "payment_ref": "PAY-000061",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "9.79",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000062",
+      "payment_ref": "PAY-000062",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.02",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000063",
+      "payment_ref": "PAY-000063",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "8.79",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000064",
+      "payment_ref": "PAY-000064",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.55",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000065",
+      "payment_ref": "PAY-000065",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "8.12",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000066",
+      "payment_ref": "PAY-000066",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "2.77",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000067",
+      "payment_ref": "PAY-000067",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "4.97",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000068",
+      "payment_ref": "PAY-000068",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "0.54",
+      "currency": "USD",
+      "settlement_ref": "STL-000021"
+    },
+    {
+      "fee_id": "FEE-000069",
+      "payment_ref": "PAY-000069",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.24",
+      "currency": "USD",
+      "settlement_ref": "STL-000021"
+    },
+    {
+      "fee_id": "FEE-000070",
+      "payment_ref": "PAY-000070",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.55",
+      "currency": "USD",
+      "settlement_ref": "STL-000022"
+    },
+    {
+      "fee_id": "FEE-000071",
+      "payment_ref": "PAY-000071",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "4.83",
+      "currency": "USD",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "fee_id": "FEE-000072",
+      "payment_ref": "PAY-000072",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "6.09",
+      "currency": "USD",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "fee_id": "FEE-000073",
+      "payment_ref": "PAY-000073",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "2.15",
+      "currency": "USD",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "fee_id": "FEE-000074",
+      "payment_ref": "PAY-000074",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.52",
+      "currency": "USD",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "fee_id": "FEE-000075",
+      "payment_ref": "PAY-000075",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.22",
+      "currency": "USD",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "fee_id": "FEE-000076",
+      "payment_ref": "PAY-000076",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.06",
+      "currency": "USD",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "fee_id": "FEE-000077",
+      "payment_ref": "PAY-000077",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.37",
+      "currency": "USD",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "fee_id": "FEE-000078",
+      "payment_ref": "PAY-000078",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "8.11",
+      "currency": "USD",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "fee_id": "FEE-000079",
+      "payment_ref": "PAY-000079",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.62",
+      "currency": "USD",
+      "settlement_ref": "STL-000023"
+    },
+    {
+      "fee_id": "FEE-000080",
+      "payment_ref": "PAY-000080",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.92",
+      "currency": "USD",
+      "settlement_ref": "STL-000024"
+    },
+    {
+      "fee_id": "FEE-000081",
+      "payment_ref": "PAY-000081",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.95",
+      "currency": "USD",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "fee_id": "FEE-000082",
+      "payment_ref": "PAY-000082",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "2.49",
+      "currency": "USD",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "fee_id": "FEE-000083",
+      "payment_ref": "PAY-000083",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.27",
+      "currency": "USD",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "fee_id": "FEE-000084",
+      "payment_ref": "PAY-000084",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.08",
+      "currency": "USD",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "fee_id": "FEE-000085",
+      "payment_ref": "PAY-000085",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.15",
+      "currency": "USD",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "fee_id": "FEE-000086",
+      "payment_ref": "PAY-000086",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.21",
+      "currency": "USD",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "fee_id": "FEE-000087",
+      "payment_ref": "PAY-000087",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.24",
+      "currency": "USD",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "fee_id": "FEE-000088",
+      "payment_ref": "PAY-000088",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.95",
+      "currency": "USD",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "fee_id": "FEE-000089",
+      "payment_ref": "PAY-000089",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "1.32",
+      "currency": "USD",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "fee_id": "FEE-000090",
+      "payment_ref": "PAY-000090",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "8.11",
+      "currency": "USD",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "fee_id": "FEE-000091",
+      "payment_ref": "PAY-000091",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.93",
+      "currency": "USD",
+      "settlement_ref": "STL-000025"
+    },
+    {
+      "fee_id": "FEE-000092",
+      "payment_ref": "PAY-000092",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.00",
+      "currency": "USD",
+      "settlement_ref": "STL-000028"
+    },
+    {
+      "fee_id": "FEE-000093",
+      "payment_ref": "PAY-000093",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.15",
+      "currency": "USD",
+      "settlement_ref": "STL-000027"
+    },
+    {
+      "fee_id": "FEE-000094",
+      "payment_ref": "PAY-000094",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.54",
+      "currency": "USD",
+      "settlement_ref": "STL-000027"
+    },
+    {
+      "fee_id": "FEE-000095",
+      "payment_ref": "PAY-000095",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "12.09",
+      "currency": "USD",
+      "settlement_ref": "STL-000027"
+    },
+    {
+      "fee_id": "FEE-000096",
+      "payment_ref": "PAY-000096",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.08",
+      "currency": "USD",
+      "settlement_ref": "STL-000028"
+    },
+    {
+      "fee_id": "FEE-000097",
+      "payment_ref": "PAY-000097",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.80",
+      "currency": "USD",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "fee_id": "FEE-000098",
+      "payment_ref": "PAY-000098",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "8.85",
+      "currency": "USD",
+      "settlement_ref": "STL-000029"
+    },
+    {
+      "fee_id": "FEE-000099",
+      "payment_ref": "PAY-000099",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.13",
+      "currency": "USD",
+      "settlement_ref": "STL-000029"
+    },
+    {
+      "fee_id": "FEE-000100",
+      "payment_ref": "PAY-000100",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.99",
+      "currency": "USD",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "fee_id": "FEE-000101",
+      "payment_ref": "PAY-000101",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "8.81",
+      "currency": "USD",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "fee_id": "FEE-000102",
+      "payment_ref": "PAY-000102",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.59",
+      "currency": "USD",
+      "settlement_ref": "STL-000029"
+    },
+    {
+      "fee_id": "FEE-000103",
+      "payment_ref": "PAY-000103",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.04",
+      "currency": "USD",
+      "settlement_ref": "STL-000032"
+    },
+    {
+      "fee_id": "FEE-000104",
+      "payment_ref": "PAY-000104",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "1.68",
+      "currency": "USD",
+      "settlement_ref": "STL-000031"
+    },
+    {
+      "fee_id": "FEE-000105",
+      "payment_ref": "PAY-000105",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.20",
+      "currency": "USD",
+      "settlement_ref": "STL-000031"
+    },
+    {
+      "fee_id": "FEE-000106",
+      "payment_ref": "PAY-000106",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.07",
+      "currency": "USD",
+      "settlement_ref": "STL-000032"
+    },
+    {
+      "fee_id": "FEE-000107",
+      "payment_ref": "PAY-000107",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.88",
+      "currency": "USD",
+      "settlement_ref": "STL-000031"
+    },
+    {
+      "fee_id": "FEE-000108",
+      "payment_ref": "PAY-000108",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "9.39",
+      "currency": "USD",
+      "settlement_ref": "STL-000034"
+    },
+    {
+      "fee_id": "FEE-000109",
+      "payment_ref": "PAY-000109",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "2.53",
+      "currency": "USD",
+      "settlement_ref": "STL-000033"
+    },
+    {
+      "fee_id": "FEE-000110",
+      "payment_ref": "PAY-000110",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.84",
+      "currency": "USD",
+      "settlement_ref": "STL-000034"
+    },
+    {
+      "fee_id": "FEE-000111",
+      "payment_ref": "PAY-000111",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "1.90",
+      "currency": "USD",
+      "settlement_ref": "STL-000033"
+    },
+    {
+      "fee_id": "FEE-000112",
+      "payment_ref": "PAY-000112",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.39",
+      "currency": "USD",
+      "settlement_ref": "STL-000036"
+    },
+    {
+      "fee_id": "FEE-000113",
+      "payment_ref": "PAY-000113",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.91",
+      "currency": "USD",
+      "settlement_ref": "STL-000036"
+    },
+    {
+      "fee_id": "FEE-000114",
+      "payment_ref": "PAY-000114",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "6.43",
+      "currency": "USD",
+      "settlement_ref": "STL-000035"
+    },
+    {
+      "fee_id": "FEE-000115",
+      "payment_ref": "PAY-000115",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.78",
+      "currency": "USD",
+      "settlement_ref": "STL-000035"
+    },
+    {
+      "fee_id": "FEE-000116",
+      "payment_ref": "PAY-000116",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "7.34",
+      "currency": "USD",
+      "settlement_ref": "STL-000037"
+    },
+    {
+      "fee_id": "FEE-000117",
+      "payment_ref": "PAY-000117",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.66",
+      "currency": "USD",
+      "settlement_ref": "STL-000037"
+    },
+    {
+      "fee_id": "FEE-000118",
+      "payment_ref": "PAY-000118",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.06",
+      "currency": "USD",
+      "settlement_ref": "STL-000038"
+    },
+    {
+      "fee_id": "FEE-000119",
+      "payment_ref": "PAY-000119",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.78",
+      "currency": "USD",
+      "settlement_ref": "STL-000037"
+    },
+    {
+      "fee_id": "FEE-000120",
+      "payment_ref": "PAY-000120",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "8.60",
+      "currency": "USD",
+      "settlement_ref": "STL-000038"
+    },
+    {
+      "fee_id": "FEE-000121",
+      "payment_ref": "PAY-000121",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "12.43",
+      "currency": "USD",
+      "settlement_ref": "STL-000040"
+    },
+    {
+      "fee_id": "FEE-000122",
+      "payment_ref": "PAY-000122",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "14.35",
+      "currency": "USD",
+      "settlement_ref": "STL-000039"
+    },
+    {
+      "fee_id": "FEE-000123",
+      "payment_ref": "PAY-000123",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.88",
+      "currency": "USD",
+      "settlement_ref": "STL-000039"
+    },
+    {
+      "fee_id": "FEE-000124",
+      "payment_ref": "PAY-000124",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.84",
+      "currency": "USD",
+      "settlement_ref": "STL-000040"
+    },
+    {
+      "fee_id": "FEE-000125",
+      "payment_ref": "PAY-000125",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.32",
+      "currency": "USD",
+      "settlement_ref": "STL-000039"
+    },
+    {
+      "fee_id": "FEE-000126",
+      "payment_ref": "PAY-000126",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "12.56",
+      "currency": "USD",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "fee_id": "FEE-000127",
+      "payment_ref": "PAY-000127",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "10.82",
+      "currency": "USD",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "fee_id": "FEE-000128",
+      "payment_ref": "PAY-000128",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.91",
+      "currency": "USD",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "fee_id": "FEE-000129",
+      "payment_ref": "PAY-000129",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.39",
+      "currency": "USD",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "fee_id": "FEE-000130",
+      "payment_ref": "PAY-000130",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.24",
+      "currency": "USD",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "fee_id": "FEE-000131",
+      "payment_ref": "PAY-000131",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.25",
+      "currency": "USD",
+      "settlement_ref": "STL-000041"
+    },
+    {
+      "fee_id": "FEE-000132",
+      "payment_ref": "PAY-000132",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.34",
+      "currency": "USD",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "fee_id": "FEE-000133",
+      "payment_ref": "PAY-000133",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "2.72",
+      "currency": "USD",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "fee_id": "FEE-000134",
+      "payment_ref": "PAY-000134",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.65",
+      "currency": "USD",
+      "settlement_ref": "STL-000042"
+    },
+    {
+      "fee_id": "FEE-000135",
+      "payment_ref": "PAY-000135",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.16",
+      "currency": "USD",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "fee_id": "FEE-000136",
+      "payment_ref": "PAY-000136",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "0.62",
+      "currency": "USD",
+      "settlement_ref": "STL-000043"
+    },
+    {
+      "fee_id": "FEE-000137",
+      "payment_ref": "PAY-000137",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.77",
+      "currency": "USD",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "fee_id": "FEE-000138",
+      "payment_ref": "PAY-000138",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "8.99",
+      "currency": "USD",
+      "settlement_ref": "STL-000043"
+    },
+    {
+      "fee_id": "FEE-000139",
+      "payment_ref": "PAY-000139",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.54",
+      "currency": "USD",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "fee_id": "FEE-000140",
+      "payment_ref": "PAY-000140",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.28",
+      "currency": "USD",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "fee_id": "FEE-000141",
+      "payment_ref": "PAY-000141",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.92",
+      "currency": "USD",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "fee_id": "FEE-000142",
+      "payment_ref": "PAY-000142",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.23",
+      "currency": "USD",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "fee_id": "FEE-000143",
+      "payment_ref": "PAY-000143",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.72",
+      "currency": "USD",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "fee_id": "FEE-000144",
+      "payment_ref": "PAY-000144",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.44",
+      "currency": "USD",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "fee_id": "FEE-000145",
+      "payment_ref": "PAY-000145",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.02",
+      "currency": "USD",
+      "settlement_ref": "STL-000045"
+    },
+    {
+      "fee_id": "FEE-000146",
+      "payment_ref": "PAY-000146",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.10",
+      "currency": "USD",
+      "settlement_ref": "STL-000046"
+    },
+    {
+      "fee_id": "FEE-000147",
+      "payment_ref": "PAY-000147",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "8.33",
+      "currency": "USD",
+      "settlement_ref": "STL-000045"
+    },
+    {
+      "fee_id": "FEE-000148",
+      "payment_ref": "PAY-000148",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "14.58",
+      "currency": "USD",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "fee_id": "FEE-000149",
+      "payment_ref": "PAY-000149",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.87",
+      "currency": "USD",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "fee_id": "FEE-000150",
+      "payment_ref": "PAY-000150",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.04",
+      "currency": "USD",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "fee_id": "FEE-000151",
+      "payment_ref": "PAY-000151",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.08",
+      "currency": "USD",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "fee_id": "FEE-000152",
+      "payment_ref": "PAY-000152",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "10.15",
+      "currency": "USD",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "fee_id": "FEE-000153",
+      "payment_ref": "PAY-000153",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "4.00",
+      "currency": "USD",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "fee_id": "FEE-000154",
+      "payment_ref": "PAY-000154",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "1.91",
+      "currency": "USD",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "fee_id": "FEE-000155",
+      "payment_ref": "PAY-000155",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.98",
+      "currency": "USD",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "fee_id": "FEE-000156",
+      "payment_ref": "PAY-000156",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "5.36",
+      "currency": "USD",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "fee_id": "FEE-000157",
+      "payment_ref": "PAY-000157",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.98",
+      "currency": "USD",
+      "settlement_ref": "STL-000050"
+    },
+    {
+      "fee_id": "FEE-000158",
+      "payment_ref": "PAY-000158",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "12.03",
+      "currency": "USD",
+      "settlement_ref": "STL-000049"
+    },
+    {
+      "fee_id": "FEE-000159",
+      "payment_ref": "PAY-000159",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.11",
+      "currency": "USD",
+      "settlement_ref": "STL-000050"
+    },
+    {
+      "fee_id": "FEE-000160",
+      "payment_ref": "PAY-000160",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "2.11",
+      "currency": "USD",
+      "settlement_ref": "STL-000049"
+    },
+    {
+      "fee_id": "FEE-000161",
+      "payment_ref": "PAY-000161",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.05",
+      "currency": "USD",
+      "settlement_ref": "STL-000050"
+    },
+    {
+      "fee_id": "FEE-000162",
+      "payment_ref": "PAY-000162",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.17",
+      "currency": "USD",
+      "settlement_ref": "STL-000051"
+    },
+    {
+      "fee_id": "FEE-000163",
+      "payment_ref": "PAY-000163",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.42",
+      "currency": "USD",
+      "settlement_ref": "STL-000051"
+    },
+    {
+      "fee_id": "FEE-000164",
+      "payment_ref": "PAY-000164",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.80",
+      "currency": "USD",
+      "settlement_ref": "STL-000051"
+    },
+    {
+      "fee_id": "FEE-000165",
+      "payment_ref": "PAY-000165",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.16",
+      "currency": "USD",
+      "settlement_ref": "STL-000052"
+    },
+    {
+      "fee_id": "FEE-000166",
+      "payment_ref": "PAY-000166",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.44",
+      "currency": "USD",
+      "settlement_ref": "STL-000052"
+    },
+    {
+      "fee_id": "FEE-000167",
+      "payment_ref": "PAY-000167",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "0.63",
+      "currency": "USD",
+      "settlement_ref": "STL-000052"
+    },
+    {
+      "fee_id": "FEE-000168",
+      "payment_ref": "PAY-000168",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.12",
+      "currency": "USD",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "fee_id": "FEE-000169",
+      "payment_ref": "PAY-000169",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "4.87",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000170",
+      "payment_ref": "PAY-000170",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "8.42",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000171",
+      "payment_ref": "PAY-000171",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "2.67",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000172",
+      "payment_ref": "PAY-000172",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "14.46",
+      "currency": "USD",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "fee_id": "FEE-000173",
+      "payment_ref": "PAY-000173",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.35",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000174",
+      "payment_ref": "PAY-000174",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "0.87",
+      "currency": "USD",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "fee_id": "FEE-000175",
+      "payment_ref": "PAY-000175",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "12.03",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000176",
+      "payment_ref": "PAY-000176",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.92",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000177",
+      "payment_ref": "PAY-000177",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "9.06",
+      "currency": "USD",
+      "settlement_ref": "STL-000053"
+    },
+    {
+      "fee_id": "FEE-000178",
+      "payment_ref": "PAY-000178",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "0.51",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000179",
+      "payment_ref": "PAY-000179",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "11.34",
+      "currency": "USD",
+      "settlement_ref": "STL-000054"
+    },
+    {
+      "fee_id": "FEE-000180",
+      "payment_ref": "PAY-000180",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "4.10",
+      "currency": "USD",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "fee_id": "FEE-000181",
+      "payment_ref": "PAY-000181",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "8.31",
+      "currency": "USD",
+      "settlement_ref": "STL-000055"
+    },
+    {
+      "fee_id": "FEE-000182",
+      "payment_ref": "PAY-000182",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "9.33",
+      "currency": "USD",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "fee_id": "FEE-000183",
+      "payment_ref": "PAY-000183",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "2.49",
+      "currency": "USD",
+      "settlement_ref": "STL-000055"
+    },
+    {
+      "fee_id": "FEE-000184",
+      "payment_ref": "PAY-000184",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "1.17",
+      "currency": "USD",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "fee_id": "FEE-000185",
+      "payment_ref": "PAY-000185",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "6.73",
+      "currency": "USD",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "fee_id": "FEE-000186",
+      "payment_ref": "PAY-000186",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "3.61",
+      "currency": "USD",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "fee_id": "FEE-000187",
+      "payment_ref": "PAY-000187",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "14.57",
+      "currency": "USD",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "fee_id": "FEE-000188",
+      "payment_ref": "PAY-000188",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "9.76",
+      "currency": "USD",
+      "settlement_ref": "STL-000058"
+    },
+    {
+      "fee_id": "FEE-000189",
+      "payment_ref": "PAY-000189",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.81",
+      "currency": "USD",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "fee_id": "FEE-000190",
+      "payment_ref": "PAY-000190",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.52",
+      "currency": "USD",
+      "settlement_ref": "STL-000058"
+    },
+    {
+      "fee_id": "FEE-000191",
+      "payment_ref": "PAY-000191",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.12",
+      "currency": "USD",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "fee_id": "FEE-000192",
+      "payment_ref": "PAY-000192",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "11.32",
+      "currency": "USD",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "fee_id": "FEE-000193",
+      "payment_ref": "PAY-000193",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "4.90",
+      "currency": "USD",
+      "settlement_ref": "STL-000058"
+    },
+    {
+      "fee_id": "FEE-000194",
+      "payment_ref": "PAY-000194",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "1.35",
+      "currency": "USD",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "fee_id": "FEE-000195",
+      "payment_ref": "PAY-000195",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "1.88",
+      "currency": "USD",
+      "settlement_ref": "STL-000057"
+    },
+    {
+      "fee_id": "FEE-000196",
+      "payment_ref": "PAY-000196",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "10.31",
+      "currency": "USD",
+      "settlement_ref": "STL-000059"
+    },
+    {
+      "fee_id": "FEE-000197",
+      "payment_ref": "PAY-000197",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "6.26",
+      "currency": "USD",
+      "settlement_ref": "STL-000060"
+    },
+    {
+      "fee_id": "FEE-000198",
+      "payment_ref": "PAY-000198",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "1.71",
+      "currency": "USD",
+      "settlement_ref": "STL-000060"
+    },
+    {
+      "fee_id": "FEE-000199",
+      "payment_ref": "PAY-000199",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "7.44",
+      "currency": "USD",
+      "settlement_ref": "STL-000061"
+    },
+    {
+      "fee_id": "FEE-000200",
+      "payment_ref": "PAY-000200",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "3.84",
+      "currency": "USD",
+      "settlement_ref": "STL-000060"
+    },
+    {
+      "fee_id": "FEE-000201",
+      "payment_ref": "PAY-000201",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "12.40",
+      "currency": "USD",
+      "settlement_ref": "STL-000003"
+    },
+    {
+      "fee_id": "FEE-000202",
+      "payment_ref": "PAY-000202",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "13.72",
+      "currency": "USD",
+      "settlement_ref": "STL-000007"
+    },
+    {
+      "fee_id": "FEE-000203",
+      "payment_ref": "PAY-000203",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "5.92",
+      "currency": "USD",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "fee_id": "FEE-000204",
+      "payment_ref": "PAY-000204",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "4.94",
+      "currency": "USD",
+      "settlement_ref": "STL-000046"
+    }
+  ]
+}

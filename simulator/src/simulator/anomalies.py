@@ -42,6 +42,11 @@ class Injector:
     target: Literal["order", "refundable_order", "settlement", "none"]
     effect: Callable[[Sim, Target], Effect]
 
+    def count(self, sim: Sim) -> int:
+        """The type's rate applies to this injector's target population."""
+        population = len(sim.settlements) if self.target == "settlement" else sim.config.orders
+        return count_for(sim.config.anomaly_rates[self.anomaly_type], population)
+
     def apply(self, sim: Sim, target: Target) -> Anomaly:
         subtype, records, delta, description = self.effect(sim, target)
         return Anomaly(
@@ -256,14 +261,3 @@ INJECTORS: tuple[Injector, ...] = (
     Injector("conflicting_resent_record", "conflicting_resent_record", "", ("I7",), "records",
              "order", conflicting_resent_record),
 )  # fmt: skip
-
-
-def planned_counts(rates: dict[str, Decimal], orders: int) -> dict[str, int]:
-    """Instances per injector. A type with several injectors splits its count round-robin."""
-    counts: dict[str, int] = {}
-    for anomaly_type, rate in rates.items():
-        injectors = [i for i in INJECTORS if i.anomaly_type == anomaly_type]
-        total = count_for(rate, orders)
-        for index, injector in enumerate(injectors):
-            counts[injector.name] = total // len(injectors) + (index < total % len(injectors))
-    return counts

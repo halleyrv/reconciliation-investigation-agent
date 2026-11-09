@@ -1,5 +1,8 @@
 # Scale run: 2,000 orders, about 15% of them affected by anomalies.
 # Money and rates are quoted decimal strings: YAML floats are rejected.
+# A rate is a fraction of its target population: settlement batches for
+# delayed_settlement and incorrect_amount, orders for the rest. missing_transaction
+# applies its rate to each direction (missing_in_bank targets settlement batches).
 orders: 2000
 period:
   start: "2026-10-01"
@@ -18,10 +21,10 @@ anomaly_rates:
   duplicate_payment: "0.01"
   unauthorized_refund: "0.01"
   incorrect_fee: "0.01"
-  missing_transaction: "0.015"
+  missing_transaction: "0.01"
   partial_payment: "0.01"
-  delayed_settlement: "0.01"
-  incorrect_amount: "0.01"
+  delayed_settlement: "0.04"
+  incorrect_amount: "0.04"
   inconsistent_reference: "0.01"
   out_of_order_event: "0.01"
   duplicate_refund: "0.01"

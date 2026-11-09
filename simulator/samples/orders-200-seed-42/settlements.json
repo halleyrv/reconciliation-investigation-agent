@@ -1,0 +1,433 @@
+{
+  "schema_version": "1.0.0",
+  "record_type": "settlements",
+  "records": [
+    {
+      "settlement_id": "STL-000001",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-01",
+      "net_amount": "663.97",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000002",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-01",
+      "net_amount": "582.41",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000003",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-02",
+      "net_amount": "2055.42",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000004",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-02",
+      "net_amount": "792.14",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000005",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-03",
+      "net_amount": "348.60",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000006",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-03",
+      "net_amount": "175.73",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000007",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-04",
+      "net_amount": "1711.29",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000008",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-04",
+      "net_amount": "600.32",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000009",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-05",
+      "net_amount": "235.84",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000010",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-05",
+      "net_amount": "860.28",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000011",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-06",
+      "net_amount": "1158.51",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000012",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-06",
+      "net_amount": "120.78",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000013",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-07",
+      "net_amount": "561.05",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000014",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-07",
+      "net_amount": "36.22",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000015",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-08",
+      "net_amount": "1347.43",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000016",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-08",
+      "net_amount": "321.68",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000017",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-09",
+      "net_amount": "583.04",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000018",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-09",
+      "net_amount": "1070.42",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000019",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-10",
+      "net_amount": "880.80",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000020",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-10",
+      "net_amount": "1168.56",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000021",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-11",
+      "net_amount": "106.04",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000022",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-11",
+      "net_amount": "1864.14",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000023",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-12",
+      "net_amount": "1027.03",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000024",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-12",
+      "net_amount": "1187.96",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000025",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-13",
+      "net_amount": "1283.10",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000026",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-13",
+      "net_amount": "1181.18",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000027",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-14",
+      "net_amount": "865.73",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000028",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-14",
+      "net_amount": "302.34",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000029",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-15",
+      "net_amount": "1093.11",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000030",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-15",
+      "net_amount": "85.22",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000031",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-16",
+      "net_amount": "597.11",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000032",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-16",
+      "net_amount": "381.12",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000033",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-17",
+      "net_amount": "127.63",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000034",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-17",
+      "net_amount": "495.79",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000035",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-18",
+      "net_amount": "321.28",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000036",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-18",
+      "net_amount": "615.92",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000037",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-19",
+      "net_amount": "798.70",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000038",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-19",
+      "net_amount": "512.68",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000039",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-20",
+      "net_amount": "1226.26",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000040",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-20",
+      "net_amount": "531.72",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000041",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-21",
+      "net_amount": "1449.74",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000042",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-21",
+      "net_amount": "1289.14",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000043",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-22",
+      "net_amount": "301.26",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000044",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-22",
+      "net_amount": "1058.48",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000045",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-23",
+      "net_amount": "359.06",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000046",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-23",
+      "net_amount": "1865.87",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000047",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-24",
+      "net_amount": "940.01",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000048",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-24",
+      "net_amount": "869.14",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000049",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-25",
+      "net_amount": "452.89",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000050",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-25",
+      "net_amount": "854.48",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000051",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-26",
+      "net_amount": "908.41",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000052",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-26",
+      "net_amount": "740.74",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000053",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-27",
+      "net_amount": "1080.75",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000054",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-27",
+      "net_amount": "1601.51",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000055",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-28",
+      "net_amount": "1.50",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000056",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-28",
+      "net_amount": "742.54",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000057",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-29",
+      "net_amount": "1747.38",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000058",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-29",
+      "net_amount": "834.90",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000059",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-30",
+      "net_amount": "334.85",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000060",
+      "gateway": "gateway_a",
+      "batch_date": "2026-10-31",
+      "net_amount": "364.50",
+      "currency": "USD"
+    },
+    {
+      "settlement_id": "STL-000061",
+      "gateway": "gateway_b",
+      "batch_date": "2026-10-31",
+      "net_amount": "280.15",
+      "currency": "USD"
+    }
+  ]
+}

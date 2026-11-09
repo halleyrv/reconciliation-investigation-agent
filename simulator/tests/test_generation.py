@@ -1,12 +1,18 @@
 import hashlib
 import json
+import re
+import tomllib
 from collections import Counter
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 import yaml
 from conftest import DEFAULT_CONFIG, raw_default, run
+from simulator.checks import validate_files
+from simulator.cli import main
 from simulator.config import ANOMALY_TYPES, ConfigError, parse_config
+from simulator.sim import count_for
 
 RECORD_FILES = (
     "orders",
@@ -108,3 +114,40 @@ def test_config_rejects_unknown_anomaly_type() -> None:
 
 def test_default_config_is_the_documented_200_order_run() -> None:
     assert yaml.safe_load(DEFAULT_CONFIG.read_text())["orders"] == 200
+
+
+def test_anomaly_rates_apply_to_their_target_population(tmp_path: Path) -> None:
+    raw = raw_default()
+    raw["orders"] = 1000
+    out = run(tmp_path, raw)
+    settlements = len(json.loads((out / "settlements.json").read_text())["records"])
+    ground_truth = json.loads((out / "ground_truth.json").read_text())
+    counts = Counter(a["subtype"] or a["type"] for a in ground_truth["anomalies"])
+    assert counts["delayed_settlement"] == count_for(Decimal("0.04"), settlements)
+    assert counts["incorrect_amount"] == count_for(Decimal("0.04"), settlements)
+    assert counts["missing_in_bank"] == count_for(Decimal("0.01"), settlements)
+    assert counts["missing_in_orders"] == counts["missing_in_gateway"] == 10
+    assert counts["duplicate_payment"] == 10
+
+
+def test_committed_sample_is_the_seed_42_default_run(anomalous_run: Path) -> None:
+    sample = Path(__file__).parents[1] / "samples" / "orders-200-seed-42"
+    assert (sample / "manifest.json").read_bytes() == (anomalous_run / "manifest.json").read_bytes()
+    assert validate_files(sample) == []
+
+
+def test_simulator_depends_on_no_backend_langgraph_or_llm_package() -> None:
+    pyproject = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    names = {re.split(r"[<>=\[ ]", d)[0].lower() for d in pyproject["project"]["dependencies"]}
+    assert names == {"faker", "jsonschema", "pyyaml"}
+
+
+def test_cli_exits_2_and_writes_nothing_on_an_invalid_config(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    config = tmp_path / "config.yaml"
+    config.write_text("orders: 0\n")
+    out = tmp_path / "out"
+    assert main(["--config", str(config), "--seed", "1", "--out", str(out)]) == 2
+    assert "simulate: error:" in capsys.readouterr().err
+    assert not out.exists()

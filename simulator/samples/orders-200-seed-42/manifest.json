@@ -1,0 +1,58 @@
+{
+  "simulator_version": "0.1.0",
+  "seed": 42,
+  "config_sha256": "0bd4303edd4e4df3723ed0660711da5be20de3def1707f650b9a0cf23d37b189",
+  "config": {
+    "orders": 200,
+    "period": {
+      "start": "2026-10-01",
+      "end": "2026-10-31"
+    },
+    "currency": "USD",
+    "gateways": {
+      "gateway_a": {
+        "percentage_bps": 290,
+        "fixed_fee": "0.30"
+      },
+      "gateway_b": {
+        "percentage_bps": 250,
+        "fixed_fee": "0.25"
+      }
+    },
+    "settlement_lag_business_days": 2,
+    "refund_rate": "0.08",
+    "anomaly_rates": {
+      "duplicate_payment": "0.01",
+      "unauthorized_refund": "0.01",
+      "incorrect_fee": "0.01",
+      "missing_transaction": "0.01",
+      "partial_payment": "0.01",
+      "delayed_settlement": "0.04",
+      "incorrect_amount": "0.04",
+      "inconsistent_reference": "0.01",
+      "out_of_order_event": "0.01",
+      "duplicate_refund": "0.01",
+      "conflicting_resent_record": "0.01"
+    }
+  },
+  "files": {
+    "authorizations.csv": "7834d5949c73f324b6ab1041b71e8c8202a82cb7462938c6f8ab2815a82d350f",
+    "authorizations.json": "c0de8a79883e3e5a4bcc5e0dac1f61ee69f70ad3d63bf5b37e1c84a8b303b5fa",
+    "bank_transactions.csv": "0051ed2c52d1793cef37368e8ebd7faf6c3c4e7f3b256f709974f02e924ba9eb",
+    "bank_transactions.json": "b3e7ce46f01ee7ba15e0daa46f05bee3bf81dc5a89a8cf945838fcd3722b6a09",
+    "fees.csv": "b22b7292ac84523dc1ae369b2762b095077e1aa60dfbc9e1cbd8e073d073b0c8",
+    "fees.json": "3dacc1410165103c6cf42692d6e40e09a7b9798c98ce0f5178d3f244c4ac8690",
+    "ground_truth.json": "d7f4eb33f72916553eabc5f665b8d1a4ab3d0318d4553a52608d5d1e582c772b",
+    "orders.csv": "605b379f3cf825e19bac6cca843e61eb042b2343416009268c6c4ac413e4c6ed",
+    "orders.json": "1b87714ba0863ed0715fa93d88c3f33a5573cc6a606effe813535e246de5f0ff",
+    "payments.csv": "70229aa91d450741781b41e4fe06dec00d1c69dd13187f8b222cd5b5ad450b19",
+    "payments.json": "7051ec686d035fa6af54f148e33bef5318546754423e0784c8e28330a8b8518e",
+    "policies/fee_schedule.md": "0281d15c967998628a7feb8929b8ec9371f17da4f7265c1097da0cbeec53ef01",
+    "policies/refund_authorization.md": "e4167c5b0c145b4258a7357fde7f8f25b6531834a3c69d1e64959ed9f02d279f",
+    "policies/settlement_policy.md": "b1498acea49fe8732385930fd6a1e842cdb7f444f4404fb922b58232345f6c6b",
+    "refunds.csv": "2439a67b91d6b5c3627a1cffe4f49c00f8b7112a57a7002922bb4f9cb907e15e",
+    "refunds.json": "145d3448bab4347e0009eda5ec4e1b3ecc2c1c209e3e8275f86332079dd80bb6",
+    "settlements.csv": "f96766f69aa45af1e37b65f12d599cbde044855ddb26ea8f3397463a1fbde6bf",
+    "settlements.json": "cbc5ede6127c810b93441a249094c6c2c6df83733d8bf3dde654144e82a31d07"
+  }
+}

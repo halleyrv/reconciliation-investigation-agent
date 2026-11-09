@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from simulator.anomalies import INJECTORS, Anomaly, Injector, Target, planned_counts
+from simulator.anomalies import INJECTORS, Anomaly, Injector, Target
 from simulator.config import Config
 from simulator.records import RECORD_TYPES, Record, money
 from simulator.sim import Sim
@@ -17,7 +17,8 @@ class Dataset:
     ground_truth: dict[str, Any]
 
 
-def _targets(sim: Sim, injector: Injector, count: int) -> list[Target]:
+def _targets(sim: Sim, injector: Injector) -> list[Target]:
+    count = injector.count(sim)
     match injector.target:
         case "order":
             return list(sim.claim_orders(count))
@@ -29,12 +30,12 @@ def _targets(sim: Sim, injector: Injector, count: int) -> list[Target]:
             return [None] * count
 
 
-def _inject(sim: Sim, phase: str, counts: dict[str, int]) -> list[Anomaly]:
+def _inject(sim: Sim, phase: str) -> list[Anomaly]:
     return [
         injector.apply(sim, target)
         for injector in INJECTORS
         if injector.phase == phase
-        for target in _targets(sim, injector, counts[injector.name])
+        for target in _targets(sim, injector)
     ]
 
 
@@ -77,13 +78,12 @@ def _anomaly_entry(index: int, anomaly: Anomaly, currency: str) -> dict[str, Any
 
 def generate(config: Config, seed: int) -> Dataset:
     sim = Sim(config, seed)
-    counts = planned_counts(config.anomaly_rates, config.orders)
     sim.generate_orders_and_payments()
-    anomalies = _inject(sim, "records", counts)
+    anomalies = _inject(sim, "records")
     sim.generate_refunds()
     sim.build_settlements()
     sim.build_bank_credits()
-    anomalies += _inject(sim, "bank", counts)
+    anomalies += _inject(sim, "bank")
     records: dict[str, list[Record]] = {name: list(getattr(sim, name)) for name in RECORD_TYPES}
     ground_truth = {
         "schema_version": GROUND_TRUTH_SCHEMA_VERSION,

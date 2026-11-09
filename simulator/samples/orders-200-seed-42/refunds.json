@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0.0",
+  "record_type": "refunds",
+  "records": [
+    {
+      "refund_id": "RFD-000001",
+      "payment_ref": "PAY-000106",
+      "gateway": "gateway_b",
+      "amount": "161.01",
+      "currency": "USD",
+      "refunded_at": "2026-10-20T20:18:28Z",
+      "settlement_ref": "STL-000040"
+    },
+    {
+      "refund_id": "RFD-000002",
+      "payment_ref": "PAY-000065",
+      "gateway": "gateway_b",
+      "amount": "210.89",
+      "currency": "USD",
+      "refunded_at": "2026-10-15T11:45:04Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "refund_id": "RFD-000003",
+      "payment_ref": "PAY-000133",
+      "gateway": "gateway_b",
+      "amount": "95.96",
+      "currency": "USD",
+      "refunded_at": "2026-10-25T23:59:26Z",
+      "settlement_ref": "STL-000050"
+    },
+    {
+      "refund_id": "RFD-000004",
+      "payment_ref": "PAY-000133",
+      "gateway": "gateway_b",
+      "amount": "95.96",
+      "currency": "USD",
+      "refunded_at": "2026-10-26T00:36:26Z",
+      "settlement_ref": "STL-000052"
+    },
+    {
+      "refund_id": "RFD-000005",
+      "payment_ref": "PAY-000078",
+      "gateway": "gateway_b",
+      "amount": "207.60",
+      "currency": "USD",
+      "refunded_at": "2026-10-15T00:46:57Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "refund_id": "RFD-000006",
+      "payment_ref": "PAY-000078",
+      "gateway": "gateway_b",
+      "amount": "207.60",
+      "currency": "USD",
+      "refunded_at": "2026-10-15T01:16:57Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "refund_id": "RFD-000007",
+      "payment_ref": "PAY-000088",
+      "gateway": "gateway_b",
+      "amount": "308.19",
+      "currency": "USD",
+      "refunded_at": "2026-10-15T04:57:20Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "refund_id": "RFD-000008",
+      "payment_ref": "PAY-000004",
+      "gateway": "gateway_a",
+      "amount": "323.64",
+      "currency": "USD",
+      "refunded_at": "2026-10-03T06:46:30Z",
+      "settlement_ref": "STL-000005"
+    },
+    {
+      "refund_id": "RFD-000009",
+      "payment_ref": "PAY-000152",
+      "gateway": "gateway_a",
+      "amount": "339.54",
+      "currency": "USD",
+      "refunded_at": "2026-10-28T03:11:13Z",
+      "settlement_ref": "STL-000055"
+    },
+    {
+      "refund_id": "RFD-000010",
+      "payment_ref": "PAY-000036",
+      "gateway": "gateway_a",
+      "amount": "28.99",
+      "currency": "USD",
+      "refunded_at": "2026-10-08T13:08:54Z",
+      "settlement_ref": "STL-000015"
+    },
+    {
+      "refund_id": "RFD-000011",
+      "payment_ref": "PAY-000080",
+      "gateway": "gateway_b",
+      "amount": "32.06",
+      "currency": "USD",
+      "refunded_at": "2026-10-14T10:56:56Z",
+      "settlement_ref": "STL-000028"
+    },
+    {
+      "refund_id": "RFD-000012",
+      "payment_ref": "PAY-000013",
+      "gateway": "gateway_a",
+      "amount": "318.47",
+      "currency": "USD",
+      "refunded_at": "2026-10-06T09:57:44Z",
+      "settlement_ref": "STL-000011"
+    },
+    {
+      "refund_id": "RFD-000013",
+      "payment_ref": "PAY-000015",
+      "gateway": "gateway_a",
+      "amount": "72.85",
+      "currency": "USD",
+      "refunded_at": "2026-10-05T16:29:05Z",
+      "settlement_ref": "STL-000009"
+    },
+    {
+      "refund_id": "RFD-000014",
+      "payment_ref": "PAY-000157",
+      "gateway": "gateway_b",
+      "amount": "180.42",
+      "currency": "USD",
+      "refunded_at": "2026-10-28T22:17:35Z",
+      "settlement_ref": "STL-000056"
+    },
+    {
+      "refund_id": "RFD-000015",
+      "payment_ref": "PAY-000084",
+      "gateway": "gateway_b",
+      "amount": "149.15",
+      "currency": "USD",
+      "refunded_at": "2026-10-16T10:09:46Z",
+      "settlement_ref": "STL-000032"
+    },
+    {
+      "refund_id": "RFD-000016",
+      "payment_ref": "PAY-000139",
+      "gateway": "gateway_b",
+      "amount": "362.12",
+      "currency": "USD",
+      "refunded_at": "2026-10-24T03:02:25Z",
+      "settlement_ref": "STL-000048"
+    },
+    {
+      "refund_id": "RFD-000017",
+      "payment_ref": "PAY-000029",
+      "gateway": "gateway_b",
+      "amount": "245.26",
+      "currency": "USD",
+      "refunded_at": "2026-10-08T00:06:36Z",
+      "settlement_ref": "STL-000016"
+    },
+    {
+      "refund_id": "RFD-000018",
+      "payment_ref": "PAY-000082",
+      "gateway": "gateway_b",
+      "amount": "26.86",
+      "currency": "USD",
+      "refunded_at": "2026-10-15T13:25:47Z",
+      "settlement_ref": "STL-000030"
+    },
+    {
+      "refund_id": "RFD-000019",
+      "payment_ref": "PAY-000134",
+      "gateway": "gateway_b",
+      "amount": "16.76",
+      "currency": "USD",
+      "refunded_at": "2026-10-22T23:36:16Z",
+      "settlement_ref": "STL-000044"
+    },
+    {
+      "refund_id": "RFD-000020",
+      "payment_ref": "PAY-000136",
+      "gateway": "gateway_a",
+      "amount": "11.10",
+      "currency": "USD",
+      "refunded_at": "2026-10-26T18:56:46Z",
+      "settlement_ref": "STL-000051"
+    },
+    {
+      "refund_id": "RFD-000021",
+      "payment_ref": "PAY-000125",
+      "gateway": "gateway_a",
+      "amount": "449.03",
+      "currency": "USD",
+      "refunded_at": "2026-10-23T09:42:12Z",
+      "settlement_ref": "STL-000047"
+    },
+    {
+      "refund_id": "RFD-000022",
+      "payment_ref": "PAY-000098",
+      "gateway": "gateway_a",
+      "amount": "200.55",
+      "currency": "USD",
+      "refunded_at": "2026-10-16T16:50:34Z",
+      "settlement_ref": "STL-000031"
+    }
+  ]
+}
