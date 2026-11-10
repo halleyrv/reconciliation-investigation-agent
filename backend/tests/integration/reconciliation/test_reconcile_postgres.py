@@ -104,9 +104,11 @@ def test_a_run_failing_halfway_is_failed_with_no_groups_or_discrepancies(loaded:
     assert _rows(
         loaded,
         "SELECT (SELECT count(*) FROM recon.match_groups WHERE run_id = :r),"
-        " (SELECT count(*) FROM recon.discrepancies WHERE run_id = :r)",
+        " (SELECT count(*) FROM recon.match_group_members WHERE run_id = :r),"
+        " (SELECT count(*) FROM recon.discrepancies WHERE run_id = :r),"
+        " (SELECT count(*) FROM recon.outbox)",
         r=run_id,
-    ) == [(0, 0)]
+    ) == [(0, 0, 0, 41)]  # the outbox holds only the first run's events
 
 
 def test_the_database_rejects_a_record_in_two_match_groups_of_one_run(loaded: Engine) -> None:
@@ -146,16 +148,19 @@ def test_the_database_rejects_overlapping_fee_schedule_periods(loaded: Engine) -
                 " '[2026-06-01,2026-07-01)')"
             )
         )
-    # adjacent periods and another gateway do not overlap
+    # an adjacent half-open period of the same gateway, and another gateway, do not overlap
     with loaded.begin() as connection:
         connection.execute(
             text(
                 "INSERT INTO recon.fee_schedules"
                 " (id, gateway, fee_type, rate_bps, fixed_minor, currency, valid_during)"
-                " VALUES (gen_random_uuid(), 'gateway_c', 'processing', 300, 30, 'USD',"
+                " VALUES (gen_random_uuid(), 'gateway_a', 'processing', 300, 30, 'USD',"
+                " '[2025-01-01,2026-01-01)'),"
+                " (gen_random_uuid(), 'gateway_c', 'processing', 300, 30, 'USD',"
                 " '[2026-06-01,2026-07-01)')"
             )
         )
+    assert _rows(loaded, "SELECT count(*) FROM recon.fee_schedules") == [(4,)]
 
 
 def test_the_database_keeps_one_live_run_per_period_and_ruleset(engine: Engine) -> None:

@@ -134,7 +134,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute(
-        "DROP SCHEMA recon CASCADE; DROP TABLE ref.discrepancy_types;"
-        " DROP EXTENSION IF EXISTS btree_gist;"
-    )
+    # btree_gist stays: it may have existed before 0002, and other objects may depend on it.
+    op.execute("DROP SCHEMA recon CASCADE; DROP TABLE ref.discrepancy_types;")

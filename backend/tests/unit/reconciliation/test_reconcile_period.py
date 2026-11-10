@@ -1,12 +1,14 @@
+import uuid
 from datetime import UTC, date, datetime
+from typing import Self
 
 import pytest
 
 from recon.reconciliation.adapters.outbound.memory import InMemoryReconciliationUnitOfWork
-from recon.reconciliation.application.reconcile_period import ReconcilePeriod
+from recon.reconciliation.application.reconcile_period import ReconcilePeriod, RunInProgress
 from recon.reconciliation.domain.events import DiscrepancyDetected
 from recon.reconciliation.domain.results import Period
-from recon.reconciliation.domain.run import RunStatus
+from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
 from recon.shared_kernel.ports import FixedClock, SequenceIdGenerator
 
 from .book import CALENDAR, SCHEDULE, Book, clean_book
@@ -91,3 +93,43 @@ def test_a_failed_run_does_not_block_a_new_run_of_the_same_period() -> None:
     assert statuses == ["completed", "failed"]
     assert retried.status is RunStatus.COMPLETED
     assert len(uow.committed.discrepancies) == 2
+
+
+def test_a_run_still_in_progress_is_reported_not_returned_as_a_result() -> None:
+    uow = _uow()
+    running = ReconciliationRun.start(uuid.uuid4(), OCTOBER, "v1", NOW)
+    with uow:
+        uow.runs.add(running)
+        uow.commit()
+
+    with pytest.raises(RunInProgress, match=str(running.id)):
+        _reconcile(uow)(OCTOBER)
+
+    assert uow.committed.runs == {running.id: running}
+
+
+class _DatabaseGone(InMemoryReconciliationUnitOfWork):
+    """Fails the output transaction and then the transaction that marks the run failed."""
+
+    def __enter__(self) -> Self:
+        super().__enter__()
+        save = self.runs.save
+
+        def failing_save(run: ReconciliationRun) -> None:
+            if run.status is RunStatus.FAILED:
+                raise ConnectionError("database unavailable")
+            save(run)
+
+        self.runs.save = failing_save  # type: ignore[method-assign]
+        return self
+
+
+def test_the_original_error_survives_when_the_run_cannot_be_marked_failed() -> None:
+    uow = _DatabaseGone(_book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays, 1)
+
+    with pytest.raises(RuntimeError, match="injected failure") as raised:
+        _reconcile(uow)(OCTOBER)
+
+    assert any("could not be marked failed" in note for note in raised.value.__notes__)
+    [run] = uow.committed.runs.values()
+    assert run.status is RunStatus.RUNNING
