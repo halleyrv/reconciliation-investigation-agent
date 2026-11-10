@@ -1,17 +1,24 @@
 import uuid
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Self
 
 import pytest
 
 from recon.reconciliation.adapters.outbound.memory import InMemoryReconciliationUnitOfWork
-from recon.reconciliation.application.reconcile_period import ReconcilePeriod, RunInProgress
+from recon.reconciliation.application.load_reference_data import LoadReferenceData
+from recon.reconciliation.application.reconcile_period import (
+    MissingReferenceData,
+    PeriodOverlaps,
+    ReconcilePeriod,
+    RunFailed,
+    RunInProgress,
+)
 from recon.reconciliation.domain.events import DiscrepancyDetected
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
 from recon.shared_kernel.ports import FixedClock, SequenceIdGenerator
 
-from .book import CALENDAR, SCHEDULE, Book, clean_book
+from .book import CALENDAR, MONDAY, SCHEDULE, Book, clean_book
 
 OCTOBER = Period(date(2026, 10, 1), date(2026, 10, 31))
 NOW = datetime(2026, 11, 10, 8, tzinfo=UTC)
@@ -72,8 +79,9 @@ def test_reconciling_the_same_period_and_ruleset_again_returns_the_run_and_write
 def test_a_run_failing_halfway_is_failed_and_leaves_no_partial_output() -> None:
     uow = _uow(fail_on_discrepancy=2)
 
-    with pytest.raises(RuntimeError, match="injected failure"):
+    with pytest.raises(RunFailed, match="injected failure") as raised:
         _reconcile(uow)(OCTOBER)
+    assert isinstance(raised.value.__cause__, RuntimeError)
 
     [run] = uow.committed.runs.values()
     assert (run.status, run.finished_at) == (RunStatus.FAILED, NOW)
@@ -83,7 +91,7 @@ def test_a_run_failing_halfway_is_failed_and_leaves_no_partial_output() -> None:
 def test_a_failed_run_does_not_block_a_new_run_of_the_same_period() -> None:
     uow = _uow(fail_on_discrepancy=1)
     reconcile = _reconcile(uow)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RunFailed):
         reconcile(OCTOBER)
     uow.fail_on_discrepancy = None  # the cause went away
 
@@ -127,9 +135,82 @@ class _DatabaseGone(InMemoryReconciliationUnitOfWork):
 def test_the_original_error_survives_when_the_run_cannot_be_marked_failed() -> None:
     uow = _DatabaseGone(_book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays, 1)
 
-    with pytest.raises(RuntimeError, match="injected failure") as raised:
+    with pytest.raises(RunFailed, match="injected failure") as raised:
         _reconcile(uow)(OCTOBER)
 
+    assert isinstance(raised.value.__cause__, RuntimeError)
     assert any("could not be marked failed" in note for note in raised.value.__notes__)
     [run] = uow.committed.runs.values()
     assert run.status is RunStatus.RUNNING
+
+
+MONDAY_ONLY = Period(MONDAY, MONDAY)
+TUESDAY_ONLY = Period(MONDAY + timedelta(days=1), MONDAY + timedelta(days=1))
+
+
+def _two_days_uow() -> InMemoryReconciliationUnitOfWork:
+    book = clean_book()
+    book.replace_fee("FEE-000001", 1)
+    book.sale(4, 2_000, day=TUESDAY_ONLY.start, batch="STL-000002")
+    book.replace_fee("FEE-000004", 2)
+    book.close()
+    book.close("STL-000002", TUESDAY_ONLY.start)
+    return InMemoryReconciliationUnitOfWork(book.snapshot(), (SCHEDULE,), CALENDAR.holidays)
+
+
+def test_a_run_reconciles_only_the_records_of_its_period() -> None:
+    uow = _two_days_uow()
+    reconcile = _reconcile(uow)
+
+    monday, tuesday = reconcile(MONDAY_ONLY), reconcile(TUESDAY_ONLY)
+
+    found = {
+        run: sorted(r.external_id for d in ds for r in d.records)
+        for run, ds in (
+            (rid, [d for r, d, _ in uow.committed.discrepancies.values() if r == rid])
+            for rid in (monday.id, tuesday.id)
+        )
+    }
+    assert found == {
+        monday.id: ["FEE-000001", "PAY-000001"],
+        tuesday.id: ["FEE-000004", "PAY-000004"],
+    }
+    assert len(uow.committed.groups) == 2
+
+
+def test_a_period_overlapping_a_live_run_of_the_ruleset_is_refused() -> None:
+    uow = _two_days_uow()
+    reconcile = _reconcile(uow)
+    reconcile(MONDAY_ONLY)
+
+    with pytest.raises(PeriodOverlaps, match=r"2026-10-05 to 2026-10-05"):
+        reconcile(Period(MONDAY, TUESDAY_ONLY.end))
+
+    assert len(uow.committed.runs) == 1
+    assert reconcile(Period(MONDAY, TUESDAY_ONLY.end), "v2").status is RunStatus.COMPLETED
+
+
+def test_a_fee_with_no_schedule_fails_the_run_until_the_schedule_is_loaded() -> None:
+    uow = InMemoryReconciliationUnitOfWork(
+        _book_with_two_anomalies().snapshot(), (), CALENDAR.holidays
+    )
+    reconcile = _reconcile(uow)
+
+    with pytest.raises(RunFailed, match="no fee schedule for gateway_a processing") as raised:
+        reconcile(OCTOBER)
+    assert isinstance(raised.value.__cause__, MissingReferenceData)
+    [failed] = uow.committed.runs.values()
+    assert failed.status is RunStatus.FAILED
+    assert uow.committed.discrepancies == {}
+
+    LoadReferenceData(uow, SequenceIdGenerator())((SCHEDULE,), frozenset())
+    assert reconcile(OCTOBER).status is RunStatus.COMPLETED
+
+
+def test_a_period_in_a_year_with_no_loaded_calendar_fails_the_run() -> None:
+    uow = InMemoryReconciliationUnitOfWork(
+        _book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays
+    )
+
+    with pytest.raises(RunFailed, match="no bank holiday calendar for 2027"):
+        _reconcile(uow)(Period(date(2026, 12, 1), date(2027, 1, 31)))

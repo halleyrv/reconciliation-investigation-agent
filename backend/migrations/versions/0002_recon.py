@@ -68,6 +68,8 @@ CREATE TABLE recon.fee_schedules (
     EXCLUDE USING gist (gateway WITH =, fee_type WITH =, valid_during WITH &&)
 );
 CREATE TABLE recon.holidays (day DATE PRIMARY KEY);
+-- Years whose holiday list was loaded: a year with no holidays is known, a missing one is not.
+CREATE TABLE recon.calendar_years (year SMALLINT PRIMARY KEY CHECK (year BETWEEN 1900 AND 9999));
 
 CREATE TABLE recon.reconciliation_runs (
     id UUID PRIMARY KEY,
@@ -76,11 +78,12 @@ CREATE TABLE recon.reconciliation_runs (
     status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed')),
     started_at TIMESTAMPTZ NOT NULL,
     finished_at TIMESTAMPTZ,
-    CHECK ((status IN ('completed', 'failed')) = (finished_at IS NOT NULL))
+    CHECK ((status IN ('completed', 'failed')) = (finished_at IS NOT NULL)),
+    -- Live runs of one ruleset never share a day (ADR-0016); a failed run stays for the
+    -- record and a new run may retry its period.
+    CONSTRAINT reconciliation_runs_live_period_excl EXCLUDE USING gist
+        (ruleset_version WITH =, period WITH &&) WHERE (status <> 'failed')
 );
--- One live run per period and ruleset; a failed run stays for the record and may be retried.
-CREATE UNIQUE INDEX reconciliation_runs_live_key
-    ON recon.reconciliation_runs (period, ruleset_version) WHERE status <> 'failed';
 
 CREATE TABLE recon.match_groups (
     id UUID PRIMARY KEY,
@@ -107,9 +110,10 @@ CREATE TABLE recon.discrepancies (
     actual_minor BIGINT NOT NULL,
     currency CHAR(3) NOT NULL REFERENCES ref.currencies,
     delta_minor BIGINT GENERATED ALWAYS AS (actual_minor - expected_minor) STORED,
-    fingerprint CHAR(64) NOT NULL UNIQUE CHECK (fingerprint ~ '^[0-9a-f]{{64}}$'),
+    fingerprint CHAR(64) NOT NULL CHECK (fingerprint ~ '^[0-9a-f]{{64}}$'),
     status TEXT NOT NULL CHECK (status IN ('detected', 'superseded')),
-    detected_at TIMESTAMPTZ NOT NULL
+    detected_at TIMESTAMPTZ NOT NULL,
+    UNIQUE (run_id, fingerprint)
 );
 CREATE TABLE recon.discrepancy_records (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

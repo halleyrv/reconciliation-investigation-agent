@@ -15,6 +15,7 @@ from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.orm import Session, sessionmaker
 
 from recon.reconciliation.adapters.outbound.orm import (
+    CalendarYearRow,
     DiscrepancyRecordRow,
     DiscrepancyRow,
     FeeScheduleRow,
@@ -112,6 +113,20 @@ class SqlAlchemyRuns:
         ).one_or_none()
         return None if row is None else _run_from_row(row)
 
+    def find_overlapping(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
+        row = self._session.scalars(
+            select(RunRow)
+            .where(
+                RunRow.period.overlaps(to_range(period)),
+                RunRow.period != to_range(period),
+                RunRow.ruleset_version == ruleset_version,
+                RunRow.status != RunStatus.FAILED.value,
+            )
+            .order_by(RunRow.started_at)
+            .limit(1)
+        ).one_or_none()
+        return None if row is None else _run_from_row(row)
+
     def add(self, run: ReconciliationRun) -> None:
         self._session.add(
             RunRow(
@@ -145,6 +160,11 @@ class SqlSourceRecords:
         return rows
 
     def snapshot(self, currency: str) -> Snapshot:
+        # One consistent view of every table: an import committing between these queries must
+        # not mix into a run (phase review M2). PostgreSQL refuses this unless it is the
+        # transaction's first statement, so a misuse fails loudly. Only here: the run-start
+        # transaction must stay READ COMMITTED to see a run committed while it waited on the lock.
+        self._session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
         conflicts = self._session.execute(
             text("SELECT DISTINCT record_type, external_id FROM ingestion.source_conflicts")
         )
@@ -257,6 +277,12 @@ class SqlAlchemyReferenceData:
     def add_holiday(self, day: date) -> None:
         self._session.execute(insert(HolidayRow).values(day=day))
 
+    def calendar_years(self) -> frozenset[int]:
+        return frozenset(self._session.scalars(select(CalendarYearRow.year)))
+
+    def add_calendar_year(self, year: int) -> None:
+        self._session.execute(insert(CalendarYearRow).values(year=year))
+
 
 class SqlAlchemyResults:
     def __init__(self, session: Session, sources: SqlSourceRecords) -> None:
@@ -337,7 +363,7 @@ SELECT d.id, d.type, d.delta_minor,
        CASE WHEN o.id IS NOT NULL THEN 'orders' WHEN p.id IS NOT NULL THEN 'payments'
             WHEN rf.id IS NOT NULL THEN 'refunds' WHEN f.id IS NOT NULL THEN 'fees'
             WHEN s.id IS NOT NULL THEN 'settlements' WHEN b.id IS NOT NULL THEN 'bank_transactions'
-            ELSE 'authorizations' END AS source,
+            WHEN a.id IS NOT NULL THEN 'authorizations' END AS source,
        COALESCE(o.external_id, p.external_id, rf.external_id, f.external_id, s.external_id,
                 b.external_id, a.external_id) AS external_id
 FROM recon.discrepancies d JOIN recon.discrepancy_records r ON r.discrepancy_id = d.id
@@ -366,6 +392,8 @@ class SqlRunOutputs:
     def findings(self, run_id: uuid.UUID) -> list[Finding]:
         grouped: dict[uuid.UUID, tuple[str, int, set[tuple[str, str]]]] = {}
         for row in self._session.execute(text(_FINDINGS), {"run_id": run_id}):
+            if row.source is None:  # a record column this query does not join yet
+                raise ValueError(f"discrepancy {row.id} names a record of an unknown type")
             _, _, records = grouped.setdefault(row.id, (row.type, row.delta_minor, set()))
             records.add((row.source, row.external_id))
         return [Finding(t, frozenset(records), delta) for t, delta, records in grouped.values()]

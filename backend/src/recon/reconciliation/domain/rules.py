@@ -98,9 +98,7 @@ class FeeMismatchRule:
             if payment is None:  # a dangling reference, owned by ReferenceMismatchRule
                 continue
             schedule = ruleset.schedule_for(fee.gateway, fee.fee_type, payment.captured_at.date())
-            # shortcut: a fee with no loaded schedule is not checked; report it as a
-            # discrepancy type of its own if operators ask for it.
-            if schedule is None:
+            if schedule is None:  # ReconcilePeriod refuses to run before this can happen
                 continue
             expected = schedule.fee_for(payment.amount)
             if expected != fee.amount:

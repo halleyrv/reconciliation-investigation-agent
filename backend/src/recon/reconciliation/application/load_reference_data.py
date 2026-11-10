@@ -17,6 +17,7 @@ class ReferenceDataConflict(Exception):
 class LoadResult:
     schedules_added: int
     holidays_added: int
+    years_added: int
 
 
 class LoadReferenceData:
@@ -24,7 +25,12 @@ class LoadReferenceData:
         self._uow = uow
         self._ids = ids
 
-    def __call__(self, schedules: Iterable[FeeSchedule], holidays: Iterable[date]) -> LoadResult:
+    def __call__(
+        self,
+        schedules: Iterable[FeeSchedule],
+        holidays: Iterable[date],
+        calendar_years: Iterable[int] = (),
+    ) -> LoadResult:
         """Add what is not loaded yet, in one transaction. A schedule that overlaps a different
         one already loaded (or another in the input) changes nothing and raises."""
         with self._uow as uow:
@@ -46,5 +52,8 @@ class LoadReferenceData:
                 uow.reference.add_fee_schedule(self._ids.new(), schedule)
             for day in days:
                 uow.reference.add_holiday(day)
+            years = sorted(set(calendar_years) - uow.reference.calendar_years())
+            for year in years:
+                uow.reference.add_calendar_year(year)
             uow.commit()
-        return LoadResult(len(new), len(days))
+        return LoadResult(len(new), len(days), len(years))

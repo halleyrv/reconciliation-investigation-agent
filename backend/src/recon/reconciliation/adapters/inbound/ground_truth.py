@@ -23,12 +23,11 @@ _CODE = {
 
 
 def _code(anomaly: dict[str, str]) -> str:
-    if anomaly["type"] == "missing_transaction":
-        code = anomaly["subtype"]  # missing_in_orders, missing_in_gateway, missing_in_bank
-    else:
-        code = _CODE.get(anomaly["type"], "")
+    kind, subtype = anomaly["type"], anomaly.get("subtype", "")
+    # missing_transaction's subtype is the direction: missing_in_orders, _gateway or _bank
+    code = subtype if kind == "missing_transaction" else _CODE.get(kind, "")
     if code not in DiscrepancyType.__members__.values():
-        raise ValueError(f"unknown anomaly type {anomaly['type']!r} / {anomaly['subtype']!r}")
+        raise ValueError(f"unknown anomaly type {kind!r} (subtype {subtype!r})")
     return code
 
 

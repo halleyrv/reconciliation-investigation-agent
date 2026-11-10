@@ -319,3 +319,57 @@ def test_a_refund_with_both_references_dangling_is_one_reference_mismatch() -> N
     result = book.run()
 
     assert found(result) == [("reference_mismatch", frozenset({ref(RFD, "RFD-000001")}), 0)]
+
+
+def test_an_overpaid_order_is_not_a_clean_link() -> None:
+    book = clean_book()
+    book.payments.pop(2)
+    book.fees.pop(2)
+    book.pay("PAY-000003", "ORD-000003", 7_000, at(MONDAY, 10), batch="STL-000001")
+    book.close()
+
+    result = book.run()
+
+    assert found(result) == []  # the catalog has no overpayment type (phase review M3)
+    assert linked_orders(result) == ALL - {"ORD-000003"}
+
+
+def test_a_credit_exactly_on_the_due_date_is_on_time() -> None:
+    book = clean_book()
+    book.close()
+
+    assert book.bank[0].value_date == CALENDAR.add_business_days(MONDAY, 2)
+    assert found(book.run()) == []
+
+
+def test_sequence_violations_of_capture_credit_and_refund_order() -> None:
+    book = clean_book()
+    refund = book.refund("RFD-000001", book.payments[1], 1_000, authorized=True)
+    book.refunds[0] = replace(refund, refunded_at=book.payments[1].captured_at)
+    book.authorizations[0] = replace(
+        book.authorizations[0], approved_at=book.payments[1].captured_at - timedelta(minutes=1)
+    )
+    book.payments[2] = replace(book.payments[2], captured_at=at(MONDAY + timedelta(days=1), 1))
+    book.close()
+    book.bank[0] = replace(book.bank[0], value_date=MONDAY - timedelta(days=1))
+
+    kinds = {(t, tuple(sorted(r.external_id for r in refs))) for t, refs, _ in found(book.run())}
+
+    assert kinds == {
+        ("sequence_violation", ("PAY-000002", "RFD-000001")),
+        ("sequence_violation", ("PAY-000003", "STL-000001")),
+        ("sequence_violation", ("BNK-000001", "STL-000001")),
+    }
+
+
+def test_reference_mismatch_for_a_fee_of_an_unknown_payment_and_an_unknown_batch() -> None:
+    book = clean_book()
+    book.fees[0] = replace(book.fees[0], payment_ref="PAY-000404")
+    book.payments[1] = replace(book.payments[1], settlement_ref="STL-000404")
+    book.fees[1] = replace(book.fees[1], settlement_ref="STL-000404")
+    book.close()
+
+    result = book.run()
+
+    refs = {next(iter(r)).external_id for t, r, _ in found(result) if t == "reference_mismatch"}
+    assert refs == {"FEE-000001", "PAY-000002", "FEE-000002"}

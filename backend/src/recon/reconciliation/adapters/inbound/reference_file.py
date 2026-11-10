@@ -27,10 +27,13 @@ class _Schedule(_Strict):
 
 class _ReferenceFile(_Strict):
     fee_schedules: list[_Schedule]
+    calendar_years: list[int]  # years the holiday list is complete for
     holidays: list[date]
 
 
-def read_reference_file(path: Path) -> tuple[tuple[FeeSchedule, ...], frozenset[date]]:
+def read_reference_file(
+    path: Path,
+) -> tuple[tuple[FeeSchedule, ...], frozenset[date], frozenset[int]]:
     """Raises ``ValueError`` naming the field when the file does not match the format."""
     parsed = _ReferenceFile.model_validate_json(path.read_bytes())
     schedules = tuple(
@@ -44,4 +47,8 @@ def read_reference_file(path: Path) -> tuple[tuple[FeeSchedule, ...], frozenset[
         )
         for s in parsed.fee_schedules
     )
-    return schedules, frozenset(parsed.holidays)
+    years = frozenset(parsed.calendar_years)
+    outside = sorted(d for d in parsed.holidays if d.year not in years)
+    if outside:
+        raise ValueError(f"holidays outside calendar_years: {', '.join(map(str, outside))}")
+    return schedules, frozenset(parsed.holidays), years

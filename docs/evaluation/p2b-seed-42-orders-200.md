@@ -1,6 +1,6 @@
 # Reconciliation evaluation
 
-- Run: `38da82e1-ce2f-46bf-bd56-bb9b42d89891`, ruleset `v1`, period 2026-10-01 to 2026-10-31
+- Run: `93ee173f-d4f2-4080-b9a9-34c40ad4b27e`, ruleset `v1`, period 2026-10-01 to 2026-10-31
 - Ground truth: `simulator/samples/orders-200-seed-42/ground_truth.json`
 - Result: **PASS**
 

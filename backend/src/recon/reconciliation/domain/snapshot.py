@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from datetime import date
 from functools import cached_property
 
 from recon.reconciliation.domain.records import (
@@ -12,6 +13,7 @@ from recon.reconciliation.domain.records import (
     Fee,
     Order,
     Payment,
+    RecordRef,
     Refund,
     Settlement,
     SourceConflict,
@@ -109,6 +111,46 @@ class Snapshot:
         """Refunds of the same payment for the same amount, two or more per group."""
         groups = _group(self.refunds, lambda r: (r.payment_ref, r.amount))
         return [g for g in groups.values() if len(g) > 1]
+
+    @cached_property
+    def anchors(self) -> dict[RecordRef, date]:
+        """The day each record belongs to (ADR-0016): the date of the settlement batch it
+        settles in, else its own date. An order follows its earliest payment, an
+        authorization its refund, a payout the batch it names."""
+
+        def batch_or(ref: str, own: date | None) -> date | None:
+            batch = self.settlements_by_id.get(ref)
+            return batch.batch_date if batch is not None else own
+
+        days: dict[RecordRef, date | None] = {}
+        for s in self.settlements:
+            days[s.ref] = s.batch_date
+        for p in self.payments:
+            days[p.ref] = batch_or(p.settlement_ref, p.captured_at.date())
+        for r in self.refunds:
+            days[r.ref] = batch_or(r.settlement_ref, r.refunded_at.date())
+        for f in self.fees:
+            payment = self.payments_by_id.get(f.payment_ref)
+            days[f.ref] = batch_or(f.settlement_ref, days[payment.ref] if payment else None)
+        for b in self.bank_transactions:
+            days[b.ref] = batch_or(settlement_ref_of(b) or "", b.value_date)
+        paid: dict[str, list[date]] = defaultdict(list)
+        for p in self.payments:
+            order = self.order_of(p) or self.renamed_order_of.get(p.external_id)
+            if order is not None and (day := days[p.ref]) is not None:
+                paid[order.external_id].append(day)
+        for o in self.orders:
+            days[o.ref] = min(paid[o.external_id], default=o.placed_at.date())
+        refunds = {r.external_id: r for r in self.refunds}
+        for a in self.authorizations:
+            refund = refunds.get(a.subject_ref) if a.subject_kind == "refund" else None
+            days[a.ref] = days[refund.ref] if refund is not None else a.approved_at.date()
+        # shortcut: a fee whose payment and batch both dangle has no day and joins no
+        # period; anchor it to its import date if such fees ever need reporting.
+        return {ref: day for ref, day in days.items() if day is not None}
+
+    def anchor_of(self, ref: RecordRef) -> date | None:
+        return self.anchors.get(ref)
 
     def order_of(self, payment: Payment) -> Order | None:
         return self.orders_by_id.get(payment.order_ref)

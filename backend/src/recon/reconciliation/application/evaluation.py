@@ -81,6 +81,13 @@ class Evaluation:
         )
 
 
+def _per_type(counts: Counter[tuple[str, frozenset[RecordKey]]]) -> Counter[str]:
+    per_type: Counter[str] = Counter()
+    for (kind, _), n in counts.items():
+        per_type[kind] += n
+    return per_type
+
+
 def _order(findings: Iterable[Finding]) -> tuple[Finding, ...]:
     return tuple(sorted(findings, key=lambda f: (f.type, sorted(f.records))))
 
@@ -91,22 +98,25 @@ def evaluate(
     expected_links: set[Link],
     found_links: set[Link],
 ) -> Evaluation:
+    """A finding reported twice counts twice, so a duplicate detection is never hidden."""
     want = {f.key: f for f in expected}
     got = {f.key: f for f in detected}
-    matched = want.keys() & got.keys()
-    wanted, found, hit = (Counter(t for t, _ in keys) for keys in (want, got, matched))
+    want_n = Counter(f.key for f in expected)
+    got_n = Counter(f.key for f in detected)
+    hit_n = want_n & got_n
+    wanted, found, hit = map(_per_type, (want_n, got_n, hit_n))
     types = tuple(
         TypeScore(t, wanted[t], found[t], hit[t]) for t in sorted(wanted.keys() | found.keys())
     )
     mismatches = tuple(
         (want[k], got[k].delta_minor)
-        for k in sorted(matched, key=lambda k: (k[0], sorted(k[1])))
+        for k in sorted(hit_n, key=lambda k: (k[0], sorted(k[1])))
         if want[k].delta_minor != got[k].delta_minor
     )
     return Evaluation(
         types=types,
-        missed=_order(want[k] for k in want.keys() - matched),
-        unexpected=_order(got[k] for k in got.keys() - matched),
+        missed=_order(want[k] for k, n in (want_n - got_n).items() for _ in range(n)),
+        unexpected=_order(got[k] for k, n in (got_n - want_n).items() for _ in range(n)),
         delta_mismatches=mismatches,
         links_expected=len(expected_links),
         links_found=len(found_links),

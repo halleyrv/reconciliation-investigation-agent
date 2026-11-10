@@ -1,4 +1,6 @@
+import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
 
@@ -12,8 +14,13 @@ from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport
 from recon.reconciliation.adapters.inbound.reference_file import read_reference_file
 from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationUnitOfWork
+from recon.reconciliation.application.evaluation import Finding
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
-from recon.reconciliation.application.reconcile_period import ReconcilePeriod
+from recon.reconciliation.application.reconcile_period import (
+    ReconcilePeriod,
+    RunFailed,
+    RunInProgress,
+)
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.run import RunStatus
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
@@ -86,15 +93,30 @@ def test_reconciling_again_returns_the_run_and_creates_nothing(loaded: Engine) -
 
 
 def test_a_run_failing_halfway_is_failed_with_no_groups_or_discrepancies(loaded: Engine) -> None:
-    _reconcile(loaded)(OCTOBER)
-    # A second ruleset on the same period finds the same fingerprints: the first discrepancy
-    # insert fails after every match group of the run was written.
-    with pytest.raises(IntegrityError, match="discrepancies_fingerprint_key"):
-        _reconcile(loaded)(OCTOBER, "v2")
+    # A trigger rejects the run's 20th discrepancy, after every match group was written.
+    with loaded.begin() as connection:
+        connection.execute(
+            text(
+                "CREATE FUNCTION recon.fail_halfway() RETURNS trigger LANGUAGE plpgsql AS $$"
+                " BEGIN IF (SELECT count(*) FROM recon.discrepancies) >= 19 THEN"
+                " RAISE EXCEPTION 'injected failure halfway'; END IF; RETURN NEW; END $$;"
+                " CREATE TRIGGER fail_halfway BEFORE INSERT ON recon.discrepancies"
+                " FOR EACH ROW EXECUTE FUNCTION recon.fail_halfway();"
+            )
+        )
+    try:
+        with pytest.raises(RunFailed, match="injected failure halfway"):
+            _reconcile(loaded)(OCTOBER)
+    finally:
+        with loaded.begin() as connection:
+            connection.execute(
+                text(
+                    "DROP TRIGGER fail_halfway ON recon.discrepancies;"
+                    " DROP FUNCTION recon.fail_halfway();"
+                )
+            )
 
-    [(run_id, status)] = _rows(
-        loaded, "SELECT id, status FROM recon.reconciliation_runs WHERE ruleset_version = 'v2'"
-    )
+    [(run_id, status)] = _rows(loaded, "SELECT id, status FROM recon.reconciliation_runs")
     assert status == "failed"
     assert _rows(
         loaded,
@@ -103,7 +125,47 @@ def test_a_run_failing_halfway_is_failed_with_no_groups_or_discrepancies(loaded:
         " (SELECT count(*) FROM recon.discrepancies WHERE run_id = :r),"
         " (SELECT count(*) FROM recon.outbox)",
         r=run_id,
-    ) == [(0, 0, 0, 41)]  # the outbox holds only the first run's events
+    ) == [(0, 0, 0, 0)]
+    assert _reconcile(loaded)(OCTOBER).status is RunStatus.COMPLETED  # the retry is clean
+
+
+def _comparable(f: Finding) -> tuple[str, tuple[tuple[str, str], ...], int]:
+    return f.type, tuple(sorted(f.records)), f.delta_minor
+
+
+def test_a_month_split_in_two_halves_reports_exactly_what_the_whole_month_reports(
+    loaded: Engine,
+) -> None:
+    whole = _reconcile(loaded)(OCTOBER)
+    first = _reconcile(loaded)(Period(date(2026, 10, 1), date(2026, 10, 15)), "halves")
+    second = _reconcile(loaded)(Period(date(2026, 10, 16), date(2026, 10, 31)), "halves")
+
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded))
+    with uow:
+        month = sorted(map(_comparable, uow.outputs.findings(whole.id)))
+        halves = [sorted(map(_comparable, uow.outputs.findings(run.id))) for run in (first, second)]
+        links = [uow.outputs.links(run.id) for run in (whole, first, second)]
+    assert halves[0] and halves[1]
+    assert sorted(halves[0] + halves[1]) == month
+    assert not links[1] & links[2] and links[1] | links[2] == links[0]
+
+
+def test_a_run_without_reference_data_fails_and_succeeds_once_it_is_loaded(
+    engine: Engine, sample: Path
+) -> None:
+    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine))
+    ImportExport(uow, SystemClock(), UuidIdGenerator())(read_export(sample))
+
+    with pytest.raises(RunFailed, match="no bank holiday calendar for 2026"):
+        _reconcile(engine)(OCTOBER)
+    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    LoadReferenceData(reference, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
+
+    assert _reconcile(engine)(OCTOBER).status is RunStatus.COMPLETED
+    assert _rows(engine, "SELECT status FROM recon.reconciliation_runs ORDER BY started_at") == [
+        ("failed",),
+        ("completed",),
+    ]
 
 
 def test_the_database_rejects_a_record_in_two_match_groups_of_one_run(loaded: Engine) -> None:
@@ -158,7 +220,7 @@ def test_the_database_rejects_overlapping_fee_schedule_periods(loaded: Engine) -
     assert _rows(loaded, "SELECT count(*) FROM recon.fee_schedules") == [(4,)]
 
 
-def test_the_database_keeps_one_live_run_per_period_and_ruleset(engine: Engine) -> None:
+def test_the_database_keeps_live_runs_of_one_ruleset_from_sharing_a_day(engine: Engine) -> None:
     insert = text(
         "INSERT INTO recon.reconciliation_runs"
         " (id, period, ruleset_version, status, started_at, finished_at)"
@@ -169,7 +231,38 @@ def test_the_database_keeps_one_live_run_per_period_and_ruleset(engine: Engine) 
             connection.execute(insert, {"status": "failed", "finished": date(2026, 11, 1)})
         connection.execute(insert, {"status": "running", "finished": None})
     with (
-        pytest.raises(IntegrityError, match="reconciliation_runs_live_key"),
+        pytest.raises(IntegrityError, match="reconciliation_runs_live_period_excl"),
         engine.begin() as connection,
     ):
         connection.execute(insert, {"status": "completed", "finished": date(2026, 11, 1)})
+    overlapping = text(
+        "INSERT INTO recon.reconciliation_runs"
+        " (id, period, ruleset_version, status, started_at)"
+        " VALUES (gen_random_uuid(), :period, :ruleset, 'running', now())"
+    )
+    with (
+        pytest.raises(IntegrityError, match="reconciliation_runs_live_period_excl"),
+        engine.begin() as connection,
+    ):
+        connection.execute(overlapping, {"period": "[2026-10-31,2026-12-01)", "ruleset": "v1"})
+    with engine.begin() as connection:  # adjacent periods and other rulesets are fine
+        connection.execute(overlapping, {"period": "[2026-11-01,2026-12-01)", "ruleset": "v1"})
+        connection.execute(overlapping, {"period": "[2026-10-15,2026-11-15)", "ruleset": "v2"})
+
+
+def test_concurrent_reconciles_of_one_period_create_one_run(loaded: Engine) -> None:
+    barrier = threading.Barrier(2)
+
+    def reconcile() -> str:
+        barrier.wait()
+        try:
+            return _reconcile(loaded)(OCTOBER).status.value
+        except RunInProgress:
+            return "in progress"
+
+    with ThreadPoolExecutor(2) as pool:
+        outcomes = sorted(pool.map(lambda _: reconcile(), range(2)))
+
+    assert outcomes in (["completed", "completed"], ["completed", "in progress"])
+    assert _rows(loaded, "SELECT count(*) FROM recon.reconciliation_runs") == [(1,)]
+    assert _rows(loaded, "SELECT count(*) FROM recon.discrepancies") == [(41,)]

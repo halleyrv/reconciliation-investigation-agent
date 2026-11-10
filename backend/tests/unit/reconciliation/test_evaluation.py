@@ -90,3 +90,13 @@ def test_evaluate_run_scores_the_completed_run_of_the_period() -> None:
     assert evaluated == run
     assert result.perfect
     assert (result.links_matched, result.types[0].matched) == (2, 1)
+
+
+def test_a_duplicated_detection_is_unexpected_and_not_perfect() -> None:
+    finding = _f("fee_mismatch", "P1", delta=37)
+
+    result = evaluate([finding], [finding, finding], set(), set())
+
+    assert result.unexpected == (finding,)
+    assert [(s.expected, s.detected, s.matched) for s in result.types] == [(1, 2, 1)]
+    assert not result.perfect

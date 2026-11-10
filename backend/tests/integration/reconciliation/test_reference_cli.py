@@ -30,8 +30,10 @@ def test_loading_the_reference_file_twice_adds_it_once_and_exits_0(
     assert out == [
         "fee schedules: 2 added, 0 already loaded",
         "holidays: 7 added, 0 already loaded",
+        "calendar years: 1 added, 0 already loaded",
         "fee schedules: 0 added, 2 already loaded",
         "holidays: 0 added, 7 already loaded",
+        "calendar years: 0 added, 1 already loaded",
     ]
     assert (_count(database, "fee_schedules"), _count(database, "holidays")) == (2, 7)
 

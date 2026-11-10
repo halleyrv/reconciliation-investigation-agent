@@ -36,6 +36,11 @@ class HolidayRow(Base):
     day: Mapped[date] = mapped_column(primary_key=True)
 
 
+class CalendarYearRow(Base):
+    __tablename__ = "calendar_years"
+    year: Mapped[int] = mapped_column(primary_key=True)
+
+
 class RunRow(Base):
     __tablename__ = "reconciliation_runs"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)

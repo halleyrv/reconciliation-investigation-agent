@@ -1,12 +1,14 @@
 """The MatchingEngine: runs every registered rule, then links the batches nothing disputes."""
 
 from collections.abc import Sequence
+from datetime import date
 
-from recon.reconciliation.domain.records import Payment, RecordRef
+from recon.reconciliation.domain.records import Order, Payment, RecordRef
 from recon.reconciliation.domain.results import (
     Discrepancy,
     MatchGroup,
     MatchMember,
+    Period,
     ReconciliationResult,
 )
 from recon.reconciliation.domain.rules import CATALOG, MatchRule, Ruleset
@@ -19,14 +21,32 @@ class MatchingEngine:
     def __init__(self, rules: Sequence[MatchRule]) -> None:
         self._rules = tuple(rules)
 
-    def run(self, snapshot: Snapshot, ruleset: Ruleset) -> ReconciliationResult:
+    def run(
+        self, snapshot: Snapshot, ruleset: Ruleset, period: Period | None = None
+    ) -> ReconciliationResult:
+        """Rules see every record; the result keeps what belongs to ``period`` (ADR-0016)."""
         found = [d for rule in self._rules for d in rule.detect(snapshot, ruleset)]
         keys = [d.sort_key() for d in found]
         if len(set(keys)) != len(keys):
             raise ValueError("two rules reported the same discrepancy")
-        discrepancies = tuple(sorted(found, key=Discrepancy.sort_key))
-        disputed = {r for d in discrepancies for r in d.records}
-        return ReconciliationResult(_link_batches(snapshot, disputed), discrepancies)
+        disputed = {r for d in found for r in d.records}
+        groups = _link_batches(snapshot, disputed)
+        if period is not None:
+            found = [d for d in found if _within(period, _latest_anchor(snapshot, d))]
+            groups = tuple(g for g in groups if _within(period, _batch_day(snapshot, g)))
+        return ReconciliationResult(groups, tuple(sorted(found, key=Discrepancy.sort_key)))
+
+
+def _within(period: Period, day: date | None) -> bool:
+    return day is not None and period.start <= day <= period.end
+
+
+def _latest_anchor(snapshot: Snapshot, discrepancy: Discrepancy) -> date | None:
+    return max((d for r in discrepancy.records if (d := snapshot.anchor_of(r))), default=None)
+
+
+def _batch_day(snapshot: Snapshot, group: MatchGroup) -> date | None:
+    return next(snapshot.anchor_of(m.ref) for m in group.members if m.role == "settlement")
 
 
 def default_engine() -> MatchingEngine:
@@ -59,17 +79,20 @@ def _link_batches(snapshot: Snapshot, disputed: set[RecordRef]) -> tuple[MatchGr
         members |= {MatchMember(f.ref, "fee") for f in fees}
         for p in payments:
             order = snapshot.order_of(p)
-            if order is not None and _clean_chain(snapshot, order.ref, p, disputed):
+            if order is not None and _clean_chain(snapshot, order, p, disputed):
                 members.add(MatchMember(order.ref, "order"))
         groups.append(MatchGroup(SETTLEMENT_BATCH, frozenset(members)))
     return tuple(groups)
 
 
 def _clean_chain(
-    snapshot: Snapshot, order: RecordRef, payment: Payment, disputed: set[RecordRef]
+    snapshot: Snapshot, order: Order, payment: Payment, disputed: set[RecordRef]
 ) -> bool:
+    """Undisputed, paid exactly once and in full: an overpaid order is not clean either."""
+    if payment.amount != order.total:
+        return False
     chain = {
-        order,
+        order.ref,
         payment.ref,
         *(f.ref for f in snapshot.fees_by_payment.get(payment.external_id, [])),
         *(r.ref for r in snapshot.refunds_by_payment.get(payment.external_id, [])),

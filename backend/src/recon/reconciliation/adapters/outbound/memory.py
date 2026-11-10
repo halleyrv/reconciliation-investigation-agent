@@ -29,6 +29,7 @@ class State:
     events: list[DomainEvent] = field(default_factory=list)
     fee_schedules: dict[uuid.UUID, FeeSchedule] = field(default_factory=dict)
     holidays: frozenset[date] = frozenset()
+    calendar_years: frozenset[int] = frozenset()
 
 
 class _Runs:
@@ -49,9 +50,26 @@ class _Runs:
             None,
         )
 
+    def find_overlapping(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
+        return next(
+            (
+                r
+                for r in self._state.runs.values()
+                if r.ruleset_version == ruleset_version
+                and r.status is not RunStatus.FAILED
+                and r.period != period
+                and r.period.start <= period.end
+                and period.start <= r.period.end
+            ),
+            None,
+        )
+
     def add(self, run: ReconciliationRun) -> None:
-        if run.status is not RunStatus.FAILED and self.find_live(run.period, run.ruleset_version):
-            raise UniqueViolation("a live run of this period and ruleset exists")
+        if run.status is not RunStatus.FAILED and (
+            self.find_live(run.period, run.ruleset_version)
+            or self.find_overlapping(run.period, run.ruleset_version)
+        ):
+            raise UniqueViolation("a live run of this ruleset covers part of the period")
         self._state.runs[run.id] = run
 
     def save(self, run: ReconciliationRun) -> None:
@@ -80,6 +98,14 @@ class _Reference:
         if any(schedule.overlaps(s) for s in self._state.fee_schedules.values()):
             raise UniqueViolation("overlapping fee schedule")  # the EXCLUDE constraint
         self._state.fee_schedules[schedule_id] = schedule
+
+    def calendar_years(self) -> frozenset[int]:
+        return self._state.calendar_years
+
+    def add_calendar_year(self, year: int) -> None:
+        if year in self._state.calendar_years:
+            raise UniqueViolation(f"calendar year {year} exists")
+        self._state.calendar_years |= {year}
 
     def add_holiday(self, day: date) -> None:
         if day in self._state.holidays:
@@ -113,8 +139,8 @@ class _Results:
         if self._written == self._fail_on:
             raise RuntimeError("injected failure while writing discrepancies")
         fingerprint = discrepancy.fingerprint(period)
-        if any(f == fingerprint for _, _, f in self._state.discrepancies.values()):
-            raise UniqueViolation(f"fingerprint {fingerprint} exists")
+        if (run_id, fingerprint) in {(r, f) for r, _, f in self._state.discrepancies.values()}:
+            raise UniqueViolation(f"fingerprint {fingerprint} exists in run {run_id}")
         self._state.discrepancies[discrepancy_id] = (run_id, discrepancy, fingerprint)
 
 
@@ -174,12 +200,18 @@ class InMemoryReconciliationUnitOfWork:
         fee_schedules: tuple[FeeSchedule, ...] = (),
         holidays: frozenset[date] = frozenset(),
         fail_on_discrepancy: int | None = None,
+        calendar_years: frozenset[int] | None = None,
     ) -> None:
         self.committed = State(
             fee_schedules={uuid.UUID(int=n): s for n, s in enumerate(fee_schedules, 1)},
             holidays=holidays,
+            # by default the years of the given holidays count as loaded
+            calendar_years=(
+                frozenset({d.year for d in holidays}) if calendar_years is None else calendar_years
+            ),
         )
         self.sources = _Sources(snapshot)
+        self._snapshot = snapshot
         self.fail_on_discrepancy = fail_on_discrepancy  # test hook, read by each transaction
 
     def __enter__(self) -> Self:
@@ -187,7 +219,7 @@ class InMemoryReconciliationUnitOfWork:
         self.runs = _Runs(self._working)
         self.results = _Results(self._working, self.fail_on_discrepancy)
         self.reference = _Reference(self._working)
-        self.outputs = _Outputs(self._working, self.sources.snapshot(""))
+        self.outputs = _Outputs(self._working, self._snapshot)
         return self
 
     def __exit__(

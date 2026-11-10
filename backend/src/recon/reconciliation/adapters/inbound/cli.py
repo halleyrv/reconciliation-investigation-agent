@@ -17,7 +17,7 @@ from recon.reconciliation.application.load_reference_data import (
 from recon.reconciliation.application.reconcile_period import (
     RULESET_VERSION,
     ReconcilePeriod,
-    RunInProgress,
+    RunFailed,
 )
 from recon.reconciliation.domain.results import Period
 
@@ -33,12 +33,12 @@ def run_reference(argv: Sequence[str] | None, load: Callable[[], LoadReferenceDa
     )
     args = parser.parse_args(argv)
     try:
-        schedules, holidays = read_reference_file(args.file)
+        schedules, holidays, years = read_reference_file(args.file)
     except (ValueError, OSError) as exc:
         print(f"recon-reference: nothing loaded: {exc}", file=sys.stderr)
         return 2
     try:
-        result = load()(schedules, holidays)
+        result = load()(schedules, holidays, years)
     except ReferenceDataConflict as exc:
         print(f"recon-reference: nothing loaded: {exc}", file=sys.stderr)
         return 1
@@ -46,6 +46,8 @@ def run_reference(argv: Sequence[str] | None, load: Callable[[], LoadReferenceDa
     print(f"fee schedules: {result.schedules_added} added, {known_schedules} already loaded")
     known_holidays = len(holidays) - result.holidays_added
     print(f"holidays: {result.holidays_added} added, {known_holidays} already loaded")
+    known_years = len(years) - result.years_added
+    print(f"calendar years: {result.years_added} added, {known_years} already loaded")
     return 0
 
 
@@ -65,12 +67,12 @@ def run_reconcile(argv: Sequence[str] | None, reconcile: Callable[[], ReconcileP
     try:
         period = Period(args.start, args.end)
         run = reconcile()(period, args.ruleset)
-    except (ValueError, RunInProgress) as exc:
+    except RunFailed as exc:  # recorded as failed with no output; a new call may retry
+        print(f"recon-reconcile: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:  # no run was started: bad period, overlap, unreachable database
         print(f"recon-reconcile: nothing run: {exc}", file=sys.stderr)
         return 2
-    except Exception as exc:  # the run is recorded as failed; show why, not a traceback
-        print(f"recon-reconcile: run failed: {exc}", file=sys.stderr)
-        return 1
     print(f"run {run.id} ({run.ruleset_version}, {period.start} to {period.end}): {run.status}")
     return 0
 
