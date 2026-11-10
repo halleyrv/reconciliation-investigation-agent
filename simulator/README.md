@@ -71,7 +71,7 @@ One JSON Schema (draft 2020-12) per record type and one for the ground truth, in
 
 Money and rates must be quoted strings: a YAML float such as `0.30` is rejected, because it is already inexact when parsed. Unknown anomaly types are rejected.
 
-An anomaly rate is a fraction of its target population: settlement batches for `delayed_settlement`, `incorrect_amount` and the `missing_in_bank` direction, orders for everything else. `missing_transaction` applies its rate to each of its three directions. The count is `rate × population`, rounded half-even. With the default config, every anomaly type appears at least twice and about 18% of the orders lose their clean expected link, at both 200 and 2,000 orders.
+An anomaly rate is a fraction of its target population: settlement batches for `delayed_settlement`, `incorrect_amount` and the `missing_in_bank` direction, orders for everything else. `missing_transaction` applies its rate to each of its three directions. The count is `rate × population`, rounded half-even. With the default config every anomaly type appears at least twice. On seed 42, 7.0% of the orders are named directly by an anomaly at both 200 and 2,000 orders; the share without a clean expected link is 13.0% at 200 and 20.1% at 2,000, because each anomalous batch holds more orders at scale. The choice of denominators is proposed in ADR-0015.
 
 ## Internal consistency invariants
 
