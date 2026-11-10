@@ -34,7 +34,7 @@ A1, A2 and A4 were decided by the owner on 2026-11-09 (ADR-0011, ADR-0012, ADR-0
 | T3 | S2, AC3, AC4 | inline | done | L3, L4 |
 | T4 | S4, S5, S6, AC6, AC8, AC9, AC10 | inline | done | L5-L7 |
 | T5 | Phase review | independent reviewer | done | L8-L10 |
-| T6 | ADR-0011, ADR-0012, ADR-0014 (accepted); ADR-0013, ADR-0015 when accepted | inline | ADR-0012 and ADR-0014 done; ADR-0013, ADR-0015 pending (Proposed) | L14: 2def43d, 57b9ee0, 53f9c57 |
+| T6 | ADR-0011, ADR-0012, ADR-0014 (accepted); ADR-0013, ADR-0015 when accepted | inline | ADR-0012, ADR-0013 and ADR-0014 done; ADR-0015 pending (Proposed) | L14: 2def43d, 57b9ee0, 53f9c57; L15: 0b3bbfe; L16 |
 
 Route: inline. No writer trigger applies: each task builds on the previous one (generator → checker → injectors → datasets), so there are no independent parallel units.
 
@@ -60,3 +60,4 @@ Route: inline. No writer trigger applies: each task builds on the previous one (
   - Differential check: expected-link share at 2,000 orders is 1,597 links (20.15%) on both base `e1cb755` and the change; README figures stand.
   - Not done: Phase 2 AS3 already amended by the owner; ADR-0013 and ADR-0015 stay Proposed, so T6 stays open for them.
 - **L15** (2026-11-09, owner: "dale" to the native review follow-ups) Native review of T6 (lineage `review-4bfe9c0be18b5730`, lens reliability) approved and acknowledged; 4 advisory findings. Two warnings are intended by ADR-0014 (I9 requires the holiday line; the manifest always records `holidays`). Fixed in `0b3bbfe`: `holidays:` empty key means none (RED: `ConfigError: holidays must be a list of dates, got None`; GREEN), plus tests for a CSV with no final LF and for a run without holidays (`Bank holidays: none`, `[]` in the manifest, zero violations). 55 passed.
+- **L16** (2026-11-09, owner) "La addr-0013 la apruebo". ADR-0013 set to Accepted, index updated. Its missing test added: `test_each_anomaly_causes_exactly_the_violations_of_the_adr_0013_matrix` holds the matrix as a literal table (not read from the injectors) and asserts, per anomaly, the exact list of violations it causes (so the hidden-I6 cases are covered too). No RED: the code already matched since `2def43d`; sensitivity checked by writing `duplicate_payment: ["I1"]`, which fails with `assert ['I10'] == ['I1']`. Owner asked what "batches" and "a longer period" mean in ADR-0015; ADR-0015 still Proposed.

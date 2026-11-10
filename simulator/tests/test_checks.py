@@ -115,6 +115,40 @@ def test_checker_detects_each_broken_invariant(
     assert invariant in {v.invariant for v in find_violations(out)}
 
 
+# ADR-0013, written out here on purpose: it must not read the injectors' declarations.
+# Each anomaly maps to the violations one instance causes, one entry per violation.
+TRACEABILITY_MATRIX = {
+    "duplicate_payment": ["I10"],
+    "unauthorized_refund": ["I3"],
+    "incorrect_fee": ["I4"],
+    "missing_in_orders": ["I1"],
+    "missing_in_bank": ["I5"],
+    "missing_in_gateway": ["I5"],
+    "partial_payment": ["I1"],
+    "delayed_settlement": ["I5"],
+    "incorrect_amount": ["I5"],
+    "inconsistent_reference": ["I1", "I10"],
+    "out_of_order_event": ["I6"],
+    "duplicate_refund": ["I2", "I3"],
+    "conflicting_resent_record": ["I7"],
+}
+
+
+def test_each_anomaly_causes_exactly_the_violations_of_the_adr_0013_matrix(
+    anomalous_run: Path,
+) -> None:
+    violations = find_violations(anomalous_run)
+    anomalies = json.loads((anomalous_run / "ground_truth.json").read_text())["anomalies"]
+    seen = set()
+    for a in anomalies:
+        key = a["subtype"] if a["type"] == "missing_transaction" else a["type"]
+        records = {(r["source"], r["external_id"]) for r in a["records"]}
+        caused = sorted(v.invariant for v in violations if records & set(v.records))
+        assert caused == TRACEABILITY_MATRIX[key], (a["anomaly_id"], key)
+        seen.add(key)
+    assert seen == set(TRACEABILITY_MATRIX)
+
+
 def test_checker_detects_refunds_exceeding_their_payment(clean_run: Path, tmp_path: Path) -> None:
     out = _copy(clean_run, tmp_path)
     payment_ref = _first_refunded_payment(out)

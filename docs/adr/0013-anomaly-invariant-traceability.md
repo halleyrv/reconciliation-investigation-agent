@@ -1,6 +1,6 @@
 # ADR-0013: Anomaly-to-invariant traceability matrix
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-11-09)
 - **Date:** 2026-11-09
 - **Related:** ADR-0011, ADR-0012, ADR-0014, docs/roadmap/phase-1-financial-data-simulator.md (I1-I9, AC3, anomaly configuration), docs/roadmap/phase-2-backend-and-reconciliation-engine.md (detection catalog), simulator/README.md (anomaly catalog)
 - **Kind:** Technical (it follows from the invariant definitions); the anomaly descriptions themselves are business
@@ -20,9 +20,9 @@ The spec says "Each anomaly type declares which invariants it breaks, and it mus
 | Rows for duplicate payment, partial payment, missing in orders, inconsistent reference | Depend on ADR-0012 (I1 wording) |
 | I5 rows | Depend on ADR-0011 (batch source) and ADR-0014 (business days) |
 
-## Decision (proposed)
+## Decision
 
-Adopt this matrix as the contract between the anomaly catalog and the invariants. It is written for the **target state** after ADR-0012 (accepted): literal I1 plus I10. The code today still implements the per-order I1 (ADR-0012 option A), so four rows differ from what the injectors declare now; they are marked *changes*.
+Adopt this matrix as the contract between the anomaly catalog and the invariants. It is written for the **target state** after ADR-0012 (accepted): literal I1 plus I10. Rows marked *changes* differ from the earlier per-order I1; the code implements the target state since commit `2def43d`.
 
 | Anomaly (subtype) | Breaks | Why it breaks it | Violations per instance |
 |-------------------|--------|------------------|-------------------------|
@@ -40,9 +40,9 @@ Adopt this matrix as the contract between the anomaly catalog and the invariants
 | Duplicate refund | I2, I3 | The two refunds exceed the payment (I2); the copy has no authorization (I3) | **2** (two invariants) |
 | Conflicting re-sent record (`orders`) | I7 | The same order ID appears twice | 1 |
 
-Expected totals on the 200-order sample (seed 42), target state: 25 anomalies, 29 violations (`I1: 6, I10: 4, I2: 2, I3: 4, I4: 2, I5: 7, I6: 2, I7: 2`). Today `simulate-verify` reports `I1: 10` because I1 and I10 are still one check.
+Expected totals on the 200-order sample (seed 42), target state: 25 anomalies, 29 violations (`I1: 6, I10: 4, I2: 2, I3: 4, I4: 2, I5: 7, I6: 2, I7: 2`). `simulate-verify` reports exactly these totals.
 
-This matrix stays **Proposed** until the owner approves it in its final form: it depends on ADR-0015's counts and on the holiday calendar of ADR-0014, which may move instances but not invariants.
+Accepted by the owner on 2026-11-09. ADR-0015 may change instance counts and ADR-0014 moves dates, neither changes the invariants per type. `test_each_anomaly_causes_exactly_the_violations_of_the_adr_0013_matrix` asserts the matrix as a literal table.
 
 ### Extra violations avoided on purpose
 
