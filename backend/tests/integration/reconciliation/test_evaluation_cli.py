@@ -1,5 +1,6 @@
 """AC-2b.2, AC-2b.4 and AC-2b.6 through the operator commands, as the backend README lists them."""
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -108,3 +109,22 @@ def test_two_fresh_databases_produce_identical_fingerprints_and_deltas(
 
     assert len(outputs[0]) == 41
     assert outputs[0] == outputs[1]
+
+
+def test_october_is_refused_until_its_last_payouts_are_imported(
+    database: str, sample: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    bank = sample / "bank_transactions.json"
+    data = json.loads(bank.read_text())
+    data["records"] = [r for r in data["records"] if r["value_date"] <= "2026-10-31"]
+    bank.write_text(json.dumps(data))
+    manifest = json.loads((sample / "manifest.json").read_text())
+    manifest["files"]["bank_transactions.json"] = hashlib.sha256(bank.read_bytes()).hexdigest()
+    (sample / "manifest.json").write_text(json.dumps(manifest))
+    assert main([str(sample)]) == 0
+    assert reference_main([str(REFERENCE_FILE)]) == 0
+
+    assert reconcile_main(OCTOBER) == 2
+
+    err = capsys.readouterr().err
+    assert "is not closed: bank data reaches 2026-10-30, its last payouts are due 2026-11-03" in err

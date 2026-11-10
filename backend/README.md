@@ -49,7 +49,7 @@ calendar years: 1 added, 0 already loaded
 | 1 | Nothing loaded: a fee schedule overlaps a different one already loaded for the same gateway and fee type |
 | 2 | Nothing loaded: the file is missing or does not match the format |
 
-`recon-reconcile` runs the engine for an inclusive period and prints the run; running the same period and ruleset again returns the same run and writes nothing (AC-2b.5). The rules see every ingested record, and the run keeps what belongs to its period: a discrepancy goes to the period of the latest settlement batch date among its records, a match group to the period of its batch (ADR-0016). A period that shares a day with another live run of the same ruleset is refused:
+`recon-reconcile` runs the engine for an inclusive period and prints the run; running the same period and ruleset again returns the same run and writes nothing (AC-2b.5). The rules see every ingested record, and the run keeps what belongs to its period: a discrepancy goes to the period of the latest settlement batch date among its records, a match group to the period of its batch (ADR-0016). A period that shares a day with another live run of the same ruleset is refused, and so is a period whose last payouts are not in the imported bank data yet (its end plus the 2-business-day settlement lag): running it early would report its last batches as `missing_in_bank`:
 
 ```text
 run 93ee173f-d4f2-4080-b9a9-34c40ad4b27e (v1, 2026-10-01 to 2026-10-31): completed
@@ -59,7 +59,7 @@ run 93ee173f-d4f2-4080-b9a9-34c40ad4b27e (v1, 2026-10-01 to 2026-10-31): complet
 |-----------|---------|
 | 0 | The run completed, now or before |
 | 1 | The run failed, for example with no fee schedule or holiday calendar for its period (a December run also needs the next year's calendar for its due dates); it is recorded as `failed` with no partial output, and a new call may retry. If it could not even be marked failed, a second line says so and the run stays `running` |
-| 2 | Nothing was run: an invalid period, a period overlapping another live run, a run of it still in progress, or an unreachable database |
+| 2 | Nothing was run: an invalid period, a period overlapping another live run, a period whose last payouts are not imported yet, a run of it still in progress, or an unreachable database |
 
 `recon-evaluate` is the only code that reads `ground_truth.json` (AS1). It scores the completed run of the period against the export's known answer and writes a Markdown report: precision and recall per discrepancy type, clean-link precision and recall, and every missed, unexpected or wrong-delta finding. A detected discrepancy matches an expected one when type and involved records are equal; its delta is compared separately. The seed-42 report is [`docs/evaluation/p2b-seed-42-orders-200.md`](../docs/evaluation/p2b-seed-42-orders-200.md):
 

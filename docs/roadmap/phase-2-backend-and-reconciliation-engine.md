@@ -72,6 +72,7 @@ Changes approved by the owner after the original text above. The original is nev
 | 2026-11-09 | **AS3 replaced** (ADR-0014): business days are Monday to Friday minus the holiday calendar the simulator publishes in its settlement policy. The engine gets the calendar the same way as fee schedules (OD1): loaded by an operator, with a test that it equals the policy. | Owner |
 | 2026-11-10 | **AC-2a.1 clarified** (re-sent records, AC-2a.3): row count per table: `raw_records` equals the file's record count; canonical rows equal distinct external IDs; canonical rows plus `source_conflicts` equal the file's record count. The amount sum holds over raw record payloads and, for canonical rows, over the first record seen per ID | Owner |
 | 2026-11-10 | **A failed batch is final** for the same file bytes: re-importing a file whose batch failed returns that failed batch. The sender fixes the file and re-sends it, which changes its hash. Retrying the same bytes is revisited when operators can change reference data without a deploy | Owner |
+| 2026-11-10 | **Run scope and closing** (ADR-0016, ADR-0017): a run reports what belongs to its period, anchored on the settlement batch date, and starts only once the bank data reaches its last payout due date. **Replacing a completed run** (`DiscrepancySuperseded`, a rerun of a period under the same ruleset) **moves to 2c** with the case model | Owner |
 
 ### Amendment 2026-11-09: assumptions, catalog and acceptance criteria
 

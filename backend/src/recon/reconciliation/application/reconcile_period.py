@@ -1,6 +1,6 @@
 """Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing."""
 
-from datetime import timedelta
+from datetime import date
 
 from recon.reconciliation.application.ports import ReconciliationUnitOfWork
 from recon.reconciliation.domain.calendar import BusinessCalendar
@@ -16,8 +16,6 @@ from recon.shared_kernel.ports import Clock, IdGenerator
 RULESET_VERSION = "v1"
 # Settlement policy of the gateways (simulator policies/settlement_policy.md).
 SETTLEMENT_LAG_BUSINESS_DAYS = 2
-# Calendar days that always hold the settlement lag in business days, holidays included.
-DUE_DATE_MARGIN_DAYS = 14
 # shortcut: single currency in v1 (ADR-0002); take it from the records when a second arrives.
 CURRENCY = "USD"
 
@@ -46,6 +44,18 @@ class RunFailed(Exception):
     def __init__(self, run: ReconciliationRun, cause: Exception) -> None:
         super().__init__(f"run {run.id} failed: {cause}")
         self.run = run
+
+
+class PeriodNotClosed(Exception):
+    """The bank data does not reach the period's last payout due date yet (T+lag): running
+    now would freeze false ``missing_in_bank`` findings for its last batches."""
+
+    def __init__(self, period: Period, latest: date | None, due: date) -> None:
+        reach = f"bank data reaches {latest}" if latest else "no bank data is imported"
+        super().__init__(
+            f"{period.start} to {period.end} is not closed: {reach}, its last payouts are"
+            f" due {due}; import the bank statements first"
+        )
 
 
 class MissingReferenceData(Exception):
@@ -82,6 +92,10 @@ class ReconcilePeriod:
             overlapping = uow.runs.find_overlapping(period, ruleset_version)
             if overlapping is not None:
                 raise PeriodOverlaps(period, overlapping)
+            due = _last_due_date(period, uow.reference.holidays())
+            latest = uow.sources.latest_bank_date()
+            if latest is None or latest < due:
+                raise PeriodNotClosed(period, latest, due)
             run = ReconciliationRun.start(
                 self._ids.new(), period, ruleset_version, self._clock.now()
             )
@@ -134,8 +148,8 @@ def _require_reference_data(
     snapshot: Snapshot, ruleset: Ruleset, calendar_years: frozenset[int], period: Period
 ) -> None:
     """Principle 10: never report fees or settlement dates as clean without the data to check."""
-    # Due dates of the period's last batches can fall in the next year: cover them too.
-    last_due = period.end + timedelta(days=DUE_DATE_MARGIN_DAYS)
+    # The period's last payouts can fall due in the next year: its calendar is needed too.
+    last_due = _last_due_date(period, ruleset.calendar.holidays)
     missing_years = sorted(set(range(period.start.year, last_due.year + 1)) - calendar_years)
     if missing_years:
         years = ", ".join(map(str, missing_years))
@@ -154,3 +168,9 @@ def _require_reference_data(
             f"no fee schedule for {gateway} {fee_type} on {day}"
             f" ({len(unscheduled)} fees unchecked); load it first"
         )
+
+
+def _last_due_date(period: Period, holidays: frozenset[date]) -> date:
+    """When the payout of the period's last batch is due. A year whose holidays are not
+    loaded counts as having none; the reference check then fails the run for that year."""
+    return BusinessCalendar(holidays).add_business_days(period.end, SETTLEMENT_LAG_BUSINESS_DAYS)

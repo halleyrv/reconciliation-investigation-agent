@@ -9,19 +9,23 @@ from recon.reconciliation.adapters.outbound.memory import InMemoryReconciliation
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import (
     MissingReferenceData,
+    PeriodNotClosed,
     PeriodOverlaps,
     ReconcilePeriod,
     RunFailed,
     RunInProgress,
 )
 from recon.reconciliation.domain.events import DiscrepancyDetected
+from recon.reconciliation.domain.records import BankTransaction
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
+from recon.shared_kernel.money import Money
 from recon.shared_kernel.ports import FixedClock, SequenceIdGenerator
 
 from .book import CALENDAR, MONDAY, SCHEDULE, Book, clean_book
 
-OCTOBER = Period(date(2026, 10, 1), date(2026, 10, 31))
+# The book's payouts are dated 2026-10-07, the due date of a period ending on Monday the 5th.
+COVERED = Period(date(2026, 10, 1), date(2026, 10, 5))
 NOW = datetime(2026, 11, 10, 8, tzinfo=UTC)
 
 
@@ -49,7 +53,7 @@ def _reconcile(uow: InMemoryReconciliationUnitOfWork) -> ReconcilePeriod:
 def test_a_run_records_groups_discrepancies_and_one_event_each_then_completes() -> None:
     uow = _uow()
 
-    run = _reconcile(uow)(OCTOBER)
+    run = _reconcile(uow)(COVERED)
 
     assert (run.status, run.finished_at, run.ruleset_version) == (RunStatus.COMPLETED, NOW, "v1")
     state = uow.committed
@@ -58,7 +62,7 @@ def test_a_run_records_groups_discrepancies_and_one_event_each_then_completes() 
     kinds = sorted(d.type.value for _, d, _ in state.discrepancies.values())
     assert kinds == ["fee_mismatch", "unauthorized_refund"]
     assert {f for _, d, f in state.discrepancies.values()} == {
-        d.fingerprint(OCTOBER) for _, d, _ in state.discrepancies.values()
+        d.fingerprint(COVERED) for _, d, _ in state.discrepancies.values()
     }
     assert all(isinstance(e, DiscrepancyDetected) for e in state.events)
     assert {(e.discrepancy_id, e.delta_minor) for e in state.events} == {  # type: ignore[attr-defined]
@@ -68,10 +72,10 @@ def test_a_run_records_groups_discrepancies_and_one_event_each_then_completes() 
 
 def test_reconciling_the_same_period_and_ruleset_again_returns_the_run_and_writes_nothing() -> None:
     uow = _uow()
-    first = _reconcile(uow)(OCTOBER)
+    first = _reconcile(uow)(COVERED)
     before = uow.committed
 
-    again = _reconcile(uow)(OCTOBER)
+    again = _reconcile(uow)(COVERED)
 
     assert again == first
     assert uow.committed == before
@@ -81,7 +85,7 @@ def test_a_run_failing_halfway_is_failed_and_leaves_no_partial_output() -> None:
     uow = _uow(fail_on_discrepancy=2)
 
     with pytest.raises(RunFailed, match="injected failure") as raised:
-        _reconcile(uow)(OCTOBER)
+        _reconcile(uow)(COVERED)
     assert isinstance(raised.value.__cause__, RuntimeError)
 
     [run] = uow.committed.runs.values()
@@ -93,10 +97,10 @@ def test_a_failed_run_does_not_block_a_new_run_of_the_same_period() -> None:
     uow = _uow(fail_on_discrepancy=1)
     reconcile = _reconcile(uow)
     with pytest.raises(RunFailed):
-        reconcile(OCTOBER)
+        reconcile(COVERED)
     uow.fail_on_discrepancy = None  # the cause went away
 
-    retried = reconcile(OCTOBER)
+    retried = reconcile(COVERED)
 
     statuses = sorted(r.status.value for r in uow.committed.runs.values())
     assert statuses == ["completed", "failed"]
@@ -106,13 +110,13 @@ def test_a_failed_run_does_not_block_a_new_run_of_the_same_period() -> None:
 
 def test_a_run_still_in_progress_is_reported_not_returned_as_a_result() -> None:
     uow = _uow()
-    running = ReconciliationRun.start(uuid.uuid4(), OCTOBER, "v1", NOW)
+    running = ReconciliationRun.start(uuid.uuid4(), COVERED, "v1", NOW)
     with uow:
         uow.runs.add(running)
         uow.commit()
 
     with pytest.raises(RunInProgress, match=str(running.id)):
-        _reconcile(uow)(OCTOBER)
+        _reconcile(uow)(COVERED)
 
     assert uow.committed.runs == {running.id: running}
 
@@ -137,7 +141,7 @@ def test_the_original_error_survives_when_the_run_cannot_be_marked_failed() -> N
     uow = _DatabaseGone(_book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays, 1)
 
     with pytest.raises(RunFailed, match="injected failure") as raised:
-        _reconcile(uow)(OCTOBER)
+        _reconcile(uow)(COVERED)
 
     assert isinstance(raised.value.__cause__, RuntimeError)
     assert any("could not be marked failed" in note for note in raised.value.__notes__)
@@ -198,32 +202,50 @@ def test_a_fee_with_no_schedule_fails_the_run_until_the_schedule_is_loaded() -> 
     reconcile = _reconcile(uow)
 
     with pytest.raises(RunFailed, match="no fee schedule for gateway_a processing") as raised:
-        reconcile(OCTOBER)
+        reconcile(COVERED)
     assert isinstance(raised.value.__cause__, MissingReferenceData)
     [failed] = uow.committed.runs.values()
     assert failed.status is RunStatus.FAILED
     assert uow.committed.discrepancies == {}
 
     LoadReferenceData(uow, SequenceIdGenerator())((SCHEDULE,), frozenset())
-    assert reconcile(OCTOBER).status is RunStatus.COMPLETED
+    assert reconcile(COVERED).status is RunStatus.COMPLETED
+
+
+def _with_bank_data_until(day: date) -> InMemoryReconciliationUnitOfWork:
+    book = _book_with_two_anomalies()
+    book.bank.append(BankTransaction("BNK-LATE", "debit", day, Money(100, "USD"), "ACCOUNT FEE"))
+    return InMemoryReconciliationUnitOfWork(book.snapshot(), (SCHEDULE,), CALENDAR.holidays)
 
 
 def test_a_period_in_a_year_with_no_loaded_calendar_fails_the_run() -> None:
-    uow = InMemoryReconciliationUnitOfWork(
-        _book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays
-    )
+    uow = _with_bank_data_until(date(2027, 2, 10))
 
     with pytest.raises(RunFailed, match="no bank holiday calendar for 2027"):
         _reconcile(uow)(Period(date(2026, 12, 1), date(2027, 1, 31)))
 
 
-def test_a_december_run_needs_the_next_year_calendar_for_its_due_dates() -> None:
-    uow = InMemoryReconciliationUnitOfWork(
-        _book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays
-    )
+def test_a_december_run_needs_the_next_year_calendar_only_when_a_due_date_falls_in_it() -> None:
+    uow = _with_bank_data_until(date(2027, 1, 10))
+    reconcile = _reconcile(uow)
 
+    # 2026-12-31 + 2 business days = 2027-01-04
     with pytest.raises(RunFailed, match="no bank holiday calendar for 2027"):
-        _reconcile(uow)(Period(date(2026, 12, 1), date(2026, 12, 31)))
+        reconcile(Period(date(2026, 12, 1), date(2026, 12, 31)))
+    # 2026-12-18 + 2 business days = 2026-12-22: no 2027 calendar needed
+    assert reconcile(Period(date(2026, 12, 1), date(2026, 12, 18))).status is RunStatus.COMPLETED
+
+
+def test_a_period_whose_last_payouts_are_not_imported_yet_is_refused() -> None:
+    uow = _uow()
+
+    # A period ending Tuesday the 6th has its last payouts due Thursday the 8th; the bank
+    # data reaches the 7th.
+    with pytest.raises(PeriodNotClosed, match=r"bank data reaches 2026-10-07.* due 2026-10-08"):
+        _reconcile(uow)(Period(date(2026, 10, 1), date(2026, 10, 6)))
+
+    assert uow.committed.runs == {}
+    assert _reconcile(uow)(COVERED).status is RunStatus.COMPLETED  # due on the 7th: closed
 
 
 def test_the_cli_shows_that_a_failed_run_could_not_be_marked_failed(
@@ -232,7 +254,7 @@ def test_the_cli_shows_that_a_failed_run_could_not_be_marked_failed(
     uow = _DatabaseGone(_book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays, 1)
 
     assert (
-        run_reconcile(["--from", "2026-10-01", "--to", "2026-10-31"], lambda: _reconcile(uow)) == 1
+        run_reconcile(["--from", "2026-10-01", "--to", "2026-10-05"], lambda: _reconcile(uow)) == 1
     )
 
     err = capsys.readouterr().err

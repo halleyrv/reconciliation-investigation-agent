@@ -160,6 +160,12 @@ class SqlSourceRecords:
         self.row_ids.update({RecordRef(source, r.external_id): r.id for r in rows})
         return rows
 
+    def latest_bank_date(self) -> date | None:
+        latest: date | None = self._session.execute(
+            text("SELECT max(value_date) FROM ingestion.bank_transactions")
+        ).scalar_one()
+        return latest
+
     def snapshot(self, currency: str) -> Snapshot:
         # One consistent view of every table: an import committing between these queries must
         # not mix into a run (phase review M2). PostgreSQL refuses this unless it is the

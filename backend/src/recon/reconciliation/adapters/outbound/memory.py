@@ -83,6 +83,9 @@ class _Sources:
     def snapshot(self, currency: str) -> Snapshot:
         return self._snapshot
 
+    def latest_bank_date(self) -> date | None:
+        return max((b.value_date for b in self._snapshot.bank_transactions), default=None)
+
 
 class _Reference:
     def __init__(self, state: State) -> None:

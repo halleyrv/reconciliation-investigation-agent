@@ -11,7 +11,8 @@ from recon.shared_kernel.ports import FixedClock, SequenceIdGenerator
 
 from .book import CALENDAR, SCHEDULE, clean_book
 
-OCTOBER = Period(date(2026, 10, 1), date(2026, 10, 31))
+# The book's payouts are dated 2026-10-07, the due date of a period ending on Monday the 5th.
+COVERED = Period(date(2026, 10, 1), date(2026, 10, 5))
 NOW = datetime(2026, 11, 10, tzinfo=UTC)
 
 
@@ -82,10 +83,10 @@ def test_evaluate_run_scores_the_completed_run_of_the_period() -> None:
     )
     links = {Link(f"ORD-00000{n}", f"PAY-00000{n}", "STL-000001", "BNK-000001") for n in (1, 3)}
     with pytest.raises(NoCompletedRun, match="no completed v1 run"):
-        EvaluateRun(uow)(OCTOBER, [expected_fee], links)
-    run = ReconcilePeriod(uow, FixedClock(NOW), SequenceIdGenerator())(OCTOBER)
+        EvaluateRun(uow)(COVERED, [expected_fee], links)
+    run = ReconcilePeriod(uow, FixedClock(NOW), SequenceIdGenerator())(COVERED)
 
-    evaluated, result = EvaluateRun(uow)(OCTOBER, [expected_fee], links)
+    evaluated, result = EvaluateRun(uow)(COVERED, [expected_fee], links)
 
     assert evaluated == run
     assert result.perfect
