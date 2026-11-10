@@ -24,6 +24,7 @@ from recon.reconciliation.adapters.outbound.orm import (
     OutboxRow,
     RunRow,
 )
+from recon.reconciliation.application.evaluation import Finding, Link
 from recon.reconciliation.domain.fees import FeeSchedule
 from recon.reconciliation.domain.records import (
     Authorization,
@@ -319,6 +320,61 @@ class SqlAlchemyResults:
         )
 
 
+_RECORD_JOINS = " ".join(
+    f"LEFT JOIN ingestion.{table} {alias} ON {alias}.id = r.{column}"
+    for alias, (table, column) in {
+        "o": ("orders", "order_id"),
+        "p": ("payments", "payment_id"),
+        "rf": ("refunds", "refund_id"),
+        "f": ("fees", "fee_id"),
+        "s": ("settlements", "settlement_id"),
+        "b": ("bank_transactions", "bank_transaction_id"),
+        "a": ("authorizations", "authorization_id"),
+    }.items()
+)
+_FINDINGS = f"""
+SELECT d.id, d.type, d.delta_minor,
+       CASE WHEN o.id IS NOT NULL THEN 'orders' WHEN p.id IS NOT NULL THEN 'payments'
+            WHEN rf.id IS NOT NULL THEN 'refunds' WHEN f.id IS NOT NULL THEN 'fees'
+            WHEN s.id IS NOT NULL THEN 'settlements' WHEN b.id IS NOT NULL THEN 'bank_transactions'
+            ELSE 'authorizations' END AS source,
+       COALESCE(o.external_id, p.external_id, rf.external_id, f.external_id, s.external_id,
+                b.external_id, a.external_id) AS external_id
+FROM recon.discrepancies d JOIN recon.discrepancy_records r ON r.discrepancy_id = d.id
+{_RECORD_JOINS}
+WHERE d.run_id = :run_id
+"""
+_LINKS = """
+SELECT o.external_id, p.external_id, s.external_id, b.external_id
+FROM recon.match_group_members mo
+JOIN ingestion.orders o ON o.id = mo.order_id
+JOIN recon.match_group_members mp ON mp.group_id = mo.group_id AND mp.payment_id IS NOT NULL
+JOIN ingestion.payments p ON p.id = mp.payment_id AND p.order_external_ref = o.external_id
+JOIN recon.match_group_members ms ON ms.group_id = mo.group_id AND ms.settlement_id IS NOT NULL
+JOIN ingestion.settlements s ON s.id = ms.settlement_id
+JOIN recon.match_group_members mb
+    ON mb.group_id = mo.group_id AND mb.bank_transaction_id IS NOT NULL
+JOIN ingestion.bank_transactions b ON b.id = mb.bank_transaction_id
+WHERE mo.run_id = :run_id
+"""
+
+
+class SqlRunOutputs:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def findings(self, run_id: uuid.UUID) -> list[Finding]:
+        grouped: dict[uuid.UUID, tuple[str, int, set[tuple[str, str]]]] = {}
+        for row in self._session.execute(text(_FINDINGS), {"run_id": run_id}):
+            _, _, records = grouped.setdefault(row.id, (row.type, row.delta_minor, set()))
+            records.add((row.source, row.external_id))
+        return [Finding(t, frozenset(records), delta) for t, delta, records in grouped.values()]
+
+    def links(self, run_id: uuid.UUID) -> set[Link]:
+        rows = self._session.execute(text(_LINKS), {"run_id": run_id})
+        return {Link(*row) for row in rows}
+
+
 class SqlAlchemyReconciliationUnitOfWork:
     """One database transaction per ``with`` block; leaving it without ``commit`` rolls back."""
 
@@ -326,6 +382,7 @@ class SqlAlchemyReconciliationUnitOfWork:
     sources: SqlSourceRecords
     reference: SqlAlchemyReferenceData
     results: SqlAlchemyResults
+    outputs: SqlRunOutputs
 
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
@@ -336,6 +393,7 @@ class SqlAlchemyReconciliationUnitOfWork:
         self.sources = SqlSourceRecords(self._session)
         self.reference = SqlAlchemyReferenceData(self._session)
         self.results = SqlAlchemyResults(self._session, self.sources)
+        self.outputs = SqlRunOutputs(self._session)
         return self
 
     def __exit__(

@@ -8,8 +8,9 @@ from datetime import date, datetime
 from types import TracebackType
 from typing import Self
 
+from recon.reconciliation.application.evaluation import Finding, Link
 from recon.reconciliation.domain.fees import FeeSchedule
-from recon.reconciliation.domain.records import RecordRef
+from recon.reconciliation.domain.records import RecordRef, Source
 from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
 from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
 from recon.reconciliation.domain.snapshot import Snapshot
@@ -117,6 +118,47 @@ class _Results:
         self._state.discrepancies[discrepancy_id] = (run_id, discrepancy, fingerprint)
 
 
+class _Outputs:
+    def __init__(self, state: State, snapshot: Snapshot) -> None:
+        self._state = state
+        self._snapshot = snapshot
+
+    def findings(self, run_id: uuid.UUID) -> list[Finding]:
+        return [
+            Finding(
+                d.type.value,
+                frozenset((r.source.value, r.external_id) for r in d.records),
+                d.delta_minor,
+            )
+            for run, d, _ in self._state.discrepancies.values()
+            if run == run_id
+        ]
+
+    def links(self, run_id: uuid.UUID) -> set[Link]:
+        found = set()
+        for run, group in self._state.groups.values():
+            if run != run_id:
+                continue
+            refs = {
+                m.role: m.ref.external_id
+                for m in group.members
+                if m.role in ("settlement", "payout")
+            }
+            orders = {m.ref.external_id for m in group.members if m.ref.source is Source.ORDERS}
+            for m in group.members:
+                payment = self._snapshot.payments_by_id.get(m.ref.external_id)
+                if m.ref.source is Source.PAYMENTS and payment and payment.order_ref in orders:
+                    found.add(
+                        Link(
+                            payment.order_ref,
+                            payment.external_id,
+                            refs["settlement"],
+                            refs["payout"],
+                        )
+                    )
+        return found
+
+
 class InMemoryReconciliationUnitOfWork:
     """``committed`` is what a later transaction sees; a block without ``commit`` leaves it."""
 
@@ -124,6 +166,7 @@ class InMemoryReconciliationUnitOfWork:
     sources: _Sources
     reference: _Reference
     results: _Results
+    outputs: _Outputs
 
     def __init__(
         self,
@@ -144,6 +187,7 @@ class InMemoryReconciliationUnitOfWork:
         self.runs = _Runs(self._working)
         self.results = _Results(self._working, self.fail_on_discrepancy)
         self.reference = _Reference(self._working)
+        self.outputs = _Outputs(self._working, self.sources.snapshot(""))
         return self
 
     def __exit__(

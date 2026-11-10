@@ -2,6 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import Protocol
 
+from recon.reconciliation.application.evaluation import Finding, Link
 from recon.reconciliation.domain.fees import FeeSchedule
 from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
 from recon.reconciliation.domain.run import ReconciliationRun
@@ -54,6 +55,16 @@ class ResultRepository(Protocol):
     ) -> None: ...
 
 
+class RunOutputReader(Protocol):
+    """A completed run's output, named by external IDs, for evaluation and reports."""
+
+    def findings(self, run_id: uuid.UUID) -> list[Finding]: ...
+
+    def links(self, run_id: uuid.UUID) -> set[Link]:
+        """Order -> payment -> settlement -> payout, for every order in a match group."""
+        ...
+
+
 class ReconciliationUnitOfWork(UnitOfWork, Protocol):
     @property
     def runs(self) -> RunRepository: ...
@@ -66,3 +77,6 @@ class ReconciliationUnitOfWork(UnitOfWork, Protocol):
 
     @property
     def results(self) -> ResultRepository: ...
+
+    @property
+    def outputs(self) -> RunOutputReader: ...

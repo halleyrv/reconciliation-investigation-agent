@@ -13,6 +13,9 @@ docker compose up -d --wait db                          # PostgreSQL 18 + pgvect
 uv run --locked alembic -c backend/alembic.ini upgrade head
 uv run --locked recon-import simulator/samples/orders-200-seed-42
 uv run --locked recon-reference backend/reference/gateway-policy-2026.json
+uv run --locked recon-reconcile --from 2026-10-01 --to 2026-10-31
+uv run --locked recon-evaluate simulator/samples/orders-200-seed-42 --from 2026-10-01 --to 2026-10-31 \
+    --report docs/evaluation/p2b-seed-42-orders-200.md
 uv run --locked alembic -c backend/alembic.ini downgrade base
 ```
 
@@ -42,6 +45,33 @@ holidays: 7 added, 0 already loaded
 | 0 | Loaded, or already loaded |
 | 1 | Nothing loaded: a fee schedule overlaps a different one already loaded for the same gateway and fee type |
 | 2 | Nothing loaded: the file is missing or does not match the format |
+
+`recon-reconcile` runs the engine for an inclusive period and prints the run; running the same period and ruleset again returns the same run and writes nothing (AC-2b.5):
+
+```text
+run 38da82e1-ce2f-46bf-bd56-bb9b42d89891 (v1, 2026-10-01 to 2026-10-31): completed
+```
+
+| Exit code | Meaning |
+|-----------|---------|
+| 0 | The run completed, now or before |
+| 1 | The run failed; it is recorded as `failed` with no partial output, and a new call may retry |
+| 2 | Nothing was run: an invalid period, or a run of it still in progress |
+
+`recon-evaluate` is the only code that reads `ground_truth.json` (AS1). It scores the completed run of the period against the export's known answer and writes a Markdown report: precision and recall per discrepancy type, clean-link precision and recall, and every missed, unexpected or wrong-delta finding. A detected discrepancy matches an expected one when type and involved records are equal; its delta is compared separately. The seed-42 report is [`docs/evaluation/p2b-seed-42-orders-200.md`](../docs/evaluation/p2b-seed-42-orders-200.md):
+
+```text
+discrepancies: 41 expected, 41 detected, 41 matched
+links: 158 expected, 158 found, 158 matched
+delta mismatches: 0
+report: docs/evaluation/p2b-seed-42-orders-200.md (PASS)
+```
+
+| Exit code | Meaning |
+|-----------|---------|
+| 0 | Everything matched |
+| 1 | The report lists misses, extras or wrong deltas |
+| 2 | Nothing was evaluated: no completed run of the period, or no readable ground truth |
 
 The database URL comes from `RECON_DATABASE_URL` (default: the Compose database, which uses trust auth on loopback and has no password).
 
