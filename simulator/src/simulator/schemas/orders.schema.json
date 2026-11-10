@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:simulator:schema:orders:1.0.0",
+  "title": "E-commerce orders (shop source)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "records"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "record_type": {
+      "const": "orders"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": [
+        "order_id",
+        "customer_name",
+        "customer_email",
+        "placed_at",
+        "total_amount",
+        "currency",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "pattern": "^ORD-[0-9]{6}$"
+        },
+        "customer_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "customer_email": {
+          "type": "string",
+          "minLength": 1
+        },
+        "placed_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "description": "UTC instant"
+        },
+        "total_amount": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]{2}$",
+          "description": "Positive decimal string with exactly 2 places"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 code"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "completed"
+          ]
+        }
+      }
+    }
+  }
+}

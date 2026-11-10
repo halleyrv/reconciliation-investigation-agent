@@ -1,0 +1,68 @@
+{
+  "simulator_version": "0.1.0",
+  "seed": 42,
+  "config_sha256": "461baa1bda181d58eec159909b7e924959403ab19e09a1cf54a5a8af8215459d",
+  "config": {
+    "orders": 200,
+    "period": {
+      "start": "2026-10-01",
+      "end": "2026-10-31"
+    },
+    "currency": "USD",
+    "gateways": {
+      "gateway_a": {
+        "percentage_bps": 290,
+        "fixed_fee": "0.30"
+      },
+      "gateway_b": {
+        "percentage_bps": 250,
+        "fixed_fee": "0.25"
+      }
+    },
+    "settlement_lag_business_days": 2,
+    "holidays": [
+      "2026-10-09",
+      "2026-10-20",
+      "2026-10-28"
+    ],
+    "refund_rate": "0.08",
+    "anomaly_rates": {
+      "duplicate_payment": "0.02",
+      "unauthorized_refund": "0.02",
+      "incorrect_fee": "0.02",
+      "missing_transaction": "0.01",
+      "partial_payment": "0.02",
+      "delayed_settlement": "0.04",
+      "incorrect_amount": "0.04",
+      "inconsistent_reference": "0.02",
+      "out_of_order_event": "0.02",
+      "duplicate_refund": "0.02",
+      "conflicting_resent_record": "0.02"
+    }
+  },
+  "affected_orders": {
+    "orders": 200,
+    "directly_affected": 32,
+    "without_clean_link": 42
+  },
+  "files": {
+    "authorizations.csv": "402d5a8bbad10327eb1ff76df3284745d98ec197a7217f8cd4ac53e82b1e65be",
+    "authorizations.json": "ee460dd8cbe1ec15f7fec5dfa7e6ab2580c3f9dea5417d8e8904d38103584b4f",
+    "bank_transactions.csv": "9a4bb589ba72a0cd02c2195921bbc51ef72be9b900245a4bedafa8a9938fd43e",
+    "bank_transactions.json": "23741cdaa8cc5afcbfe19510c2ed6714e63474e434cccf9808e298587a82f631",
+    "fees.csv": "78c89f46507f473bb4c5636eb066bc9fa5d56f45304a9a9eaca62511755a5a11",
+    "fees.json": "3c57d921899e3bede259509aff3130de752aef0854ea6b132fa09f74357a532e",
+    "ground_truth.json": "4b7734425d27dafad5f3f1299d83b7f3de2bfab7449b9906e26ad08bf376394c",
+    "orders.csv": "a87fb9548057bd6719110c12cf987150f3c00ed73842c13e89aaf9176e986c23",
+    "orders.json": "7b91638bfecc82f30b97b32666520ac8ba31d5477f20cd9f9c9418ea595dd65c",
+    "payments.csv": "df5eba87f29f1fe3127b825214222e5ca58a2ac41aeb59f44c04c69e005d4ff9",
+    "payments.json": "ed7b7f3ae037881ff262ab471cc8bb31ea6c006d1d143e3ed40f271c88146913",
+    "policies/fee_schedule.md": "0281d15c967998628a7feb8929b8ec9371f17da4f7265c1097da0cbeec53ef01",
+    "policies/refund_authorization.md": "e4167c5b0c145b4258a7357fde7f8f25b6531834a3c69d1e64959ed9f02d279f",
+    "policies/settlement_policy.md": "ad40f6920174201d3097cc830daef46c332b6719f4aaee635f3a309c53780a03",
+    "refunds.csv": "242a108bc9706efb2fad677002380d6010ae0d335c7ecb9288c8087cbb3ec878",
+    "refunds.json": "0a1765f263b492d1c6c8b938dfacfaec3a73c91521101f839b8dde21ad14cd9b",
+    "settlements.csv": "9e9e8ac72d17f5e09f7a02588fd982a7700ba63ef648827a38eb226871c48a6a",
+    "settlements.json": "77293fbea774858105db4c8872c9b63038820288bd602d733dadece8ec0b42b9"
+  }
+}

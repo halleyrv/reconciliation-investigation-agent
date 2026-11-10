@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:simulator:schema:settlements:1.0.0",
+  "title": "Gateway settlement report, one batch per gateway and day",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "records"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "record_type": {
+      "const": "settlements"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": [
+        "settlement_id",
+        "gateway",
+        "batch_date",
+        "net_amount",
+        "currency"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "settlement_id": {
+          "type": "string",
+          "pattern": "^STL-[0-9]{6}$"
+        },
+        "gateway": {
+          "type": "string",
+          "minLength": 1
+        },
+        "batch_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "net_amount": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]{2}$",
+          "description": "Positive decimal string with exactly 2 places"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 code"
+        }
+      }
+    }
+  }
+}

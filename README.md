@@ -6,7 +6,7 @@ All data is synthetic, produced by an independent Financial Data Simulator. No r
 
 ## Status
 
-Phase 0 (foundations) is in progress: the Python workspace and the quality gate exist, the simulator is still a skeleton. See the [roadmap](docs/roadmap/README.md) for every phase and its status.
+Phase 0 (foundations) is done. Phase 1 (Financial Data Simulator) is in progress: see [simulator/README.md](simulator/README.md). See the [roadmap](docs/roadmap/README.md) for every phase and its status.
 
 ## Setup
 
@@ -44,4 +44,5 @@ It runs format check, lint, import contracts, type checks and tests through `uv 
 | Architecture | [docs/architecture/](docs/architecture/README.md) |
 | Architecture decisions (ADRs) | [docs/adr/](docs/adr/README.md) |
 | Phase review process | [docs/process/phase-review.md](docs/process/phase-review.md) |
+| Financial Data Simulator | [simulator/README.md](simulator/README.md) |
 | Instructions for coding agents | [AGENTS.md](AGENTS.md) |

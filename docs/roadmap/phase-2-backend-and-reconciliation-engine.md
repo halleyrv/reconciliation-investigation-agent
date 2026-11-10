@@ -68,6 +68,8 @@ Changes approved by the owner after the original text above. The original is nev
 | 2026-11-09 | **Evaluation against the simulator ground truth** happens in 2b, not in a later phase. It is the only objective proof that the deterministic engine works. | Owner |
 | 2026-11-09 | Add assumptions, open decisions, detection catalog, API surface and measurable acceptance criteria (section below). | Owner |
 | 2026-11-09 | **OD1 decided:** fee schedules are loaded by an operator through a CLI/API command, with values transcribed from the gateway policy; a test asserts they equal the policy numbers. No LLM parses policy text, and the simulator interface (Phase 1) is unchanged. | Owner |
+| 2026-11-09 | **Settlement as seventh source record** (ADR-0011): the domain model scope adds `Settlement` (the gateway settlement report) to the six source records, with `ingestion.settlements`; refunds and fees carry `settlement_batch_ref`. Catalog #7 compares the bank credit with the declared net, and the declared net with its members. | Owner |
+| 2026-11-09 | **AS3 replaced** (ADR-0014): business days are Monday to Friday minus the holiday calendar the simulator publishes in its settlement policy. The engine gets the calendar the same way as fee schedules (OD1): loaded by an operator, with a test that it equals the policy. | Owner |
 
 ### Amendment 2026-11-09: assumptions, catalog and acceptance criteria
 
