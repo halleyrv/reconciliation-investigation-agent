@@ -230,7 +230,9 @@ def test_manifest_publishes_both_affected_order_counts(anomalous_run: Path) -> N
     assert published == {
         "orders": len(data["orders"]),
         "directly_affected": len(_directly_affected_orders(anomalous_run)),
-        "without_clean_link": len(data["orders"]) - len(ground_truth["expected_links"]),
+        "without_clean_link": len(
+            set(data["orders"]) - {link["order_id"] for link in ground_truth["expected_links"]}
+        ),
     }
 
 

@@ -40,7 +40,7 @@ Adopt this matrix as the contract between the anomaly catalog and the invariants
 | Duplicate refund | I2, I3 | The two refunds exceed the payment (I2); the copy has no authorization (I3) | **2** (two invariants) |
 | Conflicting re-sent record (`orders`) | I7 | The same order ID appears twice | 1 |
 
-Expected totals on the 200-order sample (seed 42), target state: 25 anomalies, 29 violations (`I1: 6, I10: 4, I2: 2, I3: 4, I4: 2, I5: 7, I6: 2, I7: 2`). `simulate-verify` reports exactly these totals.
+Expected totals on the 200-order sample (seed 42), target state: 25 anomalies, 29 violations (`I1: 6, I10: 4, I2: 2, I3: 4, I4: 2, I5: 7, I6: 2, I7: 2`). `simulate-verify` reported exactly these totals with the rates in force at acceptance; ADR-0015 later doubled the order-level rates (49 violations on the same seed), which changes counts, not the matrix.
 
 Accepted by the owner on 2026-11-09. ADR-0015 may change instance counts and ADR-0014 moves dates, neither changes the invariants per type. `test_each_anomaly_causes_exactly_the_violations_of_the_adr_0013_matrix` asserts the matrix as a literal table.
 

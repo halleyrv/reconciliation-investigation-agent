@@ -63,7 +63,9 @@ def _expected_links(sim: Sim) -> list[dict[str, str]]:
     return links
 
 
-def _affected_orders(sim: Sim, anomalies: list[Anomaly], links: int) -> dict[str, int]:
+def _affected_orders(
+    sim: Sim, anomalies: list[Anomaly], links: list[dict[str, str]]
+) -> dict[str, int]:
     """ADR-0015: an order is directly affected when it, its payment, its fee or its refund
     is named by an anomaly; orders without a clean link also include clean orders that
     settled in an anomalous batch."""
@@ -82,7 +84,7 @@ def _affected_orders(sim: Sim, anomalies: list[Anomaly], links: int) -> dict[str
     return {
         "orders": len(orders),
         "directly_affected": len(named & orders),
-        "without_clean_link": len(orders) - links,
+        "without_clean_link": len(orders - {link["order_id"] for link in links}),
     }
 
 
@@ -121,4 +123,4 @@ def generate(config: Config, seed: int) -> Dataset:
         ],
         "expected_links": links,
     }
-    return Dataset(records, ground_truth, _affected_orders(sim, anomalies, len(links)))
+    return Dataset(records, ground_truth, _affected_orders(sim, anomalies, links))

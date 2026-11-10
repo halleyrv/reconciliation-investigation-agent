@@ -17,9 +17,9 @@ Settlement batches do not grow with orders: one per gateway and day, about 61-63
 |--------|--------|
 | Rates are configurable; about 15% of orders affected with defaults; every type at least twice at 200 orders (AC4) | **Spec** |
 | Rates for `delayed_settlement`, `incorrect_amount` and `missing_in_bank` apply to settlement batches; all others to orders; `missing_transaction` applies its rate to each direction | **Implemented** (`anomalies.py:Injector.count`). **Hypothesis** |
-| Defaults: `0.04` for the two settlement types, `0.01` for the rest | **Implemented** |
+| Defaults: `0.04` for the two settlement types, `0.01` for the rest | **Implemented** when this ADR was proposed; since its acceptance the eight order-level types use `0.02` (Decision, point 3) |
 | Counts follow the population | **Tested**: `test_anomaly_rates_apply_to_their_target_population`, `test_every_anomaly_type_appears_at_least_twice_in_200_orders` |
-| What "affected" means | **Not defined** by the spec or the code |
+| What "affected" means | **Not defined** by the spec or the code when this ADR was proposed; defined by its Decision (point 2) |
 | Measurements below | Read-only runs of the current code, seed 42; scripts not committed (ODD log L13) |
 
 ## 1. Rates per denominator
@@ -114,7 +114,7 @@ None for invariants. AC4 holds at 200 orders under any option.
 
 - The manifest's affected shares equal an independent count from the ground truth (point 2).
 - The 2,000-order config yields at least N instances per batch-level type, with N chosen by the owner (point 4).
-- No test may tune rates to a target share; the share is measured, not asserted to a value.
+- No test may tune rates to a target share: the measured share is pinned as a regression value, never used to adjust rates or data after generation.
 
 ## Amendments this would require
 

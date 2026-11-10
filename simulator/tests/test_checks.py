@@ -138,6 +138,7 @@ def test_each_anomaly_causes_exactly_the_violations_of_the_adr_0013_matrix(
     anomalous_run: Path,
 ) -> None:
     violations = find_violations(anomalous_run)
+    assert len(violations) == len(set(violations))  # the set comparison below hides no copy
     anomalies = json.loads((anomalous_run / "ground_truth.json").read_text())["anomalies"]
     seen, attributed = set(), set()
     for a in anomalies:
