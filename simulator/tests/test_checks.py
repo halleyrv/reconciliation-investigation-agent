@@ -1,3 +1,4 @@
+import codecs
 import json
 import shutil
 from collections.abc import Callable
@@ -7,6 +8,7 @@ from typing import Any
 import pytest
 from simulator.checks import explain, find_violations, validate_files
 from simulator.cli import verify_main
+from simulator.export import columns, to_csv
 
 type Records = dict[str, list[dict[str, Any]]]
 
@@ -167,6 +169,31 @@ def test_validate_files_detects_csv_that_differs_from_json(clean_run: Path, tmp_
     lines = csv_path.read_text().splitlines(keepends=True)
     csv_path.write_text("".join([lines[0], *lines[2:]]))
     assert "orders.csv differs from orders.json" in validate_files(out)
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [lambda raw: codecs.BOM_UTF8 + raw, lambda raw: raw.replace(b"\n", b"\r\n")],
+    ids=["bom", "crlf"],
+)
+def test_validate_files_detects_a_csv_outside_the_dialect(
+    clean_run: Path, tmp_path: Path, damage: Callable[[bytes], bytes]
+) -> None:
+    out = _copy(clean_run, tmp_path)
+    path = out / "orders.csv"
+    path.write_bytes(damage(path.read_bytes()))
+    assert "orders.csv: not UTF-8 without BOM with LF line endings" in validate_files(out)
+
+
+def test_csv_quotes_only_values_with_a_comma_quote_or_line_break() -> None:
+    row = {column: "x" for column in columns("orders")}
+    row["customer_name"] = 'Doe, "Jo"'
+    header, line, end = to_csv("orders", [row]).split("\n")
+    assert header == ",".join(columns("orders"))
+    assert line == ",".join(
+        '"Doe, ""Jo"""' if column == "customer_name" else "x" for column in columns("orders")
+    )
+    assert end == ""
 
 
 def test_validate_files_detects_schema_violations(clean_run: Path, tmp_path: Path) -> None:

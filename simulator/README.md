@@ -36,7 +36,7 @@ Every field is a string. Money is a decimal string with exactly two places (`"12
 
 ## Data schemas
 
-One JSON Schema (draft 2020-12) per record type and one for the ground truth, in [`src/simulator/schemas/`](src/simulator/schemas/). Each record schema defines the file and, under `$defs/record`, one row; CSV columns follow the order of its properties.
+One JSON Schema (draft 2020-12) per record type and one for the ground truth, in [`src/simulator/schemas/`](src/simulator/schemas/). Each record schema defines the file and, under `$defs/record`, one row; CSV columns follow the order of its properties. CSV files are UTF-8 without a byte-order mark, comma-delimited, with LF line endings (including after the last row), one header row and RFC 4180 quoting only when a value holds a comma, a quote or a line break; every value is the same string as in the JSON file (ADR-0014). `simulate-verify` checks the encoding and line endings.
 
 | Record type | ID | Links it claims |
 |-------------|----|-----------------|

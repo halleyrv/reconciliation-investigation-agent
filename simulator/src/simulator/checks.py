@@ -3,9 +3,10 @@
 - `find_violations`: internal consistency invariants I1-I10 (phase 1 amendments).
 - `explain`: every violation is explained by exactly one ground-truth anomaly, and every
   anomaly breaks exactly the invariants it declares.
-- `validate_files`: JSON Schemas, CSV equals JSON, manifest hashes.
+- `validate_files`: JSON Schemas, CSV dialect (ADR-0014), CSV equals JSON, manifest hashes.
 """
 
+import codecs
 import csv
 import hashlib
 import json
@@ -366,6 +367,10 @@ def validate_files(out: Path) -> list[str]:
         validator = Draft202012Validator(schema)
         document = _read_json(out / f"{record_type}.json")
         problems += [f"{record_type}.json: {e.message}" for e in validator.iter_errors(document)]
+        raw = (out / f"{record_type}.csv").read_bytes()
+        # CSV dialect of ADR-0014. No value holds a line break, so any CRLF is a line ending.
+        if raw.startswith(codecs.BOM_UTF8) or b"\r\n" in raw or not raw.endswith(b"\n"):
+            problems.append(f"{record_type}.csv: not UTF-8 without BOM with LF line endings")
         with (out / f"{record_type}.csv").open(encoding="utf-8", newline="") as handle:
             reader = csv.DictReader(handle)
             rows = list(reader)
