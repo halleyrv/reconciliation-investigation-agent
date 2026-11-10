@@ -6,11 +6,11 @@ All data is synthetic, produced by an independent Financial Data Simulator. No r
 
 ## Status
 
-Phase 0 (foundations) is done. Phase 1 (Financial Data Simulator) is in progress: see [simulator/README.md](simulator/README.md). See the [roadmap](docs/roadmap/README.md) for every phase and its status.
+Phases 0 (foundations) and 1 ([Financial Data Simulator](simulator/README.md)) are done. Phase 2 (backend and reconciliation engine) is in progress: sub-phase 2a, ingestion, is done (see [backend/README.md](backend/README.md)); 2b, the reconciliation engine, is next. See the [roadmap](docs/roadmap/README.md) for every phase and its status.
 
 ## Setup
 
-Requirements: [`uv`](https://docs.astral.sh/uv/) (verified with 0.12.5). Python 3.14 is pinned in `.python-version`; `uv` uses an installed 3.14 or downloads one.
+Requirements: [`uv`](https://docs.astral.sh/uv/) (verified with 0.12.5) and Docker with Compose (verified with Docker 29.4.0), which runs PostgreSQL for the backend tests. Python 3.14 is pinned in `.python-version`; `uv` uses an installed 3.14 or downloads one.
 
 ```bash
 git clone https://github.com/halleyrv/reconciliation-investigation-agent.git
@@ -25,7 +25,7 @@ git config core.hooksPath .githooks       # run the quality gate before every co
 scripts/check.sh
 ```
 
-It runs format check, lint, import contracts, type checks and tests through `uv run --locked`, and stops at the first failure. The pre-commit hook and CI run the same script.
+It runs format check, lint, import contracts and type checks, starts the Compose PostgreSQL (`docker compose up -d --wait db`), runs the tests through `uv run --locked`, and stops at the first failure. The pre-commit hook and CI run the same script.
 
 ## Principles
 

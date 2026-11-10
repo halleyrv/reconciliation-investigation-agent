@@ -13,6 +13,8 @@ step ruff format --check .
 step ruff check .
 step lint-imports
 step mypy
+echo "==> docker compose up -d --wait db"
+docker compose up -d --wait db
 step pytest -q
 
 echo "==> quality gate passed"
