@@ -74,6 +74,24 @@ containers = ["recon.ingestion"]
 layers = ["adapters", "api", "application", "domain"]
 
 [[tool.importlinter.contracts]]
+name = "Reconciliation layers: adapters > api > application > domain"
+type = "layers"
+containers = ["recon.reconciliation"]
+layers = ["adapters", "api", "application", "domain"]
+
+[[tool.importlinter.contracts]]
+name = "Contexts integrate only through each other's api module"
+type = "forbidden"
+source_modules = ["recon.reconciliation"]
+forbidden_modules = ["recon.ingestion.domain", "recon.ingestion.application", "recon.ingestion.adapters"]
+
+[[tool.importlinter.contracts]]
+name = "Ingestion does not depend on downstream contexts"
+type = "forbidden"
+source_modules = ["recon.ingestion"]
+forbidden_modules = ["recon.reconciliation"]
+
+[[tool.importlinter.contracts]]
 name = "Domain and shared kernel use only the stdlib and the shared kernel"
 type = "forbidden"
 source_modules = ["recon.*.domain", "recon.shared_kernel"]
@@ -82,6 +100,9 @@ forbidden_modules = [
     "recon.ingestion.application",
     "recon.ingestion.adapters",
     "recon.ingestion.api",
+    "recon.reconciliation.application",
+    "recon.reconciliation.adapters",
+    "recon.reconciliation.api",
     "alembic",
     "fastapi",
     "psycopg",
