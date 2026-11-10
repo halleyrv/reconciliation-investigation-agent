@@ -8,16 +8,19 @@ requires-python = ">=3.14,<3.15"
 package = false
 
 [tool.uv.workspace]
-members = ["simulator"]
+members = ["simulator", "backend"]
 
 [tool.uv.sources]
 simulator = { workspace = true }
+recon = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.16.0",
     "import-linter>=2.16",
     "mypy>=2.4.1",
     "pytest>=9.2.0",
+    "recon",
     "ruff>=0.17.4",
     "simulator",
     "types-jsonschema>=4.26.0.20261006",
@@ -31,16 +34,19 @@ target-version = "py314"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["recon"]
+
 [tool.mypy]
 strict = true
-files = ["simulator/src", "simulator/tests"]
+files = ["simulator/src", "simulator/tests", "backend/src", "backend/tests"]
 
 [tool.pytest.ini_options]
-testpaths = ["simulator/tests"]
+testpaths = ["simulator/tests", "backend/tests"]
 addopts = ["--strict-markers"]
 
 [tool.importlinter]
-root_packages = ["simulator"]
+root_packages = ["simulator", "recon"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -59,4 +65,27 @@ forbidden_modules = [
     "google",
     "mistralai",
     "litellm",
+]
+
+[[tool.importlinter.contracts]]
+name = "Ingestion layers: adapters > api > application > domain"
+type = "layers"
+containers = ["recon.ingestion"]
+layers = ["adapters", "api", "application", "domain"]
+
+[[tool.importlinter.contracts]]
+name = "Domain and shared kernel use only the stdlib and the shared kernel"
+type = "forbidden"
+source_modules = ["recon.*.domain", "recon.shared_kernel"]
+forbidden_modules = [
+    "recon.bootstrap",
+    "recon.ingestion.application",
+    "recon.ingestion.adapters",
+    "recon.ingestion.api",
+    "alembic",
+    "fastapi",
+    "psycopg",
+    "pydantic",
+    "sqlalchemy",
+    "starlette",
 ]

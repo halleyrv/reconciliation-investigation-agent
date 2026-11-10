@@ -1,0 +1,15 @@
+# Local and CI PostgreSQL. Bound to loopback with trust auth, so no password lives in the repository.
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: recon
+      POSTGRES_DB: recon
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "recon", "-d", "recon"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
