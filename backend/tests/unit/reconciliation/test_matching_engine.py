@@ -321,7 +321,7 @@ def test_a_refund_with_both_references_dangling_is_one_reference_mismatch() -> N
     assert found(result) == [("reference_mismatch", frozenset({ref(RFD, "RFD-000001")}), 0)]
 
 
-def test_an_overpaid_order_is_not_a_clean_link() -> None:
+def test_overpayment() -> None:
     book = clean_book()
     book.payments.pop(2)
     book.fees.pop(2)
@@ -330,7 +330,8 @@ def test_an_overpaid_order_is_not_a_clean_link() -> None:
 
     result = book.run()
 
-    assert found(result) == []  # the catalog has no overpayment type (phase review M3)
+    records = frozenset({ref(ORD, "ORD-000003"), ref(PAY, "PAY-000003")})
+    assert found(result) == [("overpayment", records, 7_000 - 5_050)]
     assert linked_orders(result) == ALL - {"ORD-000003"}
 
 

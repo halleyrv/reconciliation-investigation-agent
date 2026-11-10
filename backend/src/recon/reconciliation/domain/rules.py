@@ -1,4 +1,5 @@
-"""One matching rule per row of the detection catalog (phase 2), registered in the engine.
+"""One matching rule per row of the detection catalog (phase 2, with its amendments), registered
+in the engine.
 
 Each rule reports one discrepancy per root cause (assumption B1). Where two rules could see
 the same symptom, the more general one skips what the specific one owns, so rules never
@@ -147,6 +148,17 @@ class UnderpaymentRule:
                 yield Discrepancy(T.UNDERPAYMENT, refs, order.total, payments[0].amount)
 
 
+class OverpaymentRule:
+    """#5b (amendment 2026-11-10): the order's only payment is above its total."""
+
+    def detect(self, snapshot: Snapshot, ruleset: Ruleset) -> Iterator[Discrepancy]:
+        for order_id, payments in snapshot.payments_by_order.items():
+            order = snapshot.orders_by_id[order_id]
+            if len(payments) == 1 and payments[0].amount.amount_minor > order.total.amount_minor:
+                refs = frozenset({order.ref, payments[0].ref})
+                yield Discrepancy(T.OVERPAYMENT, refs, order.total, payments[0].amount)
+
+
 class SettlementDelayedRule:
     """#6: the bank credit is later than batch date + the settlement lag in business days."""
 
@@ -268,6 +280,7 @@ CATALOG: tuple[MatchRule, ...] = (
     FeeMismatchRule(),
     MissingTransactionRule(),
     UnderpaymentRule(),
+    OverpaymentRule(),
     SettlementDelayedRule(),
     AmountMismatchRule(),
     ReferenceMismatchRule(),

@@ -20,6 +20,7 @@ class DiscrepancyType(StrEnum):
     MISSING_IN_GATEWAY = "missing_in_gateway"
     MISSING_IN_ORDERS = "missing_in_orders"
     UNDERPAYMENT = "underpayment"
+    OVERPAYMENT = "overpayment"  # amendment 2026-11-10: the mirror of underpayment
     SETTLEMENT_DELAYED = "settlement_delayed"
     AMOUNT_MISMATCH = "amount_mismatch"
     REFERENCE_MISMATCH = "reference_mismatch"

@@ -22,7 +22,7 @@ from recon.reconciliation.application.reconcile_period import (
     RunFailed,
     RunInProgress,
 )
-from recon.reconciliation.domain.results import Period
+from recon.reconciliation.domain.results import DiscrepancyType, Period
 from recon.reconciliation.domain.run import RunStatus
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
@@ -289,3 +289,13 @@ def test_concurrent_overlapping_periods_leave_one_live_run_and_a_clear_refusal(
         outcomes = sorted(pool.map(reconcile, periods))
 
     assert outcomes == ["completed", "overlaps"]
+
+
+def test_the_reference_discrepancy_types_are_exactly_the_engine_catalog(engine: Engine) -> None:
+    codes = {code for (code,) in _rows(engine, "SELECT code FROM ref.discrepancy_types")}
+
+    assert codes == {t.value for t in DiscrepancyType}
+    assert _rows(
+        engine,
+        "SELECT default_severity FROM ref.discrepancy_types WHERE code = 'missing_in_orders'",
+    ) == [("high",)]
