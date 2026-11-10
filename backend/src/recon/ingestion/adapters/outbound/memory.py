@@ -3,11 +3,11 @@ rules as PostgreSQL, so a test that passes here cannot rely on a skipped rule.""
 
 import copy
 import uuid
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from types import TracebackType
 from typing import Self
 
-from recon.ingestion.application.ports import ImportBatchRepository, SourceRecordRepository
 from recon.ingestion.domain.batch import ImportBatch
 from recon.ingestion.domain.records import (
     Authorization,
@@ -82,11 +82,15 @@ class _Records:
             raise UniqueViolation(f"duplicate {key}")
         self._uow.state.records[key] = (record, raw.id)
 
-    def find_canonical_raw(
-        self, source: str, record_type: RecordType, external_id: str
-    ) -> RawRecord | None:
-        found = self._uow.state.records.get((source, record_type, external_id))
-        return None if found is None else self._uow.state.raws[found[1]]
+    def find_canonical_raws(
+        self, source: str, record_type: RecordType, external_ids: Collection[str]
+    ) -> dict[str, RawRecord]:
+        records = self._uow.state.records
+        return {
+            external_id: self._uow.state.raws[records[key][1]]
+            for external_id in external_ids
+            if (key := (source, record_type, external_id)) in records
+        }
 
     def add_conflict(self, conflict: SourceConflict) -> None:
         self._uow.state.conflicts.append(conflict)
@@ -96,8 +100,8 @@ class InMemoryIngestionUnitOfWork:
     def __init__(self) -> None:
         self.state = _State()
         self._committed = copy.deepcopy(self.state)
-        self.batches: ImportBatchRepository = _Batches(self)
-        self.records: SourceRecordRepository = _Records(self)
+        self.batches = _Batches(self)
+        self.records = _Records(self)
 
     def __enter__(self) -> Self:
         return self

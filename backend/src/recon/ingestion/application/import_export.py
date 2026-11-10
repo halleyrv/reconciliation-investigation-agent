@@ -74,31 +74,44 @@ class ImportExport:
             if file.errors:
                 batch.fail(file.errors, now)
             else:
-                for row in file.rows:
-                    self._store(batch, row)
+                canonical = self._uow.records.find_canonical_raws(
+                    source, file.record_type, {row.record.external_id for row in file.rows}
+                )
+                raws = [self._raw(batch, row) for row in file.rows]
+                for raw in raws:
+                    self._uow.records.add_raw(raw)
+                for row, raw in zip(file.rows, raws, strict=True):
+                    self._store(batch, row, raw, canonical)
                 batch.complete(len(file.rows), now)
             self._uow.batches.save(batch)
             self._uow.commit()
             return batch
 
-    def _store(self, batch: ImportBatch, row: ParsedRow) -> None:
-        raw = RawRecord(
+    def _raw(self, batch: ImportBatch, row: ParsedRow) -> RawRecord:
+        return RawRecord(
             self._ids.new(), batch.id, batch.source, row.line_no, row.payload, row.payload_sha256
         )
-        self._uow.records.add_raw(raw)
+
+    def _store(
+        self,
+        batch: ImportBatch,
+        row: ParsedRow,
+        raw: RawRecord,
+        canonical: dict[str, RawRecord],
+    ) -> None:
+        """First seen wins: ``canonical`` maps each external ID to the raw record it came from."""
         external_id = row.record.external_id
-        canonical = self._uow.records.find_canonical_raw(
-            batch.source, batch.record_type, external_id
-        )
-        if canonical is None:
+        existing = canonical.get(external_id)
+        if existing is None:
             self._uow.records.add(row.record, raw)
-        elif canonical.payload_sha256 != raw.payload_sha256:
+            canonical[external_id] = raw
+        elif existing.payload_sha256 != raw.payload_sha256:
             conflict = SourceConflict(
                 self._ids.new(),
                 batch.source,
                 batch.record_type,
                 external_id,
-                canonical.id,
+                existing.id,
                 raw.id,
                 self._clock.now(),
             )
@@ -110,7 +123,7 @@ class ImportExport:
                     source=conflict.source,
                     record_type=conflict.record_type,
                     external_id=external_id,
-                    existing_raw_record_id=canonical.id,
+                    existing_raw_record_id=existing.id,
                     incoming_raw_record_id=raw.id,
                 )
             )

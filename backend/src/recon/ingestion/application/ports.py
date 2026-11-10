@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from typing import Protocol
 
 from recon.ingestion.domain.batch import ImportBatch
@@ -18,15 +19,18 @@ class SourceRecordRepository(Protocol):
 
     def add(self, record: SourceRecord, raw: RawRecord) -> None: ...
 
-    def find_canonical_raw(
-        self, source: str, record_type: RecordType, external_id: str
-    ) -> RawRecord | None:
-        """The raw record the canonical row with this external ID was parsed from."""
+    def find_canonical_raws(
+        self, source: str, record_type: RecordType, external_ids: Collection[str]
+    ) -> dict[str, RawRecord]:
+        """For each external ID that already has a canonical row: the raw record it came from."""
         ...
 
     def add_conflict(self, conflict: SourceConflict) -> None: ...
 
 
 class IngestionUnitOfWork(UnitOfWork, Protocol):
-    batches: ImportBatchRepository
-    records: SourceRecordRepository
+    @property
+    def batches(self) -> ImportBatchRepository: ...
+
+    @property
+    def records(self) -> SourceRecordRepository: ...
