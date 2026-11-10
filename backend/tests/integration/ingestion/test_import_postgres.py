@@ -226,7 +226,9 @@ def test_two_concurrent_imports_of_the_same_export_both_return_the_same_batches(
 ) -> None:
     from recon.ingestion.adapters.outbound import sql
 
-    # Hold both imports right after their duplicate-file check, so they race to insert.
+    # Both imports wait here after their duplicate-file check. Without the source lock both
+    # arrive and race to insert; with it the second waits on the lock, so the barrier breaks
+    # after its timeout and the first import goes on alone.
     barrier = threading.Barrier(2, timeout=1)
     original = sql.SqlAlchemyImportBatches.add
 
@@ -242,6 +244,19 @@ def test_two_concurrent_imports_of_the_same_export_both_return_the_same_batches(
         futures = [pool.submit(_import(engine, sample), export) for _ in range(2)]
         results = [future.result() for future in futures]
 
+    assert barrier.broken, "the second import should have waited on the source lock"
     assert [b.id for b in results[0]] == [b.id for b in results[1]]
     assert _scalar(engine, "SELECT count(*) FROM ingestion.import_batches") == 7
     assert _scalar(engine, "SELECT count(*) FROM ingestion.orders") == 200
+
+
+def test_the_parser_accepts_exactly_the_seeded_reference_values(engine: Engine) -> None:
+    from typing import get_args
+
+    from recon.ingestion.adapters.outbound import simulator_files
+
+    with engine.connect() as connection:
+        currencies = set(connection.execute(text("SELECT code FROM ref.currencies")).scalars())
+        fee_types = set(connection.execute(text("SELECT code FROM ref.fee_types")).scalars())
+    assert set(get_args(simulator_files.Currency)) == currencies
+    assert set(get_args(simulator_files.FeeType)) == fee_types

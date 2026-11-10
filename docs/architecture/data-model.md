@@ -50,36 +50,47 @@ ref.discrepancy_types(code TEXT PK, description TEXT NOT NULL, default_severity 
 
 ```sql
 data_sources(id PK, kind REFERENCES ref.source_kinds, name TEXT NOT NULL UNIQUE)
+  -- seeded by migration: shop (ecommerce), gateway, bank, back_office (authorization)
 
-import_batches(id PK, source_id FK NOT NULL, file_sha256 CHAR(64) NOT NULL, status, row_count,
-               started_at, finished_at,
+import_batches(id PK, source_id FK NOT NULL, record_type TEXT CHECK IN (<the seven types>),
+               file_name TEXT NOT NULL, file_sha256 CHAR(64) NOT NULL, status, row_count,
+               started_at, finished_at,                -- set exactly when status is final
                UNIQUE (source_id, file_sha256),        -- re-importing a file is a no-op
                UNIQUE (id, source_id))                 -- target for composite FKs (register R1)
+import_batch_errors(batch_id FK, ordinal INT, line_no INT NOT NULL,  -- 0 = the file itself
+                    field TEXT NOT NULL, message TEXT NOT NULL, PRIMARY KEY (batch_id, ordinal))
 
 raw_records(id PK, batch_id, source_id, line_no INT NOT NULL, payload JSONB NOT NULL,
-            payload_sha256 CHAR(64) NOT NULL,
+            payload_sha256 CHAR(64) NOT NULL,      -- SHA-256 of the payload as canonical JSON
             FOREIGN KEY (batch_id, source_id) REFERENCES import_batches(id, source_id),
             UNIQUE (batch_id, line_no), UNIQUE (id, source_id))
 
-orders(id PK, source_id, external_id, raw_record_id, customer_ref, amount_minor, currency,
-       status, placed_at,
-       FOREIGN KEY (raw_record_id, source_id) REFERENCES raw_records(id, source_id),
-       UNIQUE (source_id, external_id))
-payments(... , order_external_ref TEXT, gateway TEXT NOT NULL, captured_at, settlement_batch_ref)
-refunds(... , payment_external_ref TEXT NOT NULL, refunded_at, settlement_batch_ref)
-fees(... , payment_external_ref TEXT NOT NULL, fee_type REFERENCES ref.fee_types, settlement_batch_ref)
+-- Every canonical table also has: id PK, source_id, external_id, raw_record_id UNIQUE,
+-- FOREIGN KEY (raw_record_id, source_id) REFERENCES raw_records(id, source_id),
+-- UNIQUE (source_id, external_id); amounts are positive with a currency FK.
+orders(... , customer_name, customer_email, amount_minor, currency, status, placed_at)
+payments(... , order_external_ref TEXT, gateway TEXT NOT NULL, amount_minor, currency, captured_at,
+         settlement_batch_ref)
+refunds(... , payment_external_ref TEXT NOT NULL, gateway, amount_minor, currency, refunded_at,
+        settlement_batch_ref)
+fees(... , payment_external_ref TEXT NOT NULL, gateway, fee_type REFERENCES ref.fee_types,
+     amount_minor, currency, settlement_batch_ref)
 settlements(... , gateway TEXT NOT NULL, batch_date DATE NOT NULL,   -- gateway report: declared net (ADR-0011)
             net_amount_minor, currency)
 bank_transactions(... , account_ref, direction CHECK IN ('credit','debit'), value_date DATE,
-                  description TEXT, description_tsv TSVECTOR GENERATED ALWAYS AS (...) STORED)
+                  amount_minor, currency, description TEXT,
+                  description_tsv TSVECTOR GENERATED ALWAYS AS (to_tsvector('simple', description)) STORED)
 authorizations(... , subject_kind CHECK IN ('refund','write_off'), subject_external_ref TEXT,
                approved_by TEXT NOT NULL, approved_at, max_amount_minor, currency)
 
-source_conflicts(id PK, source_id, external_id, existing_raw_record_id FK, incoming_raw_record_id FK,
-                 detected_at, UNIQUE (incoming_raw_record_id))
+source_conflicts(id PK, source_id, record_type TEXT, external_id, existing_raw_record_id,
+                 incoming_raw_record_id UNIQUE, detected_at,
+                 FOREIGN KEY (existing_raw_record_id, source_id) REFERENCES raw_records(id, source_id),
+                 FOREIGN KEY (incoming_raw_record_id, source_id) REFERENCES raw_records(id, source_id))
+outbox(id BIGINT IDENTITY PK, event_type, event_version, payload JSONB, created_at, published_at NULL)
 ```
 
-`raw_records` is an immutable snapshot of what arrived. The canonical rows are typed and queryable. A re-sent record with a different `payload_sha256` creates a `source_conflicts` row, never an update.
+`raw_records` is an immutable snapshot of what arrived. The canonical rows are typed and queryable. A re-sent record with a different `payload_sha256` creates a `source_conflicts` row, never an update; the first record seen keeps the canonical row. A re-send with the same payload only adds its raw record. Imports of one source are serialized by a transaction-scoped advisory lock.
 
 ### `recon`
 
