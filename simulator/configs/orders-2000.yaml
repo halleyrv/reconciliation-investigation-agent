@@ -1,11 +1,12 @@
-# Scale run: 2,000 orders, about 15% of them affected by anomalies.
+# Scale run: 2,000 orders over ten months, the same small merchant with more history
+# (ADR-0015 point 4): batches keep about 3 orders each, as in the default run.
 # Money and rates are quoted decimal strings: YAML floats are rejected.
 # A rate is a fraction of its target population: settlement batches for
 # delayed_settlement and incorrect_amount, orders for the rest. missing_transaction
 # applies its rate to each direction (missing_in_bank targets settlement batches).
 orders: 2000
 period:
-  start: "2026-10-01"
+  start: "2026-01-01"
   end: "2026-10-31"
 currency: USD
 gateways:
@@ -17,7 +18,8 @@ gateways:
     fixed_fee: "0.25"
 settlement_lag_business_days: 2
 # Fictional bank holidays (ADR-0014): payouts skip them like weekends.
-holidays: ["2026-10-09", "2026-10-20", "2026-10-28"]
+holidays: ["2026-02-11", "2026-04-22", "2026-06-17", "2026-08-13", "2026-10-09", "2026-10-20",
+  "2026-10-28"]
 refund_rate: "0.08"
 anomaly_rates:
   duplicate_payment: "0.01"

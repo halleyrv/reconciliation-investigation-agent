@@ -95,7 +95,7 @@ Consequences for evaluation:
 1. Keep each type's own target population as its denominator (implemented).
 2. Define "affected" as in section 3, and publish both numbers in the manifest: directly affected orders (following the chain) and orders without a clean link.
 3. Owner decides: whether the defaults target 15% under that definition, or the spec records the measured value.
-4. Owner decides: whether the 2,000-order dataset represents more history (scale the period; the measurements support it) or a bigger merchant (change the batch distribution and state a minimum instance count).
+4. **Decided by the owner on 2026-11-09: more history.** `configs/orders-2000.yaml` spans 2026-01-01 to 2026-10-31 (584 batches; 23, 23 and 6 batch-level instances on seed 42). The minimum instances per batch-level type is not set by the owner yet; the test uses 5 as a stated assumption.
 5. Evaluation reports publish prevalence and instance counts next to every per-type metric (Phase 2 and Phase 6 amendments below).
 
 ## Alternatives considered

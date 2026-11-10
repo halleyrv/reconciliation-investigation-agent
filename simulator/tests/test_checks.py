@@ -139,14 +139,16 @@ def test_each_anomaly_causes_exactly_the_violations_of_the_adr_0013_matrix(
 ) -> None:
     violations = find_violations(anomalous_run)
     anomalies = json.loads((anomalous_run / "ground_truth.json").read_text())["anomalies"]
-    seen = set()
+    seen, attributed = set(), 0
     for a in anomalies:
         key = a["subtype"] if a["type"] == "missing_transaction" else a["type"]
         records = {(r["source"], r["external_id"]) for r in a["records"]}
         caused = sorted(v.invariant for v in violations if records & set(v.records))
         assert caused == TRACEABILITY_MATRIX[key], (a["anomaly_id"], key)
         seen.add(key)
+        attributed += len(caused)
     assert seen == set(TRACEABILITY_MATRIX)
+    assert attributed == len(violations)  # no violation outside the anomalies' records
 
 
 def test_checker_detects_refunds_exceeding_their_payment(clean_run: Path, tmp_path: Path) -> None:

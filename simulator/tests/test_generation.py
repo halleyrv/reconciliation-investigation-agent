@@ -6,11 +6,12 @@ from collections import Counter
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
-from conftest import DEFAULT_CONFIG, raw_default, run
-from simulator.checks import find_violations, validate_files
+from conftest import CONFIGS, DEFAULT_CONFIG, raw_default, run
+from simulator.checks import explain, find_violations, validate_files
 from simulator.cli import main
 from simulator.config import ANOMALY_TYPES, ConfigError, parse_config
 from simulator.sim import count_for
@@ -163,6 +164,25 @@ def test_anomaly_rates_apply_to_their_target_population(tmp_path: Path) -> None:
     assert counts["missing_in_bank"] == count_for(Decimal("0.01"), settlements)
     assert counts["missing_in_orders"] == counts["missing_in_gateway"] == 10
     assert counts["duplicate_payment"] == 10
+
+
+# Assumption, pending the owner's N (ADR-0015 point 4): at least 5 instances per batch type.
+MIN_BATCH_INSTANCES = 5
+
+
+def test_the_2000_order_run_is_ten_months_of_history_with_enough_batch_instances(
+    tmp_path: Path,
+) -> None:
+    raw: dict[str, Any] = yaml.safe_load((CONFIGS / "orders-2000.yaml").read_text())
+    config = parse_config(raw)
+    assert (config.period_start, config.period_end) == (date(2026, 1, 1), date(2026, 10, 31))
+    assert all(config.period_start <= h <= config.period_end for h in config.holidays)
+    out = run(tmp_path, raw)
+    anomalies = json.loads((out / "ground_truth.json").read_text())["anomalies"]
+    counts = Counter(a["subtype"] or a["type"] for a in anomalies)
+    for batch_type in ("delayed_settlement", "incorrect_amount", "missing_in_bank"):
+        assert counts[batch_type] >= MIN_BATCH_INSTANCES, (batch_type, counts[batch_type])
+    assert explain(out) == []
 
 
 def test_committed_sample_is_the_seed_42_default_run(anomalous_run: Path) -> None:

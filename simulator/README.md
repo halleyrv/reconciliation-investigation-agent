@@ -12,7 +12,7 @@ From the repository root, after `uv sync --locked`:
 # 200-order dataset (the committed sample)
 uv run --locked simulate --config simulator/configs/default.yaml --seed 42 --out simulator/samples/orders-200-seed-42
 
-# 2,000-order dataset (not committed; reproducible with this command)
+# 2,000-order dataset over ten months, 2026-01-01 to 2026-10-31 (not committed; reproducible with this command)
 uv run --locked simulate --config simulator/configs/orders-2000.yaml --seed 42 --out <dir>
 
 # Check a run: schemas, CSV == JSON, manifest hashes, invariants, ground-truth coverage
@@ -72,7 +72,7 @@ One JSON Schema (draft 2020-12) per record type and one for the ground truth, in
 
 Money and rates must be quoted strings: a YAML float such as `0.30` is rejected, because it is already inexact when parsed. Unknown anomaly types are rejected.
 
-An anomaly rate is a fraction of its target population: settlement batches for `delayed_settlement`, `incorrect_amount` and the `missing_in_bank` direction, orders for everything else. `missing_transaction` applies its rate to each of its three directions. The count is `rate × population`, rounded half-even. With the default config every anomaly type appears at least twice. On seed 42, 7.0% of the orders are named directly by an anomaly at both 200 and 2,000 orders; the share without a clean expected link is 13.0% at 200 and 20.1% at 2,000, because each anomalous batch holds more orders at scale. The choice of denominators is proposed in ADR-0015.
+An anomaly rate is a fraction of its target population: settlement batches for `delayed_settlement`, `incorrect_amount` and the `missing_in_bank` direction, orders for everything else. `missing_transaction` applies its rate to each of its three directions. The count is `rate × population`, rounded half-even. With the default config every anomaly type appears at least twice. On seed 42, 7.0% of the orders are named directly by an anomaly at both 200 and 2,000 orders; the share without a clean expected link is 13.0% at 200 (one month, 61 batches) and 16.8% at 2,000 (ten months, 584 batches). The 2,000-order run spans ten months so batches keep about 3 orders each, as in the default run (ADR-0015 point 4); over a single month the share was 20.1%, because each batch held about 32 orders. The choice of denominators is proposed in ADR-0015.
 
 ## Internal consistency invariants
 
