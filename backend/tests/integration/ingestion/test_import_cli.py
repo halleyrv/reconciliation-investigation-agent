@@ -44,20 +44,32 @@ def test_a_rejected_file_is_reported_with_line_and_field_and_exits_1(
     assert "refunds.json: failed\n  line 2, amount: " in out
 
 
-@pytest.mark.parametrize("damage", ["tamper", "missing"])
+@pytest.mark.parametrize("damage", ["tamper", "missing", "bad manifest", "no files key"])
 def test_an_export_that_cannot_be_trusted_writes_nothing_and_exits_2(
     database: Engine, sample: Path, capsys: pytest.CaptureFixture[str], damage: str
 ) -> None:
     path = sample / "fees.json"
     if damage == "tamper":
         path.write_text(path.read_text().replace("12.33", "12.34", 1))
-    else:
+    elif damage == "missing":
         path.unlink()
+    elif damage == "bad manifest":
+        (sample / "manifest.json").write_text('{"files": {"fees.json": ')
+    else:
+        (sample / "manifest.json").write_text('{"fees.json": "x"}')
 
     assert main([str(sample)]) == 2
 
-    assert "fees.json" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert ("fees.json" if damage in ("tamper", "missing") else "manifest.json") in err
     with database.connect() as connection:
         assert (
             connection.execute(text("SELECT count(*) FROM ingestion.import_batches")).scalar() == 0
         )
+
+
+def test_a_path_that_is_not_a_directory_exits_2(
+    database: Engine, sample: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main([str(sample / "orders.json")]) == 2
+    assert "nothing imported" in capsys.readouterr().err

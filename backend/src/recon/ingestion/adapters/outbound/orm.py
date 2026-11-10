@@ -140,6 +140,7 @@ class SourceConflictRow(Base):
     external_id: Mapped[str]
     existing_raw_record_id: Mapped[uuid.UUID]
     incoming_raw_record_id: Mapped[uuid.UUID]
+    incoming_payload_sha256: Mapped[str]
     detected_at: Mapped[datetime]
 
 

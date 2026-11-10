@@ -96,7 +96,20 @@ class _Records:
             if (key := (source, record_type, external_id)) in records
         }
 
+    def find_conflict_payloads(
+        self, source: str, record_type: RecordType, external_ids: Collection[str]
+    ) -> set[tuple[str, str]]:
+        return {
+            (c.external_id, c.incoming_payload_sha256)
+            for c in self._uow.state.conflicts
+            if (c.source, c.record_type) == (source, record_type) and c.external_id in external_ids
+        }
+
     def add_conflict(self, conflict: SourceConflict) -> None:
+        key = (conflict.source, conflict.record_type, conflict.external_id)
+        payloads = self.find_conflict_payloads(*key[:2], {key[2]})
+        if (conflict.external_id, conflict.incoming_payload_sha256) in payloads:
+            raise UniqueViolation(f"conflict already recorded: {key}")
         self._uow.state.conflicts.append(conflict)
 
 

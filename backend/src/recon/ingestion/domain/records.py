@@ -162,4 +162,5 @@ class SourceConflict:
     external_id: str
     existing_raw_record_id: uuid.UUID
     incoming_raw_record_id: uuid.UUID
+    incoming_payload_sha256: str  # a conflict is recorded once per distinct incoming payload
     detected_at: datetime

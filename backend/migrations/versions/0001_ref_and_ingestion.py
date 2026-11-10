@@ -76,7 +76,8 @@ CREATE TABLE ingestion.raw_records (
     payload_sha256 {SHA.format("payload_sha256")},
     FOREIGN KEY (batch_id, source_id) REFERENCES ingestion.import_batches (id, source_id),
     UNIQUE (batch_id, line_no),
-    UNIQUE (id, source_id)
+    UNIQUE (id, source_id),
+    UNIQUE (id, payload_sha256)         -- target for source_conflicts (register R12)
 );
 
 CREATE TABLE ingestion.orders ({RECORD},
@@ -131,11 +132,16 @@ CREATE TABLE ingestion.authorizations ({RECORD},
 CREATE TABLE ingestion.source_conflicts (
     id UUID PRIMARY KEY,
     source_id UUID NOT NULL,
-    record_type TEXT NOT NULL,
+    record_type TEXT NOT NULL CHECK (record_type IN ('orders', 'payments', 'refunds', 'fees',
+        'settlements', 'bank_transactions', 'authorizations')),
     external_id TEXT NOT NULL,
     existing_raw_record_id UUID NOT NULL,
     incoming_raw_record_id UUID NOT NULL UNIQUE,
+    incoming_payload_sha256 CHAR(64) NOT NULL,
     detected_at TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY (incoming_raw_record_id, incoming_payload_sha256)
+        REFERENCES ingestion.raw_records (id, payload_sha256),
+    UNIQUE (source_id, record_type, external_id, incoming_payload_sha256),
     FOREIGN KEY (existing_raw_record_id, source_id)
         REFERENCES ingestion.raw_records (id, source_id),
     FOREIGN KEY (incoming_raw_record_id, source_id)

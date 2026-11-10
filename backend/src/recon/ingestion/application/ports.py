@@ -29,6 +29,12 @@ class SourceRecordRepository(Protocol):
         """For each external ID that already has a canonical row: the raw record it came from."""
         ...
 
+    def find_conflict_payloads(
+        self, source: str, record_type: RecordType, external_ids: Collection[str]
+    ) -> set[tuple[str, str]]:
+        """``(external_id, incoming payload SHA-256)`` of every conflict already recorded."""
+        ...
+
     def add_conflict(self, conflict: SourceConflict) -> None: ...
 
 

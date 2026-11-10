@@ -6,9 +6,16 @@ import json
 import re
 from datetime import date, datetime
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, StringConstraints, ValidationError
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    StringConstraints,
+    ValidationError,
+)
 
 from recon.ingestion.application.import_export import ParsedRow, SimulatorExport, SourceFile
 from recon.ingestion.domain.batch import RowError
@@ -26,8 +33,8 @@ from recon.ingestion.domain.records import (
 )
 from recon.shared_kernel.money import Money, parse_minor_units
 
-_INSTANT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
-_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_INSTANT = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
+_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 
 
 def _instant(value: object) -> datetime:
@@ -58,7 +65,15 @@ MinorUnits = Annotated[int, BeforeValidator(_minor_units)]
 # read them from the database when an operator can add currencies or fee types.
 Currency = Literal["USD"]
 FeeType = Literal["processing"]
-Text = Annotated[str, StringConstraints(min_length=1)]
+
+
+def _no_nul(value: str) -> str:
+    if "\x00" in value:
+        raise ValueError("must not contain a NUL character")  # PostgreSQL TEXT and JSONB reject it
+    return value
+
+
+Text = Annotated[str, StringConstraints(min_length=1), AfterValidator(_no_nul)]
 OrderId = Annotated[str, StringConstraints(pattern=r"^ORD-[0-9]{6}$")]
 PaymentId = Annotated[str, StringConstraints(pattern=r"^PAY-[0-9]{6}$")]
 RefundId = Annotated[str, StringConstraints(pattern=r"^RFD-[0-9]{6}$")]
@@ -224,11 +239,25 @@ class _Envelope(BaseModel):
 
     schema_version: Literal["1.0.0"]
     record_type: str
-    records: list[dict[str, object]]
+    records: list[object]  # each record is validated on its own, so errors keep their line
+
+
+class ExportUnreadable(Exception):
+    """The export cannot be trusted at all, so nothing is imported."""
+
+
+def _manifest(directory: Path) -> dict[str, str]:
+    try:
+        files = json.loads((directory / "manifest.json").read_bytes())["files"]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ExportUnreadable(f"manifest.json is not a simulator manifest: {exc!r}") from exc
+    if not isinstance(files, dict) or not all(isinstance(v, str) for v in files.values()):
+        raise ExportUnreadable("manifest.json: 'files' must map file names to SHA-256 strings")
+    return files
 
 
 def read_export(directory: Path) -> SimulatorExport:
-    manifest = json.loads((directory / "manifest.json").read_bytes())["files"]
+    manifest = _manifest(directory)
     files = tuple(_read_file(directory, record_type) for record_type in RecordType)
     return SimulatorExport(manifest, files)
 
@@ -255,7 +284,8 @@ def _read_file(directory: Path, record_type: RecordType) -> SourceFile:
         except ValidationError as exc:
             errors.extend(_errors(name, line_no, exc))
             continue
-        rows.append(ParsedRow(line_no, payload, payload_digest(payload), record))
+        mapping = cast(dict[str, object], payload)  # a model only validates from an object
+        rows.append(ParsedRow(line_no, mapping, payload_digest(mapping), record))
     if errors:
         return SourceFile(name, sha256, record_type, (), tuple(errors))
     return SourceFile(name, sha256, record_type, tuple(rows), ())
@@ -263,7 +293,8 @@ def _read_file(directory: Path, record_type: RecordType) -> SourceFile:
 
 def _errors(name: str, line_no: int, exc: ValidationError) -> list[RowError]:
     """``line_no`` 0 means the error is about the file envelope, not one record."""
+    whole = "(file)" if line_no == 0 else "(record)"
     return [
-        RowError(name, line_no, ".".join(str(part) for part in e["loc"]) or "(file)", e["msg"])
+        RowError(name, line_no, ".".join(str(part) for part in e["loc"]) or whole, e["msg"])
         for e in exc.errors()
     ]

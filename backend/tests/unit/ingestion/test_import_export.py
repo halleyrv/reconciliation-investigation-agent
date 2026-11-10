@@ -141,6 +141,10 @@ def test_a_resent_record_with_an_identical_payload_is_a_no_op(
         ("amount", "12.505", "more than 2 decimals"),
         ("captured_at", "yesterday", "schema violation"),
         ("unexpected", "x", "schema violation: unknown field"),
+        ("amount", "92233720368547758.08", "amount beyond BIGINT"),
+        ("gateway", "gate\u0000way", "NUL character, rejected by PostgreSQL"),
+        ("amount", "١٢.٣٤", "non-ASCII digits"),
+        ("captured_at", "٢٠٢٦-10-01T04:21:31Z", "non-ASCII digits in an instant"),
     ],
 )
 def test_one_invalid_row_fails_the_whole_batch_and_names_file_line_and_field(
@@ -266,3 +270,32 @@ def test_a_data_file_missing_from_the_directory_is_reported_by_name(sample: Path
 
     with pytest.raises(FileNotFoundError, match=r"settlements\.json"):
         read_export(sample)
+
+
+def test_a_record_that_is_not_an_object_is_reported_at_its_own_line(
+    sample: Path, import_export: ImportExport
+) -> None:
+    payments: list[object] = list(_editable(sample, RecordType.PAYMENTS))
+    payments[5] = "not a record"
+    _rewrite(sample, "payments.json", payments)  # type: ignore[arg-type]
+
+    batches = import_export(read_export(sample))
+
+    batch = next(b for b in batches if b.file_name == "payments.json")
+    assert [(e.line_no, e.field) for e in batch.errors] == [(6, "(record)")]
+
+
+def test_redelivering_a_known_conflict_in_a_new_file_records_nothing_new(
+    sample: Path, uow: InMemoryIngestionUnitOfWork, import_export: ImportExport
+) -> None:
+    import_export(read_export(sample))
+    orders = _editable(sample, RecordType.ORDERS)
+    new_order = {**orders[0], "order_id": "ORD-009999"}
+    _rewrite(sample, "orders.json", [*orders, new_order])  # cumulative re-send: new hash
+
+    batches = import_export(read_export(sample))
+
+    assert next(b for b in batches if b.file_name == "orders.json").status == "completed"
+    assert len(uow.conflicts) == 4
+    assert len([e for e in uow.outbox if isinstance(e, SourceConflictDetected)]) == 4
+    assert len(uow.records_of(RecordType.ORDERS)) == 201

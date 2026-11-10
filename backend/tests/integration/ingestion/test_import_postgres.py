@@ -72,6 +72,19 @@ def test_importing_the_sample_loads_every_record_into_postgres(
         expected = sum(Decimal(str(r[field])) for r in first_seen.values()) * 100
         assert _scalar(engine, f"SELECT sum({column}) FROM {table}") == expected
     assert _scalar(engine, "SELECT count(*) FROM ingestion.source_conflicts") == 4
+    # The literal reading of AC-2a.1 holds for raw records: every amount in the file is stored.
+    for record_type in RecordType:
+        records = json.loads((sample / f"{record_type.value}.json").read_text())["records"]
+        field = AMOUNT_FIELD.get(record_type, "amount")
+        literal = sum(Decimal(r[field]) for r in records) * 100
+        stored = _scalar(
+            engine,
+            "SELECT sum((r.payload->>:field)::numeric) * 100 FROM ingestion.raw_records r"
+            " JOIN ingestion.import_batches b ON b.id = r.batch_id WHERE b.record_type = :t",
+            field=field,
+            t=record_type.value,
+        )
+        assert stored == literal
     stored_at = _scalar(
         engine, "SELECT placed_at FROM ingestion.orders WHERE external_id = 'ORD-000001'"
     )
@@ -260,3 +273,58 @@ def test_the_parser_accepts_exactly_the_seeded_reference_values(engine: Engine) 
         fee_types = set(connection.execute(text("SELECT code FROM ref.fee_types")).scalars())
     assert set(get_args(simulator_files.Currency)) == currencies
     assert set(get_args(simulator_files.FeeType)) == fee_types
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("total_amount", "92233720368547758.08"), ("customer_name", "A\u0000B")],
+)
+def test_a_value_postgres_cannot_store_fails_its_batch_instead_of_the_import(
+    engine: Engine, sample: Path, field: str, value: str
+) -> None:
+    orders = json.loads((sample / "orders.json").read_text())["records"]
+    orders[9][field] = value
+    _rewrite(sample, "orders.json", orders)
+
+    batches = _import(engine, sample)(read_export(sample))
+
+    assert [(e.line_no, e.field) for e in batches[0].errors] == [(10, field)]
+    assert [b.status for b in batches[1:]] == ["completed"] * 6
+
+
+def test_redelivering_a_known_conflict_adds_no_conflict_row_and_no_event(
+    engine: Engine, sample: Path
+) -> None:
+    _import(engine, sample)(read_export(sample))
+    orders = json.loads((sample / "orders.json").read_text())["records"]
+    _rewrite(sample, "orders.json", [*orders, {**orders[0], "order_id": "ORD-009999"}])
+
+    _import(engine, sample)(read_export(sample))
+
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.source_conflicts") == 4
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.outbox") == 4
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.orders") == 201
+
+
+def test_a_rollback_after_conflicts_leaves_no_event_behind(
+    engine: Engine, sample: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from recon.ingestion.adapters.outbound import sql
+
+    original = sql.SqlAlchemySourceRecords.add_conflict
+    calls = {"n": 0}
+
+    def fail_on_fourth(self: sql.SqlAlchemySourceRecords, conflict: object) -> None:
+        calls["n"] += 1
+        if calls["n"] == 4:  # three conflicts and their events are already in the session
+            raise RuntimeError("connection lost")
+        original(self, conflict)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(sql.SqlAlchemySourceRecords, "add_conflict", fail_on_fourth)
+
+    with pytest.raises(RuntimeError, match="connection lost"):
+        _import(engine, sample)(read_export(sample))
+
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.outbox") == 0
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.source_conflicts") == 0
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.orders") == 0

@@ -10,7 +10,9 @@ def test_decimal_strings_convert_to_exact_minor_units() -> None:
     assert Money.from_decimal_string("7", "USD") == Money(700, "USD")
 
 
-@pytest.mark.parametrize("text", ["1.234", "0.001", "1e2", "-1.00", "", " 1.00", "1,00", "NaN"])
+@pytest.mark.parametrize(
+    "text", ["1.234", "0.001", "1e2", "-1.00", "", " 1.00", "1,00", "NaN", "١٢.٣٤"]
+)
 def test_decimal_strings_that_are_not_plain_two_place_amounts_are_rejected(text: str) -> None:
     with pytest.raises(ValueError, match="at most 2 decimals"):
         Money.from_decimal_string(text, "USD")

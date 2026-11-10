@@ -77,14 +77,14 @@ class ImportExport:
             if file.errors:
                 batch.fail(file.errors, now)
             else:
-                canonical = self._uow.records.find_canonical_raws(
-                    source, file.record_type, {row.record.external_id for row in file.rows}
-                )
+                ids = {row.record.external_id for row in file.rows}
+                canonical = self._uow.records.find_canonical_raws(source, file.record_type, ids)
+                conflicts = self._uow.records.find_conflict_payloads(source, file.record_type, ids)
                 raws = [self._raw(batch, row) for row in file.rows]
                 for raw in raws:
                     self._uow.records.add_raw(raw)
                 for row, raw in zip(file.rows, raws, strict=True):
-                    self._store(batch, row, raw, canonical)
+                    self._store(batch, row, raw, canonical, conflicts)
                 batch.complete(len(file.rows), now)
             self._uow.batches.save(batch)
             self._uow.commit()
@@ -101,14 +101,20 @@ class ImportExport:
         row: ParsedRow,
         raw: RawRecord,
         canonical: dict[str, RawRecord],
+        conflicts: set[tuple[str, str]],
     ) -> None:
-        """First seen wins: ``canonical`` maps each external ID to the raw record it came from."""
+        """First seen wins: ``canonical`` maps each external ID to the raw record it came from.
+        ``conflicts`` holds the ``(external_id, payload SHA-256)`` pairs already recorded."""
         external_id = row.record.external_id
         existing = canonical.get(external_id)
         if existing is None:
             self._uow.records.add(row.record, raw)
             canonical[external_id] = raw
-        elif existing.payload_sha256 != raw.payload_sha256:
+        elif (
+            existing.payload_sha256 != raw.payload_sha256
+            and (external_id, raw.payload_sha256) not in conflicts
+        ):
+            conflicts.add((external_id, raw.payload_sha256))
             conflict = SourceConflict(
                 self._ids.new(),
                 batch.source,
@@ -116,6 +122,7 @@ class ImportExport:
                 external_id,
                 existing.id,
                 raw.id,
+                raw.payload_sha256,
                 self._clock.now(),
             )
             self._uow.records.add_conflict(conflict)

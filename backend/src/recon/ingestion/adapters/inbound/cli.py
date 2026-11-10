@@ -5,7 +5,7 @@ import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from recon.ingestion.adapters.outbound.simulator_files import read_export
+from recon.ingestion.adapters.outbound.simulator_files import ExportUnreadable, read_export
 from recon.ingestion.application.import_export import ImportExport, ManifestMismatch
 
 
@@ -19,7 +19,7 @@ def run(argv: Sequence[str] | None, import_export: Callable[[], ImportExport]) -
     args = parser.parse_args(argv)
     try:
         batches = import_export()(read_export(args.directory))
-    except (ManifestMismatch, FileNotFoundError) as exc:
+    except (ManifestMismatch, ExportUnreadable, OSError) as exc:
         print(f"recon-import: nothing imported: {exc}", file=sys.stderr)
         return 2
     for batch in batches:

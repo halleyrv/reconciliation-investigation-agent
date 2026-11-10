@@ -287,6 +287,18 @@ class SqlAlchemySourceRecords:
         ).all()
         return {external_id: _raw_from_row(raw, source) for external_id, raw in rows}
 
+    def find_conflict_payloads(
+        self, source: str, record_type: RecordType, external_ids: Collection[str]
+    ) -> set[tuple[str, str]]:
+        rows = self._session.execute(
+            select(SourceConflictRow.external_id, SourceConflictRow.incoming_payload_sha256).where(
+                SourceConflictRow.source_id == self._sources.id_of[source],
+                SourceConflictRow.record_type == record_type.value,
+                SourceConflictRow.external_id.in_(external_ids),
+            )
+        ).all()
+        return {(external_id, sha) for external_id, sha in rows}
+
     def add_conflict(self, conflict: SourceConflict) -> None:
         self._flush_raws()
         self._session.add(
@@ -297,6 +309,7 @@ class SqlAlchemySourceRecords:
                 external_id=conflict.external_id,
                 existing_raw_record_id=conflict.existing_raw_record_id,
                 incoming_raw_record_id=conflict.incoming_raw_record_id,
+                incoming_payload_sha256=conflict.incoming_payload_sha256,
                 detected_at=conflict.detected_at,
             )
         )

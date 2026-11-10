@@ -63,7 +63,7 @@ import_batch_errors(batch_id FK, ordinal INT, line_no INT NOT NULL,  -- 0 = the 
 raw_records(id PK, batch_id, source_id, line_no INT NOT NULL, payload JSONB NOT NULL,
             payload_sha256 CHAR(64) NOT NULL,      -- SHA-256 of the payload as canonical JSON
             FOREIGN KEY (batch_id, source_id) REFERENCES import_batches(id, source_id),
-            UNIQUE (batch_id, line_no), UNIQUE (id, source_id))
+            UNIQUE (batch_id, line_no), UNIQUE (id, source_id), UNIQUE (id, payload_sha256))
 
 -- Every canonical table also has: id PK, source_id, external_id, raw_record_id UNIQUE,
 -- FOREIGN KEY (raw_record_id, source_id) REFERENCES raw_records(id, source_id),
@@ -83,14 +83,18 @@ bank_transactions(... , account_ref, direction CHECK IN ('credit','debit'), valu
 authorizations(... , subject_kind CHECK IN ('refund','write_off'), subject_external_ref TEXT,
                approved_by TEXT NOT NULL, approved_at, max_amount_minor, currency)
 
-source_conflicts(id PK, source_id, record_type TEXT, external_id, existing_raw_record_id,
-                 incoming_raw_record_id UNIQUE, detected_at,
+source_conflicts(id PK, source_id, record_type TEXT CHECK IN (<the seven types>), external_id,
+                 existing_raw_record_id, incoming_raw_record_id UNIQUE, incoming_payload_sha256,
+                 detected_at,
+                 UNIQUE (source_id, record_type, external_id, incoming_payload_sha256),
+                 FOREIGN KEY (incoming_raw_record_id, incoming_payload_sha256)
+                   REFERENCES raw_records(id, payload_sha256),
                  FOREIGN KEY (existing_raw_record_id, source_id) REFERENCES raw_records(id, source_id),
                  FOREIGN KEY (incoming_raw_record_id, source_id) REFERENCES raw_records(id, source_id))
 outbox(id BIGINT IDENTITY PK, event_type, event_version, payload JSONB, created_at, published_at NULL)
 ```
 
-`raw_records` is an immutable snapshot of what arrived. The canonical rows are typed and queryable. A re-sent record with a different `payload_sha256` creates a `source_conflicts` row, never an update; the first record seen keeps the canonical row. A re-send with the same payload only adds its raw record. Imports of one source are serialized by a transaction-scoped advisory lock.
+`raw_records` is an immutable snapshot of what arrived. The canonical rows are typed and queryable. A re-sent record with a different `payload_sha256` creates a `source_conflicts` row, never an update; the first record seen keeps the canonical row, and the same conflicting payload delivered again in a later file is recorded once. A re-send with the same payload as the canonical record only adds its raw record. Imports of one source are serialized by a transaction-scoped advisory lock.
 
 ### `recon`
 
@@ -221,6 +225,9 @@ Views or materialized views only, for example `case_queue` (case + discrepancy +
 | R8 | `adjustment_entries.amount_minor` | Same as the approved action amount | Frozen record of what was executed | Insert-only. Domain asserts equality at execution |
 | R9 | `audit.events.payload`, `outbox.payload` (JSONB) | Copies of aggregate state at event time | Event history and transport | Insert-only. Shape versioned by `event_version` |
 | R10 | `*_tsv` columns | Derivable from text columns | Full-text search performance | `GENERATED ALWAYS ... STORED` |
+| R11 | `source_conflicts.record_type`, `.external_id` | Derivable from the incoming raw record's batch and payload | Natural key of a conflict: one row per ID and distinct incoming payload | Insert-only, written once from the same raw record; `record_type` has the same `CHECK` as `import_batches` |
+| R12 | `source_conflicts.incoming_payload_sha256` | Same as the incoming raw record's `payload_sha256` | Part of the conflict's natural key, so a re-delivered conflict is rejected by `UNIQUE` | Composite FK `(incoming_raw_record_id, incoming_payload_sha256)` to `raw_records(id, payload_sha256)` makes drift impossible |
+| R13 | `import_batches.row_count` | `count(*)` of the batch's `raw_records` | Batch summary for `GET /imports/{id}` without counting rows | Set once, in the transaction that inserts the rows; a completed batch is immutable |
 
 ## Constraints worth testing
 
