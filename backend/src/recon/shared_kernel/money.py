@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass
+from decimal import ROUND_HALF_EVEN, Decimal
 
 _CURRENCY = re.compile(r"[A-Z]{3}")
 _DECIMAL = re.compile(r"([0-9]+)(?:\.([0-9]{1,2}))?")  # [0-9], not \d: ASCII digits only
@@ -25,6 +26,13 @@ def parse_minor_units(text: str) -> int:
     if minor > MAX_MINOR:
         raise ValueError(f"amount {text!r} does not fit in 64-bit minor units")
     return minor
+
+
+def round_to_minor(value: Decimal) -> int:
+    """The only rounding in the backend: an intermediate in minor units to an integer, half-even."""
+    if type(value) is not Decimal:
+        raise TypeError(f"value must be a Decimal, not {type(value).__name__}")
+    return int(value.to_integral_value(rounding=ROUND_HALF_EVEN))
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,10 +1,7 @@
 """PostgreSQL persistence of the Ingestion context: mappers, repositories, unit of work."""
 
-import dataclasses
-import json
 import uuid
 from collections.abc import Collection
-from datetime import date, datetime
 from types import TracebackType
 from typing import Self
 
@@ -40,7 +37,7 @@ from recon.ingestion.domain.records import (
     SourceConflict,
     SourceRecord,
 )
-from recon.shared_kernel.events import DomainEvent
+from recon.shared_kernel.events import DomainEvent, event_payload
 
 type RecordRow = (
     OrderRow
@@ -145,19 +142,6 @@ def record_to_row(record: SourceRecord, raw_id: uuid.UUID, source_id: uuid.UUID)
 
 def _raw_from_row(row: RawRecordRow, source: str) -> RawRecord:
     return RawRecord(row.id, row.batch_id, source, row.line_no, row.payload, row.payload_sha256)
-
-
-def _json_value(value: object) -> str:
-    if isinstance(value, datetime | date):
-        return value.isoformat()
-    return str(value)
-
-
-def event_payload(event: DomainEvent) -> dict[str, object]:
-    payload: dict[str, object] = json.loads(
-        json.dumps(dataclasses.asdict(event), default=_json_value)
-    )
-    return payload
 
 
 class _Sources:

@@ -13,6 +13,9 @@ dependencies = [
 
 [project.scripts]
 recon-import = "recon.bootstrap.cli:main"
+recon-reference = "recon.bootstrap.cli:reference_main"
+recon-reconcile = "recon.bootstrap.cli:reconcile_main"
+recon-evaluate = "recon.bootstrap.cli:evaluate_main"
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]

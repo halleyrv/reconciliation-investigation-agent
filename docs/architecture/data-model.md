@@ -100,35 +100,50 @@ outbox(id BIGINT IDENTITY PK, event_type, event_version, payload JSONB, created_
 
 ```sql
 fee_schedules(id PK, gateway TEXT, fee_type REFERENCES ref.fee_types, rate_bps INT CHECK (>= 0),
-              fixed_minor BIGINT CHECK (>= 0), currency, valid_during DATERANGE NOT NULL,
+              fixed_minor BIGINT CHECK (>= 0), currency,
+              valid_during DATERANGE NOT NULL CHECK (bounded below, lower-inclusive, not empty),
               policy_document_id UUID NULL,   -- attribution only; no FK (Knowledge is not upstream of Recon)
-              EXCLUDE USING gist (gateway WITH =, fee_type WITH =, valid_during WITH &&))
+              EXCLUDE USING gist (gateway WITH =, fee_type WITH =, valid_during WITH &&))  -- btree_gist
 
-reconciliation_runs(id PK, period DATERANGE NOT NULL, ruleset_version TEXT NOT NULL, status,
-                    started_at, finished_at, UNIQUE (period, ruleset_version), UNIQUE (id))
+holidays(day DATE PK)                 -- business calendar (ADR-0014), loaded by an operator like fee schedules
+calendar_years(year SMALLINT PK)      -- years whose holiday list is loaded; a run of another year fails (ADR-0016)
 
-match_groups(id PK, run_id FK, rule_code TEXT NOT NULL, created_at, UNIQUE (id, run_id))
+reconciliation_runs(id PK, period DATERANGE NOT NULL, ruleset_version TEXT NOT NULL,
+                    status CHECK IN ('running','completed','failed'), started_at, finished_at,
+                    CHECK (finished_at set exactly when completed or failed),
+                    EXCLUDE USING gist (ruleset_version WITH =, period WITH &&)
+                        WHERE (status <> 'failed'))   -- live runs never share a day (ADR-0016)
 
-match_group_members(id PK, group_id, run_id,
-                    order_id FK NULL, payment_id FK NULL, refund_id FK NULL,
-                    fee_id FK NULL, bank_transaction_id FK NULL,
-                    role TEXT NOT NULL,
+match_groups(id PK, run_id FK, rule_code TEXT NOT NULL, UNIQUE (id, run_id))
+
+match_group_members(id PK, group_id, run_id, role TEXT NOT NULL,
+                    order_id | payment_id | refund_id | fee_id | settlement_id | bank_transaction_id
+                        (each a nullable FK to its ingestion table),
                     FOREIGN KEY (group_id, run_id) REFERENCES match_groups(id, run_id),
-                    CHECK (num_nonnulls(order_id, payment_id, refund_id, fee_id, bank_transaction_id) = 1),
-                    UNIQUE (run_id, payment_id), UNIQUE (run_id, bank_transaction_id), ...)
+                    CHECK (num_nonnulls(<the six>) = 1),
+                    UNIQUE (run_id, <each of the six>))
 
 discrepancies(id PK, run_id FK, type REFERENCES ref.discrepancy_types, severity,
               expected_minor BIGINT, actual_minor BIGINT, currency,
               delta_minor BIGINT GENERATED ALWAYS AS (actual_minor - expected_minor) STORED,
-              fingerprint CHAR(64) NOT NULL UNIQUE, status CHECK IN ('detected','superseded'))
+              fingerprint CHAR(64) NOT NULL, status CHECK IN ('detected','superseded'), detected_at,
+              UNIQUE (run_id, fingerprint))
 
-discrepancy_records(discrepancy_id FK, <same one-of-five FK columns as members>, CHECK (num_nonnulls(...) = 1))
+discrepancy_records(id PK, discrepancy_id FK, <the six member columns> | authorization_id,
+                    CHECK (num_nonnulls(<the seven>) = 1), UNIQUE (discrepancy_id, <each of the seven>))
+
+outbox(id IDENTITY PK, event_type, event_version, payload JSONB, created_at, published_at)
 ```
 
 Notes:
 
-- The engine computes match candidates in memory. Only confirmed groups are persisted, which is what makes `UNIQUE (run_id, payment_id)` a correct "at most one group per run" rule.
+- The record columns are an exclusive arc: one typed FK per source record table and exactly one set, so every reference is checked by the database. Members never hold an authorization; discrepancy records may (an unauthorized or duplicated refund names its authorizations).
+- The engine computes match candidates in memory. Only confirmed groups are persisted, which is what makes `UNIQUE (run_id, <record>)` a correct "at most one group per run" rule. A group is one settlement batch with its payout, every payment, refund and fee of the batch, and the orders whose chain is undisputed.
 - Member amounts are **not** stored. They come from a join to the source record.
+- Reconciliation reads Ingestion's canonical tables with read-only SQL; its foreign keys point upstream only.
+- A run writes its groups and discrepancies in one transaction, reading its input under `REPEATABLE READ`; when it fails, the run row is set to `failed` in a separate transaction and nothing else remains. A later run of the same period and ruleset may start.
+- A run keeps the discrepancies whose latest record anchor date, and the groups whose batch date, fall in its period (ADR-0016). A run fails when a fee of its period has no fee schedule or a year of its period has no calendar.
+- `fingerprint` is unique per run; idempotency comes from one live run per period and ruleset. A second ruleset may reconcile the same period; retiring the first run's discrepancies (`DiscrepancySuperseded`) is not built yet.
 - The fee rates rules need are relational (`fee_schedules`), not text parsed by an LLM. The policy document is linked for attribution only.
 - A discrepancy has no investigation lifecycle. That status lives on `investigation.cases`. Storing it twice would create a transitive dependency.
 
@@ -217,7 +232,7 @@ Views or materialized views only, for example `case_queue` (case + discrepancy +
 |----|-------|-------------------|---------------|----------------------|
 | R1 | `raw_records.source_id`, canonical `*.source_id` | Derivable via `raw_record → batch → source` | Required by the natural key `UNIQUE (source_id, external_id)` | Composite FKs `(raw_record_id, source_id)` and `(batch_id, source_id)` make drift impossible in the database |
 | R2 | `discrepancies.delta_minor` | `actual − expected` | Sorting and filtering by impact | `GENERATED ALWAYS ... STORED`. The database computes it |
-| R3 | `discrepancies.fingerprint` | Hash of type + records + period | Idempotent re-runs never duplicate discrepancies | Computed by the domain once, immutable, `UNIQUE` |
+| R3 | `discrepancies.fingerprint` | Hash of type + records + period | A stable identity to compare runs and to recognize the same discrepancy across reruns | Computed by the domain once, immutable, `UNIQUE (run_id, fingerprint)` (ADR-0016) |
 | R4 | `match_group_members.run_id` | Derivable via `group → run` | Enforces "at most one group per record per run" with `UNIQUE` | Composite FK `(group_id, run_id)` |
 | R5 | `evidence.snapshot` (JSONB) | Copy of the referenced row or chunk | Audit: the record must show exactly what the agent saw, even if sources are later corrected | Insert-only, `snapshot_sha256` verified by tests |
 | R6 | `raw_records.payload` (JSONB) | Same data as the canonical row | Lineage: the original bytes as received | Insert-only. The canonical row is parsed from it exactly once |
@@ -228,6 +243,7 @@ Views or materialized views only, for example `case_queue` (case + discrepancy +
 | R11 | `source_conflicts.record_type`, `.external_id` | Derivable from the incoming raw record's batch and payload | Natural key of a conflict: one row per ID and distinct incoming payload | Insert-only, written once from the same raw record; `record_type` has the same `CHECK` as `import_batches` |
 | R12 | `source_conflicts.incoming_payload_sha256` | Same as the incoming raw record's `payload_sha256` | Part of the conflict's natural key, so a re-delivered conflict is rejected by `UNIQUE` | Composite FK `(incoming_raw_record_id, incoming_payload_sha256)` to `raw_records(id, payload_sha256)` makes drift impossible |
 | R13 | `import_batches.row_count` | `count(*)` of the batch's `raw_records` | Batch summary for `GET /imports/{id}` without counting rows | Set once, in the transaction that inserts the rows; a completed batch is immutable |
+| R14 | `discrepancies.severity` | `ref.discrepancy_types.default_severity` at detection | A discrepancy's severity can later differ from its type's default (triage) without changing history | Copied once by the insert; the type default only seeds it |
 
 ## Constraints worth testing
 
