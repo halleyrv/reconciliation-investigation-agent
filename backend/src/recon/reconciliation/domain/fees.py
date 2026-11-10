@@ -32,6 +32,14 @@ class FeeSchedule:
             and (self.valid_until is None or day < self.valid_until)
         )
 
+    def overlaps(self, other: FeeSchedule) -> bool:
+        """Same gateway and fee type with intersecting validity: two rates for one payment."""
+        return (
+            (self.gateway, self.fee_type) == (other.gateway, other.fee_type)
+            and (other.valid_until is None or self.valid_from < other.valid_until)
+            and (self.valid_until is None or other.valid_from < self.valid_until)
+        )
+
     def fee_for(self, amount: Money) -> Money:
         if amount.currency != self.fixed.currency:
             raise ValueError(

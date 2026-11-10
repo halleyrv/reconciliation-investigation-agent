@@ -240,6 +240,22 @@ class SqlAlchemyReferenceData:
     def holidays(self) -> frozenset[date]:
         return frozenset(self._session.scalars(select(HolidayRow.day)))
 
+    def add_fee_schedule(self, schedule_id: uuid.UUID, schedule: FeeSchedule) -> None:
+        self._session.execute(
+            insert(FeeScheduleRow).values(
+                id=schedule_id,
+                gateway=schedule.gateway,
+                fee_type=schedule.fee_type,
+                rate_bps=schedule.rate_bps,
+                fixed_minor=schedule.fixed.amount_minor,
+                currency=schedule.fixed.currency,
+                valid_during=Range(schedule.valid_from, schedule.valid_until, bounds="[)"),
+            )
+        )
+
+    def add_holiday(self, day: date) -> None:
+        self._session.execute(insert(HolidayRow).values(day=day))
+
 
 class SqlAlchemyResults:
     def __init__(self, session: Session, sources: SqlSourceRecords) -> None:

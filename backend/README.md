@@ -1,17 +1,18 @@
 # Backend
 
-The reconciliation backend: a modular monolith (ADR-0001) with one package and one PostgreSQL schema per bounded context. Phase 2a delivers the **Ingestion** context: it imports a simulator export into typed canonical tables, idempotently and in one transaction per file.
+The reconciliation backend: a modular monolith (ADR-0001) with one package and one PostgreSQL schema per bounded context. Phase 2a delivers the **Ingestion** context: it imports a simulator export into typed canonical tables, idempotently and in one transaction per file. Phase 2b adds the **Reconciliation** context (in progress): reference data, the deterministic matching engine and its runs.
 
 Architecture rules live in [`docs/architecture/`](../docs/architecture/README.md); the 2a tasks and evidence in [`odd/tasks/p2a-ingestion.md`](../odd/tasks/p2a-ingestion.md).
 
 ## Run it
 
-Every command below runs from the repository root and was run while building 2a.
+Every command below runs from the repository root and was run while building 2a and 2b.
 
 ```bash
 docker compose up -d --wait db                          # PostgreSQL 18 + pgvector on 127.0.0.1:55432
 uv run --locked alembic -c backend/alembic.ini upgrade head
 uv run --locked recon-import simulator/samples/orders-200-seed-42
+uv run --locked recon-reference backend/reference/gateway-policy-2026.json
 uv run --locked alembic -c backend/alembic.ini downgrade base
 ```
 
@@ -28,6 +29,19 @@ payments.json: completed, 206 records
 | 0 | Every file completed (also when every file was already imported) |
 | 1 | At least one file was rejected; each error shows its line and field |
 | 2 | Nothing was imported: a file differs from `manifest.json` or is missing |
+
+`recon-reference` loads the fee schedules and bank holidays the engine applies. An operator transcribes them by hand from the gateway's published policy into [`reference/gateway-policy-2026.json`](reference/gateway-policy-2026.json); a test checks that file against the policy text, and no code parses the policy (OD1). Loading is idempotent:
+
+```text
+fee schedules: 2 added, 0 already loaded
+holidays: 7 added, 0 already loaded
+```
+
+| Exit code | Meaning |
+|-----------|---------|
+| 0 | Loaded, or already loaded |
+| 1 | Nothing loaded: a fee schedule overlaps a different one already loaded for the same gateway and fee type |
+| 2 | Nothing loaded: the file is missing or does not match the format |
 
 The database URL comes from `RECON_DATABASE_URL` (default: the Compose database, which uses trust auth on loopback and has no password).
 

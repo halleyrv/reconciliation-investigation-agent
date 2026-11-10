@@ -26,6 +26,8 @@ class State:
     groups: dict[uuid.UUID, tuple[uuid.UUID, MatchGroup]] = field(default_factory=dict)
     discrepancies: dict[uuid.UUID, tuple[uuid.UUID, Discrepancy, str]] = field(default_factory=dict)
     events: list[DomainEvent] = field(default_factory=list)
+    fee_schedules: dict[uuid.UUID, FeeSchedule] = field(default_factory=dict)
+    holidays: frozenset[date] = frozenset()
 
 
 class _Runs:
@@ -64,15 +66,24 @@ class _Sources:
 
 
 class _Reference:
-    def __init__(self, schedules: tuple[FeeSchedule, ...], holidays: frozenset[date]) -> None:
-        self._schedules = schedules
-        self._holidays = holidays
+    def __init__(self, state: State) -> None:
+        self._state = state
 
     def fee_schedules(self) -> tuple[FeeSchedule, ...]:
-        return self._schedules
+        return tuple(self._state.fee_schedules.values())
 
     def holidays(self) -> frozenset[date]:
-        return self._holidays
+        return self._state.holidays
+
+    def add_fee_schedule(self, schedule_id: uuid.UUID, schedule: FeeSchedule) -> None:
+        if any(schedule.overlaps(s) for s in self._state.fee_schedules.values()):
+            raise UniqueViolation("overlapping fee schedule")  # the EXCLUDE constraint
+        self._state.fee_schedules[schedule_id] = schedule
+
+    def add_holiday(self, day: date) -> None:
+        if day in self._state.holidays:
+            raise UniqueViolation(f"holiday {day} exists")
+        self._state.holidays |= {day}
 
 
 class _Results:
@@ -121,15 +132,18 @@ class InMemoryReconciliationUnitOfWork:
         holidays: frozenset[date] = frozenset(),
         fail_on_discrepancy: int | None = None,
     ) -> None:
-        self.committed = State()
+        self.committed = State(
+            fee_schedules={uuid.UUID(int=n): s for n, s in enumerate(fee_schedules, 1)},
+            holidays=holidays,
+        )
         self.sources = _Sources(snapshot)
-        self.reference = _Reference(fee_schedules, holidays)
         self.fail_on_discrepancy = fail_on_discrepancy  # test hook, read by each transaction
 
     def __enter__(self) -> Self:
         self._working = copy.deepcopy(self.committed)
         self.runs = _Runs(self._working)
         self.results = _Results(self._working, self.fail_on_discrepancy)
+        self.reference = _Reference(self._working)
         return self
 
     def __exit__(

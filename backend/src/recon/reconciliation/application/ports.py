@@ -34,6 +34,10 @@ class ReferenceDataRepository(Protocol):
 
     def holidays(self) -> frozenset[date]: ...
 
+    def add_fee_schedule(self, schedule_id: uuid.UUID, schedule: FeeSchedule) -> None: ...
+
+    def add_holiday(self, day: date) -> None: ...
+
 
 class ResultRepository(Protocol):
     """Writes a run's output. Records are named by ``RecordRef`` from the last snapshot read."""

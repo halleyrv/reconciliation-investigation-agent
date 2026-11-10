@@ -1,0 +1,31 @@
+{
+  "fee_schedules": [
+    {
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "rate_bps": 290,
+      "fixed": "0.30",
+      "currency": "USD",
+      "valid_from": "2026-01-01",
+      "valid_until": null
+    },
+    {
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "rate_bps": 250,
+      "fixed": "0.25",
+      "currency": "USD",
+      "valid_from": "2026-01-01",
+      "valid_until": null
+    }
+  ],
+  "holidays": [
+    "2026-02-11",
+    "2026-04-22",
+    "2026-06-17",
+    "2026-08-13",
+    "2026-10-09",
+    "2026-10-20",
+    "2026-10-28"
+  ]
+}

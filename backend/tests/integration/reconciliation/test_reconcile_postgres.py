@@ -10,21 +10,16 @@ from sqlalchemy.orm import sessionmaker
 from recon.ingestion.adapters.outbound.simulator_files import read_export
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport
+from recon.reconciliation.adapters.inbound.reference_file import read_reference_file
 from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationUnitOfWork
+from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import ReconcilePeriod
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.run import RunStatus
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
 OCTOBER = Period(date(2026, 10, 1), date(2026, 10, 31))
-# Seed-42 policies/, transcribed by hand here until the operator command (T4) loads them.
-REFERENCE = """
-INSERT INTO recon.fee_schedules
-    (id, gateway, fee_type, rate_bps, fixed_minor, currency, valid_during)
-VALUES (gen_random_uuid(), 'gateway_a', 'processing', 290, 30, 'USD', '[2026-01-01,)'),
-       (gen_random_uuid(), 'gateway_b', 'processing', 250, 25, 'USD', '[2026-01-01,)');
-INSERT INTO recon.holidays VALUES ('2026-10-09'), ('2026-10-20'), ('2026-10-28');
-"""
+REFERENCE_FILE = Path(__file__).parents[3] / "reference" / "gateway-policy-2026.json"
 
 
 def _rows(engine: Engine, sql: str, **params: object) -> list[tuple[object, ...]]:
@@ -36,8 +31,8 @@ def _rows(engine: Engine, sql: str, **params: object) -> list[tuple[object, ...]
 def loaded(engine: Engine, sample: Path) -> Engine:
     uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine))
     ImportExport(uow, SystemClock(), UuidIdGenerator())(read_export(sample))
-    with engine.begin() as connection:
-        connection.execute(text(REFERENCE))
+    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    LoadReferenceData(reference, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
     return engine
 
 
