@@ -150,8 +150,16 @@ Notes:
 ### `investigation`
 
 ```sql
-cases(id PK, discrepancy_id UUID NOT NULL UNIQUE REFERENCES recon.discrepancies, status, priority,
-      assignee_id, opened_at, closed_at, version INT NOT NULL)
+-- Built in migration 0003 (Phase 2c): cases and outbox. The other tables arrive with the
+-- investigation agent phase.
+cases(id UUID PK, discrepancy_id UUID NOT NULL UNIQUE REFERENCES recon.discrepancies,
+      status TEXT NOT NULL CHECK IN ('open','investigating','awaiting_approval','resolved','escalated'),
+      priority TEXT NOT NULL CHECK IN ('low','medium','high'), assignee_id TEXT CHECK (<> ''),
+      opened_at TIMESTAMPTZ NOT NULL, closed_at TIMESTAMPTZ, version INT NOT NULL CHECK (>= 1),
+      CHECK ((status IN ('resolved','escalated')) = (closed_at IS NOT NULL)))
+outbox(id BIGINT IDENTITY PK, event_type, event_version, payload JSONB, created_at, published_at)
+-- A case opens with priority = its discrepancy's severity. OpenCase inserts with
+-- ON CONFLICT (discrepancy_id) DO NOTHING, so concurrent openings leave one case and one event.
 
 agent_runs(id PK, case_id FK, thread_id TEXT NOT NULL UNIQUE, graph_version TEXT NOT NULL,
            model TEXT NOT NULL, prompt_version TEXT NOT NULL, trace_id TEXT, status,
