@@ -1,6 +1,6 @@
 # ADR-0011: Settlement batches as a domain concept with the gateway settlement report as their source
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-11-09)
 - **Date:** 2026-11-09
 - **Related:** ADR-0003, ADR-0012, ADR-0013, ADR-0015, docs/roadmap/phase-1-financial-data-simulator.md (AS6, I5), docs/roadmap/phase-2-backend-and-reconciliation-engine.md (domain model scope, detection catalog #6 and #7), docs/architecture/data-model.md (`ingestion`)
 - **Kind:** Business (whether the merchant receives a settlement report) and technical (how it is modeled and serialized)
@@ -24,13 +24,13 @@ The spec does not say where that identity comes from. Requirement 1 lists six re
 | Not covered by any test or anomaly | A declared net that differs from the sum of its members. No injector produces it, so this half of I5 is checked but never exercised by the ground truth |
 | The Phase 2 domain model has a `Settlement` record | **Conflict:** the approved Phase 2 scope lists six source records and no settlement; `data-model.md` has only `payments.settlement_batch_ref` |
 
-## Decision (proposed)
+## Decision
 
 1. **Concept.** A settlement batch is a domain concept: one per gateway and capture day, with an identity, a batch date, a gateway and a net amount.
 2. **Source.** Its reference source is the gateway settlement report, a source record type of its own. The report is what the gateway *declares* it paid, which is independent of both the movements and the bank statement. That gives three independent views of the same money: the movements (gateway transactions), the report (gateway's declared net) and the bank credit (what arrived).
 3. **Format.** The report is one more record type in the simulator output, with its own schema. The concept does not depend on that format: if the report is unavailable, the batch is still identified by `settlement_ref` on the movements, and its net is derived (see the alternatives).
 
-This is the option implemented today, but it is proposed here, not assumed correct because it exists.
+The owner accepted this option on 2026-11-09, keeping the three independent sources. It is also the option implemented today; the missing test below is still owed.
 
 ## Alternatives considered
 

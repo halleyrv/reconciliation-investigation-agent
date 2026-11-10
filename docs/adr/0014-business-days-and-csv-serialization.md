@@ -1,6 +1,6 @@
 # ADR-0014: Business-day calendar for settlement, and the CSV serialization contract
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-11-09)
 - **Date:** 2026-11-09
 - **Related:** ADR-0002, ADR-0013, docs/roadmap/phase-1-financial-data-simulator.md (AS6, interface, 2026-11-09 amendments), docs/roadmap/phase-2-backend-and-reconciliation-engine.md (AS3)
 - **Kind:** Business (which calendar the bank observes) and technical (configuration and CSV dialect)
@@ -23,13 +23,16 @@ The owner has already approved, in the Phase 1 amendment of 2026-11-09, that "mo
 | Every field in CSV and JSON is a string; CSV and JSON hold identical values | **Implemented and tested** (`test_monetary_values_are_exported_as_decimal_strings`, `test_validate_files_detects_csv_that_differs_from_json`) |
 | CSV dialect (encoding, delimiter, quoting, line ending, header) | **Implemented** in `export.py:to_csv` (Python `csv` defaults), **not specified or tested** beyond "CSV equals JSON" |
 
-## Decision (proposed)
+## Decision
 
-### Part 1: business days (pending, business decision)
+### Part 1: business days (accepted by the owner on 2026-11-09)
 
-Make the holiday calendar part of the config: `holidays: ["YYYY-MM-DD", ...]`, empty by default, so the current Monday-to-Friday behavior stays the default. The settlement policy document lists the holidays, and I9 checks that list against the config, as it already does for the fee schedule and the lag.
+A business day is Monday to Friday, minus the days of a **fictional, configurable holiday calendar**:
 
-Which calendar to use (none, a US federal list, a fictional one) is the owner's business decision.
+- The calendar is configuration (`holidays: ["YYYY-MM-DD", ...]`), part of the resolved config in the manifest, so a run stays reproducible from seed and config.
+- It is decoupled from the settlement logic: a calendar component answers "is this a business day" and "add N business days", and the T+2 rule only consumes it. The effect of a holiday on the payout date is intended; what is decoupled is the module, not the effect.
+- The default config lists 2 or 3 fictional holidays inside its period, at least one falling inside a T+2 window, so the rule is exercised by the data and not only by a unit test.
+- The settlement policy document lists the holidays, and I9 checks that list against the config, as it already does for the fee schedule and the lag.
 
 ### Part 2: CSV serialization (technical)
 
@@ -50,6 +53,7 @@ The CSV contract, as implemented today, written down so ingestion can rely on it
 | Alternative | Why not |
 |-------------|---------|
 | Keep Monday to Friday with no holidays as a fixed rule | Simple and what Phase 2 AS3 assumes, but delayed settlement around a holiday would be indistinguishable from a legitimately late one |
+| A configurable calendar that is empty by default | The rule would exist but no generated data would exercise it |
 | A hardcoded real-country holiday list | Ties synthetic data to a jurisdiction the project does not model (AS3, one merchant, fictional gateways) |
 | Typed JSON (numbers for amounts) with strings only in CSV | Contradicts the approved amendment. Not an option |
 | A CSV dialect with `;` delimiter or CRLF | No consumer needs it; LF and comma are what Python and PostgreSQL `COPY` read by default |

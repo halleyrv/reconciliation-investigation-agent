@@ -62,6 +62,9 @@ Changes approved by the owner after the original text above. The original is nev
 | 2026-11-09 | Clarification: **Partial payments** means the customer paid less than the order total. Incomplete gateway settlements are covered by *Delayed settlements*. | Agent default, not objected by owner |
 | 2026-11-09 | Clarification: monetary values are `Decimal` inside the simulator and are exported as decimal strings (for example `"123.45"`), never as JSON floats. Conversion to integer minor units happens at ingestion (ADR-0002). | Agent default, not objected by owner |
 | 2026-11-09 | Add assumptions, interface, anomaly configuration, ground truth contract, consistency invariants and measurable acceptance criteria (section below). Approves `ROUND_HALF_EVEN` as the rounding mode for fees. | Owner |
+| 2026-11-09 | **Settlement report** (ADR-0011): the gateway settlement report is a source record type (`settlements`, one per gateway and capture day, with its declared net). It is exported like every record type and is one of three independent views of a batch, with the movements and the bank credit. | Owner |
+| 2026-11-09 | **Invariant I10** (ADR-0012): "Every order has exactly one payment". I1 keeps its original wording. Scope: v1 has exactly one payment per order; split payments are out of scope. Duplicate payments break I10. | Owner |
+| 2026-11-09 | **Business days** (ADR-0014): Monday to Friday minus a fictional, configurable holiday calendar. The default config lists 2 or 3 fictional holidays inside its period; the settlement policy lists them and I9 covers them. Money and date serialization stay as approved above. | Owner |
 
 ### Amendment 2026-11-09: assumptions and acceptance criteria
 

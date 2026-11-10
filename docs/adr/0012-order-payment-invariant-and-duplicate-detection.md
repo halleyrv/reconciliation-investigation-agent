@@ -1,6 +1,6 @@
 # ADR-0012: Order-payment invariant I1 and how duplicate payments become detectable
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-11-09)
 - **Date:** 2026-11-09
 - **Related:** ADR-0013, docs/roadmap/phase-1-financial-data-simulator.md (AS7, I1, AC3), docs/roadmap/phase-2-backend-and-reconciliation-engine.md (detection catalog #1, #5, #8)
 - **Kind:** Business (what a correctly paid order is) and technical (how the invariant is checked)
@@ -38,9 +38,17 @@ Read literally, I1 is a property of each payment on its own. A duplicate payment
 
 Split payments are not part of the v1 baseline (AS7), so the split-payment row is a future concern, not a current defect.
 
-## Decision (proposed)
+### Does the domain establish exactly one payment per order?
 
-Recommendation: **Option B**. Keep I1 exactly as the spec writes it, and make the AS7 baseline explicit as a new invariant **I10: every order has exactly one payment**. Map duplicate payments to I10.
+- **Phase 1 says it for the baseline.** AS7: "Baseline: one full payment per order". That is the simulator's clean data, not a general business law.
+- **Partial payments do not contradict it.** The spec's partial payment ("the customer paid less than the order total") is one payment for less than the total. "Exactly one payment" holds; "amount equals total" (literal I1) breaks. So partial payments stay an I1 anomaly.
+- **What it excludes are split payments:** several captures that together pay one order (installments, gift card plus card). They are not in the v1 spec, the baseline or the anomaly catalog.
+- **Implications of admitting split payments later:** I10 would become "the payments of an order sum to its total", and duplicate detection would need a stronger key than "same order, same amount" (for example the capture instrument or a payment intent ID the gateway reports). That is a new decision, out of scope for v1.
+
+## Decision
+
+
+**Option B, accepted by the owner on 2026-11-09.** Keep I1 exactly as the spec writes it, and make the AS7 baseline explicit as a new invariant **I10: every order has exactly one payment**, with this scope: "v1: exactly one payment per order; split payments are out of scope". Duplicate payments map to I10.
 
 Why: it changes no approved text, it names the rule that duplicate payments actually break (the order was paid more than once), and Phase 2 already detects duplicates by that rule ("two payments claiming the same order with the same amount", catalog #1). The cost is one more invariant and an inconsistent reference that breaks two invariants instead of one.
 

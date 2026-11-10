@@ -22,25 +22,27 @@ The spec says "Each anomaly type declares which invariants it breaks, and it mus
 
 ## Decision (proposed)
 
-Adopt this matrix as the contract between the anomaly catalog and the invariants. Violation counts are per anomaly instance, with the I1 wording implemented today (ADR-0012, option A).
+Adopt this matrix as the contract between the anomaly catalog and the invariants. It is written for the **target state** after ADR-0012 (accepted): literal I1 plus I10. The code today still implements the per-order I1 (ADR-0012 option A), so four rows differ from what the injectors declare now; they are marked *changes*.
 
 | Anomaly (subtype) | Breaks | Why it breaks it | Violations per instance |
 |-------------------|--------|------------------|-------------------------|
-| Duplicate payment | I1 | The order's payments sum to twice its total. Under ADR-0012 option B this row becomes I10 | 1 |
+| Duplicate payment | I10 (*changes*, today I1) | The order has two payments instead of one; each one alone equals the total, so literal I1 holds | 1 |
 | Unauthorized refund | I3 | The refund has no authorization at all | 1 |
 | Incorrect fee | I4 | The fee differs from the gateway schedule applied to the payment | 1 |
-| Missing transaction (`missing_in_orders`) | I1 | The payment references an order that does not exist | 1 |
+| Missing transaction (`missing_in_orders`) | I1 (*unchanged rule, literal wording*) | The payment references an order that does not exist. I10 is about orders, and this order does not exist | 1 |
 | Missing transaction (`missing_in_bank`) | I5 | The batch has zero bank credits instead of exactly one | 1 |
 | Missing transaction (`missing_in_gateway`) | I5 | A bank payout names a batch that does not exist | 1 |
-| Partial payment | I1 | The payment is below the order total | 1 |
+| Partial payment | I1 (*literal wording*) | The single payment is below the order total; I10 holds (one payment) | 1 |
 | Delayed settlement | I5 | The bank credit is dated after batch date + lag | 1 |
 | Incorrect amount | I5 | The bank credit differs from the batch net | 1 |
-| Inconsistent reference | I1 | The payment references an unknown order ID, and the real order has no payment | **2** (both I1) |
+| Inconsistent reference | I1, I10 (*changes*, today I1 twice) | The payment references an unknown order ID (I1); the real order has zero payments (I10) | **2** (two invariants) |
 | Out-of-order event (`payment_before_order`) | I6 | The order is timestamped after its payment | 1 |
 | Duplicate refund | I2, I3 | The two refunds exceed the payment (I2); the copy has no authorization (I3) | **2** (two invariants) |
 | Conflicting re-sent record (`orders`) | I7 | The same order ID appears twice | 1 |
 
-Expected totals on the 200-order sample (seed 42): 25 anomalies, 29 violations (`I1: 10, I2: 2, I3: 4, I4: 2, I5: 7, I6: 2, I7: 2`), matching `simulate-verify`.
+Expected totals on the 200-order sample (seed 42), target state: 25 anomalies, 29 violations (`I1: 6, I10: 4, I2: 2, I3: 4, I4: 2, I5: 7, I6: 2, I7: 2`). Today `simulate-verify` reports `I1: 10` because I1 and I10 are still one check.
+
+This matrix stays **Proposed** until the owner approves it in its final form: it depends on ADR-0015's counts and on the holiday calendar of ADR-0014, which may move instances but not invariants.
 
 ### Extra violations avoided on purpose
 
@@ -86,7 +88,7 @@ None.
 
 ## Tests needed
 
-- **Missing, most important:** a test that asserts this matrix as a literal table, type by type: the invariants each type breaks and its number of violations per instance. Today a wrong declaration that the injector also implements would pass.
+- **Missing, most important:** a test that asserts this matrix as a literal table written in the test itself, type by type: the invariants each type breaks and its number of violations per instance. It must not read the injectors' declarations: today a wrong declaration that the injector also implements would pass. Written together with the code change that introduces I10 (TDD), not before.
 - A test that the anomalies listed as hiding checks do not create I6 violations.
 
 ## Dependencies

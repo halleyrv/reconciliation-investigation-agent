@@ -66,8 +66,10 @@ orders(id PK, source_id, external_id, raw_record_id, customer_ref, amount_minor,
        FOREIGN KEY (raw_record_id, source_id) REFERENCES raw_records(id, source_id),
        UNIQUE (source_id, external_id))
 payments(... , order_external_ref TEXT, gateway TEXT NOT NULL, captured_at, settlement_batch_ref)
-refunds(... , payment_external_ref TEXT NOT NULL, refunded_at)
-fees(... , payment_external_ref TEXT NOT NULL, fee_type REFERENCES ref.fee_types)
+refunds(... , payment_external_ref TEXT NOT NULL, refunded_at, settlement_batch_ref)
+fees(... , payment_external_ref TEXT NOT NULL, fee_type REFERENCES ref.fee_types, settlement_batch_ref)
+settlements(... , gateway TEXT NOT NULL, batch_date DATE NOT NULL,   -- gateway report: declared net (ADR-0011)
+            net_amount_minor, currency)
 bank_transactions(... , account_ref, direction CHECK IN ('credit','debit'), value_date DATE,
                   description TEXT, description_tsv TSVECTOR GENERATED ALWAYS AS (...) STORED)
 authorizations(... , subject_kind CHECK IN ('refund','write_off'), subject_external_ref TEXT,
