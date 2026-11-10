@@ -199,12 +199,13 @@ class ReferenceMismatchRule:
             refs = (order.ref, payments[payment_id].ref)
             yield _no_impact(T.REFERENCE_MISMATCH, refs, currency)
         children: tuple[Refund | Fee, ...] = (*snapshot.refunds, *snapshot.fees)
-        for child in children:
-            if child.payment_ref not in payments:
-                yield _no_impact(T.REFERENCE_MISMATCH, (child.ref,), currency)
-        for member in (*snapshot.payments, *children):
-            if member.settlement_ref not in batches:
-                yield _no_impact(T.REFERENCE_MISMATCH, (member.ref,), currency)
+        # One discrepancy per record, however many of its references dangle.
+        dangling = {c.ref for c in children if c.payment_ref not in payments}
+        dangling |= {
+            m.ref for m in (*snapshot.payments, *children) if m.settlement_ref not in batches
+        }
+        for record in sorted(dangling):
+            yield _no_impact(T.REFERENCE_MISMATCH, (record,), currency)
 
 
 class SequenceViolationRule:

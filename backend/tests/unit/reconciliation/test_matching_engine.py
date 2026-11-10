@@ -308,3 +308,14 @@ def test_an_empty_book_reconciles_to_nothing() -> None:
 
     assert result.discrepancies == ()
     assert result.groups == ()
+
+
+def test_a_refund_with_both_references_dangling_is_one_reference_mismatch() -> None:
+    book = clean_book()
+    refund = book.refund("RFD-000001", book.payments[0], 1_000, authorized=True)
+    book.refunds[0] = replace(refund, payment_ref="PAY-000404", settlement_ref="STL-000404")
+    book.close()
+
+    result = book.run()
+
+    assert found(result) == [("reference_mismatch", frozenset({ref(RFD, "RFD-000001")}), 0)]
