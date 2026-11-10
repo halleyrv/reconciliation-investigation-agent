@@ -63,6 +63,10 @@ A port exists only with a named reason. If a row cannot fill the "reason" column
 | `Clock` | shared_kernel | Deterministic time in tests and simulator | system, fixed |
 | `IdGenerator` | shared_kernel | Deterministic IDs in tests | uuid, sequence fake |
 | `<Aggregate>Repository` (one per aggregate) | each context | Persistence; test seam | SQLAlchemy, in-memory fake |
+| `SourceRecordReader` | reconciliation | The engine's input is Ingestion's data, read without importing Ingestion; test seam for runs | read-only SQL over `ingestion.*`, in-memory snapshot |
+| `ReferenceDataRepository` | reconciliation | Fee schedules and holidays loaded by an operator (OD1); test seam | SQLAlchemy, in-memory fake |
+| `ResultRepository` | reconciliation | Writes a run's `MatchGroup`s and `Discrepancy`s, which are aggregates the run does not contain; test seam | SQLAlchemy, in-memory fake |
+| `RunOutputReader` | reconciliation | The evaluation use case scores a completed run's output against a known answer; test seam (not a cross-context read model) | SQL query, in-memory fake |
 | `HypothesisGenerator` | investigation | External LLM; test seam with scripted outputs | LLM adapter, scripted fake |
 | `EmbeddingProvider` | knowledge | External model; swappable (ADR-0006) | provider adapter, hash-based fake |
 | `Reranker` | knowledge | External model; swappable (ADR-0006) | provider adapter, identity fake |

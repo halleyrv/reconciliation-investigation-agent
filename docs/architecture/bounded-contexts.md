@@ -62,8 +62,8 @@ Small aggregates, referenced by ID. A large collection never lives inside an agg
 |---------|------------------|--------------------|
 | Ingestion | `ImportBatch` | Status moves `pending → processing → completed / failed` only. A file hash is imported once per source. A completed batch is immutable |
 | Ingestion | `SourceRecord` (Order, Payment, Refund, Fee, BankTransaction, Authorization) | Immutable once created. Amount is positive `Money` with the record's own currency. A re-send with a different payload never overwrites; it raises `SourceConflictDetected` |
-| Reconciliation | `ReconciliationRun` | One run per `(period, ruleset_version)` idempotency key. Status transitions only forward |
-| Reconciliation | `MatchGroup` | Members balance within the rule's tolerance. Members share one currency. A record belongs to at most one group per run |
+| Reconciliation | `ReconciliationRun` | One live (running or completed) run per `(period, ruleset_version)` idempotency key; a failed run stays for the record and a new run may retry. Status moves `running → completed / failed` only |
+| Reconciliation | `MatchGroup` | Members balance within the rule's tolerance (v1 `settlement_batch`: payments − refunds − fees = declared net = payout, tolerance zero). Members share one currency. A record belongs to at most one group per run |
 | Reconciliation | `Discrepancy` | `delta = actual − expected`. Fingerprint is deterministic over type, involved records and period |
 | Reconciliation | `FeeSchedule` | Validity periods of the same `(gateway, fee_type)` never overlap |
 | Investigation | `Case` | State machine `open → investigating → awaiting_approval → resolved / escalated`. Optimistic version check on every change |

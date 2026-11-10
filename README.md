@@ -6,7 +6,7 @@ All data is synthetic, produced by an independent Financial Data Simulator. No r
 
 ## Status
 
-Phases 0 (foundations) and 1 ([Financial Data Simulator](simulator/README.md)) are done. Phase 2 (backend and reconciliation engine) is in progress: sub-phase 2a, ingestion, is done (see [backend/README.md](backend/README.md)); 2b, the reconciliation engine, is next. See the [roadmap](docs/roadmap/README.md) for every phase and its status.
+Phases 0 (foundations) and 1 ([Financial Data Simulator](simulator/README.md)) are done. Phase 2 (backend and reconciliation engine) is in progress: sub-phase 2a, ingestion, is done (see [backend/README.md](backend/README.md)); 2b, the reconciliation engine and its evaluation, is implemented and in phase review (see [backend/README.md](backend/README.md)). See the [roadmap](docs/roadmap/README.md) for every phase and its status.
 
 ## Setup
 
