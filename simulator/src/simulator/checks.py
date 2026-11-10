@@ -324,7 +324,8 @@ def explain(out: Path) -> list[str]:
     refs = {
         a["anomaly_id"]: {(r["source"], r["external_id"]) for r in a["records"]} for a in anomalies
     }
-    caused: dict[str, set[str]] = defaultdict(set)
+    # Lists, not sets: an extra violation of a declared invariant must not hide (M-A).
+    caused: dict[str, list[str]] = defaultdict(list)
     problems = []
     for v in violations:
         matches = [a for a in anomalies if refs[a["anomaly_id"]] & set(v.records)]
@@ -335,14 +336,14 @@ def explain(out: Path) -> list[str]:
             )
             continue
         anomaly = matches[0]
-        caused[anomaly["anomaly_id"]].add(v.invariant)
+        caused[anomaly["anomaly_id"]].append(v.invariant)
         if v.invariant not in anomaly["invariants_broken"]:
             problems.append(f"{anomaly['anomaly_id']} breaks undeclared {v.invariant}: {v.detail}")
     for a in anomalies:
         broken = caused[a["anomaly_id"]]
         if not broken:
             problems.append(f"{a['anomaly_id']} ({a['type']}) causes no violation")
-        elif broken != set(a["invariants_broken"]):
+        elif sorted(broken) != sorted(a["invariants_broken"]):
             problems.append(
                 f"{a['anomaly_id']} ({a['type']}) breaks {sorted(broken)}, "
                 f"declares {a['invariants_broken']}"

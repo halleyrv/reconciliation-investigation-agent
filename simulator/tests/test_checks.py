@@ -2,6 +2,7 @@ import codecs
 import json
 import shutil
 from collections.abc import Callable
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -179,6 +180,41 @@ def test_checker_detects_a_holiday_list_that_differs_from_the_config(
     assert "2026-10-09" in policy.read_text()
     policy.write_text(policy.read_text().replace("2026-10-09", "2026-10-10"))
     assert [v.invariant for v in find_violations(out)] == ["I9"]
+
+
+def test_explain_reports_a_second_violation_of_a_declared_invariant(
+    anomalous_run: Path, tmp_path: Path
+) -> None:
+    # Phase review M-A: +100.00 on a delayed batch and its credit adds a second I5 to an
+    # anomaly that declares I5 once; comparing sets of invariant IDs used to hide it.
+    out = _copy(anomalous_run, tmp_path)
+    anomalies = json.loads((out / "ground_truth.json").read_text())["anomalies"]
+    delayed = next(a for a in anomalies if a["type"] == "delayed_settlement")
+    batch = next(r["external_id"] for r in delayed["records"] if r["source"] == "settlements")
+    credit = next(
+        r["external_id"] for r in delayed["records"] if r["source"] == "bank_transactions"
+    )
+    _tamper(
+        out,
+        "settlements",
+        lambda rs: [
+            r.update(net_amount=str(Decimal(r["net_amount"]) + 100))
+            for r in rs
+            if r["settlement_id"] == batch
+        ],
+    )
+    _tamper(
+        out,
+        "bank_transactions",
+        lambda rs: [
+            r.update(amount=str(Decimal(r["amount"]) + 100))
+            for r in rs
+            if r["bank_transaction_id"] == credit
+        ],
+    )
+    assert explain(out) == [
+        f"{delayed['anomaly_id']} (delayed_settlement) breaks ['I5', 'I5'], declares ['I5']"
+    ]
 
 
 def test_explain_reports_violations_and_anomalies_that_do_not_match(
