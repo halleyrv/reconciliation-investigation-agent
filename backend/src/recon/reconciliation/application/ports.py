@@ -12,7 +12,7 @@ from recon.shared_kernel.ports import UnitOfWork
 
 class RunRepository(Protocol):
     def lock(self, period: Period, ruleset_version: str) -> None:
-        """Serialize runs of one period and ruleset until the current transaction ends."""
+        """Serialize run starts of one ruleset until the current transaction ends."""
         ...
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:

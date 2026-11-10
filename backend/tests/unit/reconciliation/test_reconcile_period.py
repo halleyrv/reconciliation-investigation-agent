@@ -4,6 +4,7 @@ from typing import Self
 
 import pytest
 
+from recon.reconciliation.adapters.inbound.cli import run_reconcile
 from recon.reconciliation.adapters.outbound.memory import InMemoryReconciliationUnitOfWork
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import (
@@ -214,3 +215,26 @@ def test_a_period_in_a_year_with_no_loaded_calendar_fails_the_run() -> None:
 
     with pytest.raises(RunFailed, match="no bank holiday calendar for 2027"):
         _reconcile(uow)(Period(date(2026, 12, 1), date(2027, 1, 31)))
+
+
+def test_a_december_run_needs_the_next_year_calendar_for_its_due_dates() -> None:
+    uow = InMemoryReconciliationUnitOfWork(
+        _book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays
+    )
+
+    with pytest.raises(RunFailed, match="no bank holiday calendar for 2027"):
+        _reconcile(uow)(Period(date(2026, 12, 1), date(2026, 12, 31)))
+
+
+def test_the_cli_shows_that_a_failed_run_could_not_be_marked_failed(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    uow = _DatabaseGone(_book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays, 1)
+
+    assert (
+        run_reconcile(["--from", "2026-10-01", "--to", "2026-10-31"], lambda: _reconcile(uow)) == 1
+    )
+
+    err = capsys.readouterr().err
+    assert "injected failure" in err
+    assert "could not be marked failed" in err

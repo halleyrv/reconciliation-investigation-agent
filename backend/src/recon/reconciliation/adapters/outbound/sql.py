@@ -100,7 +100,8 @@ class SqlAlchemyRuns:
     def lock(self, period: Period, ruleset_version: str) -> None:
         self._session.execute(
             text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
-            {"key": f"recon.run:{period.start}:{period.end}:{ruleset_version}"},
+            # Per ruleset, not per period: overlapping periods must see each other's runs.
+            {"key": f"recon.run:{ruleset_version}"},
         )
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:

@@ -17,6 +17,7 @@ from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationU
 from recon.reconciliation.application.evaluation import Finding
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import (
+    PeriodOverlaps,
     ReconcilePeriod,
     RunFailed,
     RunInProgress,
@@ -266,3 +267,25 @@ def test_concurrent_reconciles_of_one_period_create_one_run(loaded: Engine) -> N
     assert outcomes in (["completed", "completed"], ["completed", "in progress"])
     assert _rows(loaded, "SELECT count(*) FROM recon.reconciliation_runs") == [(1,)]
     assert _rows(loaded, "SELECT count(*) FROM recon.discrepancies") == [(41,)]
+
+
+def test_concurrent_overlapping_periods_leave_one_live_run_and_a_clear_refusal(
+    loaded: Engine,
+) -> None:
+    barrier = threading.Barrier(2)
+    periods = [
+        Period(date(2026, 10, 1), date(2026, 10, 20)),
+        Period(date(2026, 10, 10), date(2026, 10, 31)),
+    ]
+
+    def reconcile(period: Period) -> str:
+        barrier.wait()
+        try:
+            return _reconcile(loaded)(period).status.value
+        except PeriodOverlaps:
+            return "overlaps"
+
+    with ThreadPoolExecutor(2) as pool:
+        outcomes = sorted(pool.map(reconcile, periods))
+
+    assert outcomes == ["completed", "overlaps"]

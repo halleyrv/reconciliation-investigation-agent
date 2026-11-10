@@ -1,5 +1,7 @@
 """Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing."""
 
+from datetime import timedelta
+
 from recon.reconciliation.application.ports import ReconciliationUnitOfWork
 from recon.reconciliation.domain.calendar import BusinessCalendar
 from recon.reconciliation.domain.engine import MatchingEngine, default_engine
@@ -14,6 +16,8 @@ from recon.shared_kernel.ports import Clock, IdGenerator
 RULESET_VERSION = "v1"
 # Settlement policy of the gateways (simulator policies/settlement_policy.md).
 SETTLEMENT_LAG_BUSINESS_DAYS = 2
+# Calendar days that always hold the settlement lag in business days, holidays included.
+DUE_DATE_MARGIN_DAYS = 14
 # shortcut: single currency in v1 (ADR-0002); take it from the records when a second arrives.
 CURRENCY = "USD"
 
@@ -130,7 +134,9 @@ def _require_reference_data(
     snapshot: Snapshot, ruleset: Ruleset, calendar_years: frozenset[int], period: Period
 ) -> None:
     """Principle 10: never report fees or settlement dates as clean without the data to check."""
-    missing_years = sorted(set(range(period.start.year, period.end.year + 1)) - calendar_years)
+    # Due dates of the period's last batches can fall in the next year: cover them too.
+    last_due = period.end + timedelta(days=DUE_DATE_MARGIN_DAYS)
+    missing_years = sorted(set(range(period.start.year, last_due.year + 1)) - calendar_years)
     if missing_years:
         years = ", ".join(map(str, missing_years))
         raise MissingReferenceData(f"no bank holiday calendar for {years}; load it first")

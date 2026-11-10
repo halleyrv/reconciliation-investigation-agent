@@ -46,7 +46,8 @@ def _latest_anchor(snapshot: Snapshot, discrepancy: Discrepancy) -> date | None:
 
 
 def _batch_day(snapshot: Snapshot, group: MatchGroup) -> date | None:
-    return next(snapshot.anchor_of(m.ref) for m in group.members if m.role == "settlement")
+    settlement = next((m.ref for m in group.members if m.role == "settlement"), None)
+    return None if settlement is None else snapshot.anchor_of(settlement)
 
 
 def default_engine() -> MatchingEngine:

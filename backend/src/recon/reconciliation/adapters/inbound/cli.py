@@ -69,6 +69,8 @@ def run_reconcile(argv: Sequence[str] | None, reconcile: Callable[[], ReconcileP
         run = reconcile()(period, args.ruleset)
     except RunFailed as exc:  # recorded as failed with no output; a new call may retry
         print(f"recon-reconcile: {exc}", file=sys.stderr)
+        for note in getattr(exc, "__notes__", []):  # e.g. it could not be marked failed
+            print(f"recon-reconcile: {note}", file=sys.stderr)
         return 1
     except Exception as exc:  # no run was started: bad period, overlap, unreachable database
         print(f"recon-reconcile: nothing run: {exc}", file=sys.stderr)
