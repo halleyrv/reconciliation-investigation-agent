@@ -202,3 +202,39 @@ def test_a_late_refund_with_no_later_batch_to_absorb_it_still_generates(tmp_path
     out = run(tmp_path, raw_default(), seed=285)
     assert validate_files(out) == []
     assert explain(out) == []
+
+
+def _directly_affected_orders(out: Path) -> set[str]:
+    """ADR-0015 section 3, counted here independently: an order is affected when it, its
+    payment, its fee or its refund is named by an anomaly."""
+    data, ground_truth = _load(out)
+    order_of_payment = {pid: p["order_ref"] for pid, p in data["payments"].items()}
+    payment_of = {
+        "payments": lambda ref: ref,
+        "fees": lambda ref: data["fees"][ref]["payment_ref"],
+        "refunds": lambda ref: data["refunds"][ref]["payment_ref"],
+    }
+    affected = set()
+    for a in ground_truth["anomalies"]:
+        for r in a["records"]:
+            if r["source"] == "orders":
+                affected.add(r["external_id"])
+            elif r["source"] in payment_of:
+                affected.add(order_of_payment[payment_of[r["source"]](r["external_id"])])
+    return affected & set(data["orders"])
+
+
+def test_manifest_publishes_both_affected_order_counts(anomalous_run: Path) -> None:
+    data, ground_truth = _load(anomalous_run)
+    published = json.loads((anomalous_run / "manifest.json").read_text())["affected_orders"]
+    assert published == {
+        "orders": len(data["orders"]),
+        "directly_affected": len(_directly_affected_orders(anomalous_run)),
+        "without_clean_link": len(data["orders"]) - len(ground_truth["expected_links"]),
+    }
+
+
+def test_default_rates_affect_about_15_percent_of_orders_on_seed_42(anomalous_run: Path) -> None:
+    # Measured, not tuned after generation (ADR-0015): pins the figure the README publishes.
+    published = json.loads((anomalous_run / "manifest.json").read_text())["affected_orders"]
+    assert published == {"orders": 200, "directly_affected": 32, "without_clean_link": 42}

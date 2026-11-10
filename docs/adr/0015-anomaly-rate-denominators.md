@@ -1,6 +1,6 @@
 # ADR-0015: Denominators for anomaly rates, prevalence and the "affected" share
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-11-09)
 - **Date:** 2026-11-09
 - **Related:** ADR-0011, ADR-0013, docs/roadmap/phase-1-financial-data-simulator.md (AS2, anomaly configuration, AC4, AC8), docs/roadmap/phase-2-backend-and-reconciliation-engine.md (AC-2b.2), docs/roadmap/phase-6-evaluation-and-benchmarking.md
 - **Kind:** Business (what share of the data is anomalous, how "affected" is measured, what the large dataset represents) and technical (which population each rate applies to)
@@ -60,7 +60,7 @@ Under that definition the current defaults give 16 of 200 = **8.0%** (the 14 nam
 - The spec ties the **defaults** to 15%: setting the default rates so the published number lands near 15% is configuring to the spec, not forcing results. The rates stay visible in the config and the measured share is reported, never adjusted after generation.
 - Or the 15% was an estimate and the spec is amended to the measured value.
 
-Which one is a business decision. Rates are not changed by this ADR.
+Which one is a business decision; the owner chose the first (Decision, point 3).
 
 ## 4. Why the share changes between 200 and 2,000
 
@@ -90,11 +90,11 @@ Consequences for evaluation:
 - A recall measured on 1 to 3 instances is not a rate. Reports must publish the instance count next to each per-type metric.
 - The false positive rate needs a stated negative population per type; "clean links" is a link metric, not a negative population for every anomaly type.
 
-## Decision (proposed)
+## Decision
 
 1. Keep each type's own target population as its denominator (implemented).
 2. Define "affected" as in section 3, and publish both numbers in the manifest: directly affected orders (following the chain) and orders without a clean link.
-3. Owner decides: whether the defaults target 15% under that definition, or the spec records the measured value.
+3. **Decided by the owner on 2026-11-09: the defaults target 15%.** The eight order-level rates go from `0.01` to `0.02`; seed 42 gives 32 of 200 and 320 of 2,000 orders directly affected (16.0%). The share is published in the manifest (`affected_orders`) and pinned by a test as a measurement, never adjusted after generation.
 4. **Decided by the owner on 2026-11-09: more history.** `configs/orders-2000.yaml` spans 2026-01-01 to 2026-10-31 (584 batches; 23, 23 and 6 batch-level instances on seed 42). The minimum instances per batch-level type is not set by the owner yet; the test uses 5 as a stated assumption.
 5. Evaluation reports publish prevalence and instance counts next to every per-type metric (Phase 2 and Phase 6 amendments below).
 

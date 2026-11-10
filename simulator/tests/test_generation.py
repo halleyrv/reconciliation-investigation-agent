@@ -163,7 +163,9 @@ def test_anomaly_rates_apply_to_their_target_population(tmp_path: Path) -> None:
     assert counts["incorrect_amount"] == count_for(Decimal("0.04"), settlements)
     assert counts["missing_in_bank"] == count_for(Decimal("0.01"), settlements)
     assert counts["missing_in_orders"] == counts["missing_in_gateway"] == 10
-    assert counts["duplicate_payment"] == 10
+    assert counts["duplicate_payment"] == count_for(
+        Decimal(raw["anomaly_rates"]["duplicate_payment"]), 1000
+    )
 
 
 # Assumption, pending the owner's N (ADR-0015 point 4): at least 5 instances per batch type.
@@ -183,6 +185,19 @@ def test_the_2000_order_run_is_ten_months_of_history_with_enough_batch_instances
     for batch_type in ("delayed_settlement", "incorrect_amount", "missing_in_bank"):
         assert counts[batch_type] >= MIN_BATCH_INSTANCES, (batch_type, counts[batch_type])
     assert explain(out) == []
+    # Seed 42 figures the README and ADR-0015 publish, pinned so they cannot go stale.
+    assert len(json.loads((out / "settlements.json").read_text())["records"]) == 584
+    assert [counts[t] for t in ("delayed_settlement", "incorrect_amount", "missing_in_bank")] == [
+        23,
+        23,
+        6,
+    ]
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert manifest["affected_orders"] == {
+        "orders": 2000,
+        "directly_affected": 320,
+        "without_clean_link": 497,
+    }
 
 
 def test_committed_sample_is_the_seed_42_default_run(anomalous_run: Path) -> None:

@@ -49,7 +49,7 @@
     },
     {
       "payment_id": "PAY-000006",
-      "order_ref": "ORD-000006",
+      "order_ref": "ORD000006",
       "gateway": "gateway_b",
       "amount": "214.44",
       "currency": "USD",
@@ -258,7 +258,7 @@
       "payment_id": "PAY-000029",
       "order_ref": "ORD-000029",
       "gateway": "gateway_b",
-      "amount": "245.26",
+      "amount": "179.04",
       "currency": "USD",
       "captured_at": "2026-10-05T17:22:39Z",
       "settlement_ref": "STL-000010"
@@ -303,7 +303,7 @@
       "payment_id": "PAY-000034",
       "order_ref": "ORD-000034",
       "gateway": "gateway_a",
-      "amount": "121.06",
+      "amount": "172.95",
       "currency": "USD",
       "captured_at": "2026-10-06T07:31:56Z",
       "settlement_ref": "STL-000011"
@@ -337,7 +337,7 @@
     },
     {
       "payment_id": "PAY-000038",
-      "order_ref": "ORD-000038",
+      "order_ref": "ORD_000038",
       "gateway": "gateway_a",
       "amount": "258.07",
       "currency": "USD",
@@ -492,7 +492,7 @@
       "payment_id": "PAY-000055",
       "order_ref": "ORD-000055",
       "gateway": "gateway_b",
-      "amount": "154.54",
+      "amount": "271.13",
       "currency": "USD",
       "captured_at": "2026-10-10T09:20:16Z",
       "settlement_ref": "STL-000020"
@@ -501,7 +501,7 @@
       "payment_id": "PAY-000056",
       "order_ref": "ORD-000056",
       "gateway": "gateway_a",
-      "amount": "59.80",
+      "amount": "36.48",
       "currency": "USD",
       "captured_at": "2026-10-10T15:11:42Z",
       "settlement_ref": "STL-000019"
@@ -735,14 +735,14 @@
       "payment_id": "PAY-000082",
       "order_ref": "ORD-000082",
       "gateway": "gateway_b",
-      "amount": "89.53",
+      "amount": "57.30",
       "currency": "USD",
       "captured_at": "2026-10-13T02:29:49Z",
       "settlement_ref": "STL-000026"
     },
     {
       "payment_id": "PAY-000083",
-      "order_ref": "ORD-000083",
+      "order_ref": "ord-000083",
       "gateway": "gateway_a",
       "amount": "447.08",
       "currency": "USD",
@@ -762,7 +762,7 @@
       "payment_id": "PAY-000085",
       "order_ref": "ORD-000085",
       "gateway": "gateway_b",
-      "amount": "115.89",
+      "amount": "79.96",
       "currency": "USD",
       "captured_at": "2026-10-13T17:50:09Z",
       "settlement_ref": "STL-000026"
@@ -1354,7 +1354,7 @@
     },
     {
       "payment_id": "PAY-000151",
-      "order_ref": "ORD000151",
+      "order_ref": "ORD-000151",
       "gateway": "gateway_b",
       "amount": "433.29",
       "currency": "USD",
@@ -1417,7 +1417,7 @@
     },
     {
       "payment_id": "PAY-000158",
-      "order_ref": "ORD-000158",
+      "order_ref": "ORD000158",
       "gateway": "gateway_a",
       "amount": "404.53",
       "currency": "USD",
@@ -1750,7 +1750,7 @@
     },
     {
       "payment_id": "PAY-000195",
-      "order_ref": "ORD000195",
+      "order_ref": "ORD-000195",
       "gateway": "gateway_a",
       "amount": "54.53",
       "currency": "USD",
@@ -1808,7 +1808,7 @@
       "gateway": "gateway_a",
       "amount": "55.08",
       "currency": "USD",
-      "captured_at": "2026-10-17T23:07:51Z",
+      "captured_at": "2026-10-17T23:09:59Z",
       "settlement_ref": "STL-000033"
     },
     {
@@ -1817,26 +1817,44 @@
       "gateway": "gateway_b",
       "amount": "380.42",
       "currency": "USD",
-      "captured_at": "2026-10-29T08:25:40Z",
+      "captured_at": "2026-10-29T08:28:31Z",
       "settlement_ref": "STL-000058"
     },
     {
       "payment_id": "PAY-000203",
-      "order_ref": "ORD-000201",
-      "gateway": "gateway_a",
-      "amount": "187.54",
+      "order_ref": "ORD-000070",
+      "gateway": "gateway_b",
+      "amount": "51.96",
       "currency": "USD",
-      "captured_at": "2026-10-25T16:31:13Z",
-      "settlement_ref": "STL-000049"
+      "captured_at": "2026-10-11T21:59:20Z",
+      "settlement_ref": "STL-000022"
     },
     {
       "payment_id": "PAY-000204",
+      "order_ref": "ORD-000086",
+      "gateway": "gateway_b",
+      "amount": "38.47",
+      "currency": "USD",
+      "captured_at": "2026-10-13T20:57:59Z",
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "payment_id": "PAY-000205",
+      "order_ref": "ORD-000201",
+      "gateway": "gateway_a",
+      "amount": "484.86",
+      "currency": "USD",
+      "captured_at": "2026-10-18T10:04:01Z",
+      "settlement_ref": "STL-000035"
+    },
+    {
+      "payment_id": "PAY-000206",
       "order_ref": "ORD-000202",
       "gateway": "gateway_b",
-      "amount": "161.08",
+      "amount": "401.11",
       "currency": "USD",
-      "captured_at": "2026-10-12T09:09:11Z",
-      "settlement_ref": "STL-000024"
+      "captured_at": "2026-10-21T19:06:05Z",
+      "settlement_ref": "STL-000042"
     }
   ]
 }

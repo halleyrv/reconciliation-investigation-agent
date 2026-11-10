@@ -259,7 +259,7 @@
       "payment_ref": "PAY-000029",
       "gateway": "gateway_b",
       "fee_type": "processing",
-      "amount": "6.38",
+      "amount": "4.73",
       "currency": "USD",
       "settlement_ref": "STL-000010"
     },
@@ -304,7 +304,7 @@
       "payment_ref": "PAY-000034",
       "gateway": "gateway_a",
       "fee_type": "processing",
-      "amount": "3.81",
+      "amount": "5.86",
       "currency": "USD",
       "settlement_ref": "STL-000011"
     },
@@ -493,7 +493,7 @@
       "payment_ref": "PAY-000055",
       "gateway": "gateway_b",
       "fee_type": "processing",
-      "amount": "4.11",
+      "amount": "7.03",
       "currency": "USD",
       "settlement_ref": "STL-000020"
     },
@@ -502,7 +502,7 @@
       "payment_ref": "PAY-000056",
       "gateway": "gateway_a",
       "fee_type": "processing",
-      "amount": "2.03",
+      "amount": "1.36",
       "currency": "USD",
       "settlement_ref": "STL-000019"
     },
@@ -736,7 +736,7 @@
       "payment_ref": "PAY-000082",
       "gateway": "gateway_b",
       "fee_type": "processing",
-      "amount": "2.49",
+      "amount": "1.68",
       "currency": "USD",
       "settlement_ref": "STL-000026"
     },
@@ -763,7 +763,7 @@
       "payment_ref": "PAY-000085",
       "gateway": "gateway_b",
       "fee_type": "processing",
-      "amount": "3.15",
+      "amount": "2.25",
       "currency": "USD",
       "settlement_ref": "STL-000026"
     },
@@ -808,7 +808,7 @@
       "payment_ref": "PAY-000090",
       "gateway": "gateway_a",
       "fee_type": "processing",
-      "amount": "8.11",
+      "amount": "8.63",
       "currency": "USD",
       "settlement_ref": "STL-000025"
     },
@@ -1060,7 +1060,7 @@
       "payment_ref": "PAY-000118",
       "gateway": "gateway_b",
       "fee_type": "processing",
-      "amount": "5.95",
+      "amount": "5.06",
       "currency": "USD",
       "settlement_ref": "STL-000038"
     },
@@ -1348,7 +1348,7 @@
       "payment_ref": "PAY-000150",
       "gateway": "gateway_a",
       "fee_type": "processing",
-      "amount": "11.99",
+      "amount": "11.04",
       "currency": "USD",
       "settlement_ref": "STL-000047"
     },
@@ -1366,7 +1366,7 @@
       "payment_ref": "PAY-000152",
       "gateway": "gateway_a",
       "fee_type": "processing",
-      "amount": "10.15",
+      "amount": "10.75",
       "currency": "USD",
       "settlement_ref": "STL-000047"
     },
@@ -1753,7 +1753,7 @@
       "payment_ref": "PAY-000195",
       "gateway": "gateway_a",
       "fee_type": "processing",
-      "amount": "1.88",
+      "amount": "3.82",
       "currency": "USD",
       "settlement_ref": "STL-000057"
     },
@@ -1823,20 +1823,38 @@
     {
       "fee_id": "FEE-000203",
       "payment_ref": "PAY-000203",
-      "gateway": "gateway_a",
+      "gateway": "gateway_b",
       "fee_type": "processing",
-      "amount": "5.74",
+      "amount": "1.55",
       "currency": "USD",
-      "settlement_ref": "STL-000049"
+      "settlement_ref": "STL-000022"
     },
     {
       "fee_id": "FEE-000204",
       "payment_ref": "PAY-000204",
       "gateway": "gateway_b",
       "fee_type": "processing",
-      "amount": "4.28",
+      "amount": "1.21",
       "currency": "USD",
-      "settlement_ref": "STL-000024"
+      "settlement_ref": "STL-000026"
+    },
+    {
+      "fee_id": "FEE-000205",
+      "payment_ref": "PAY-000205",
+      "gateway": "gateway_a",
+      "fee_type": "processing",
+      "amount": "14.36",
+      "currency": "USD",
+      "settlement_ref": "STL-000035"
+    },
+    {
+      "fee_id": "FEE-000206",
+      "payment_ref": "PAY-000206",
+      "gateway": "gateway_b",
+      "fee_type": "processing",
+      "amount": "10.28",
+      "currency": "USD",
+      "settlement_ref": "STL-000042"
     }
   ]
 }

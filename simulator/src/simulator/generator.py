@@ -15,6 +15,7 @@ GROUND_TRUTH_SCHEMA_VERSION = "1.0.0"
 class Dataset:
     records: dict[str, list[Record]]
     ground_truth: dict[str, Any]
+    affected_orders: dict[str, int]
 
 
 def _targets(sim: Sim, injector: Injector) -> list[Target]:
@@ -62,6 +63,29 @@ def _expected_links(sim: Sim) -> list[dict[str, str]]:
     return links
 
 
+def _affected_orders(sim: Sim, anomalies: list[Anomaly], links: int) -> dict[str, int]:
+    """ADR-0015: an order is directly affected when it, its payment, its fee or its refund
+    is named by an anomaly; orders without a clean link also include clean orders that
+    settled in an anomalous batch."""
+    order_of_payment = {p.payment_id: p.order_ref for p in sim.payments}
+    payment_of = {f.fee_id: f.payment_ref for f in sim.fees}
+    payment_of.update({r.refund_id: r.payment_ref for r in sim.refunds})
+    payment_of.update({p: p for p in order_of_payment})
+    named = set()
+    for anomaly in anomalies:
+        for source, external_id in anomaly.records:
+            if source == "orders":
+                named.add(external_id)
+            elif source in ("payments", "fees", "refunds"):
+                named.add(order_of_payment[payment_of[external_id]])
+    orders = {o.order_id for o in sim.orders}
+    return {
+        "orders": len(orders),
+        "directly_affected": len(named & orders),
+        "without_clean_link": len(orders) - links,
+    }
+
+
 def _anomaly_entry(index: int, anomaly: Anomaly, currency: str) -> dict[str, Any]:
     return {
         "anomaly_id": f"ANM-{index:04d}",
@@ -88,12 +112,13 @@ def generate(config: Config, seed: int) -> Dataset:
     sim.build_bank_credits()
     anomalies += _inject(sim, "bank")
     records: dict[str, list[Record]] = {name: list(getattr(sim, name)) for name in RECORD_TYPES}
+    links = _expected_links(sim)
     ground_truth = {
         "schema_version": GROUND_TRUTH_SCHEMA_VERSION,
         "seed": seed,
         "anomalies": [
             _anomaly_entry(i, a, config.currency) for i, a in enumerate(anomalies, start=1)
         ],
-        "expected_links": _expected_links(sim),
+        "expected_links": links,
     }
-    return Dataset(records, ground_truth)
+    return Dataset(records, ground_truth, _affected_orders(sim, anomalies, len(links)))

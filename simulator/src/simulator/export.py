@@ -90,6 +90,7 @@ def render(dataset: Dataset, config: Config, seed: int) -> dict[str, str]:
             "seed": seed,
             "config_sha256": hashlib.sha256(config_json.encode()).hexdigest(),
             "config": config.to_dict(),
+            "affected_orders": dataset.affected_orders,
             "files": {
                 path: hashlib.sha256(text.encode()).hexdigest()
                 for path, text in sorted(files.items())

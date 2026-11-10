@@ -30,7 +30,7 @@ Same seed and config produce byte-identical files (same SHA-256 in the manifest)
 | `<type>.csv`, `<type>.json` | One pair per record type: `orders`, `payments`, `fees`, `refunds`, `authorizations`, `settlements`, `bank_transactions`. Both hold the same records |
 | `policies/*.md` | Fee schedule, refund authorization policy, settlement and cut-off policy. Their numbers come from the config |
 | `ground_truth.json` | Injected anomalies and expected links for clean records |
-| `manifest.json` | Simulator version, seed, resolved config, its SHA-256, and the SHA-256 of every other file |
+| `manifest.json` | Simulator version, seed, resolved config, its SHA-256, the affected-order counts (`affected_orders`, ADR-0015) and the SHA-256 of every other file |
 
 Every field is a string. Money is a decimal string with exactly two places (`"123.45"`), never a JSON number; timestamps are UTC (`2026-10-03T14:22:05Z`); dates are ISO (`2026-10-07`). The JSON file wraps its records: `{"schema_version": "1.0.0", "record_type": "orders", "records": [...]}`.
 
@@ -72,7 +72,7 @@ One JSON Schema (draft 2020-12) per record type and one for the ground truth, in
 
 Money and rates must be quoted strings: a YAML float such as `0.30` is rejected, because it is already inexact when parsed. Unknown anomaly types are rejected.
 
-An anomaly rate is a fraction of its target population: settlement batches for `delayed_settlement`, `incorrect_amount` and the `missing_in_bank` direction, orders for everything else. `missing_transaction` applies its rate to each of its three directions. The count is `rate × population`, rounded half-even. With the default config every anomaly type appears at least twice. On seed 42, 7.0% of the orders are named directly by an anomaly at both 200 and 2,000 orders; the share without a clean expected link is 13.0% at 200 (one month, 61 batches) and 16.8% at 2,000 (ten months, 584 batches). The 2,000-order run spans ten months so batches keep about 3 orders each, as in the default run (ADR-0015 point 4); over a single month the share was 20.1%, because each batch held about 32 orders. The choice of denominators is proposed in ADR-0015.
+An anomaly rate is a fraction of its target population: settlement batches for `delayed_settlement`, `incorrect_amount` and the `missing_in_bank` direction, orders for everything else. `missing_transaction` applies its rate to each of its three directions. The count is `rate × population`, rounded half-even. With the default config every anomaly type appears at least twice. The spec's "about 15% of orders affected" is measured as the share of orders **directly affected**: an order counts when it, its payment, its fee or its refund is named by an anomaly (ADR-0015). The default rates are set to meet it: `0.02` for the eight order-level types, `0.04` for the two batch types, `0.01` for `missing_transaction`. The manifest publishes `affected_orders`: the number of orders, the directly affected ones and the ones without a clean expected link (which also counts clean orders that settled in an anomalous batch). Seed 42 gives 32 of 200 (16.0%) directly affected and 42 (21.0%) without a clean link at 200 orders; 320 of 2,000 (16.0%) and 497 (24.9%) at 2,000. The 2,000-order run spans ten months (584 batches) so batches keep about 3 orders each, as in the default run (ADR-0015 point 4). The choice of denominators is proposed in ADR-0015.
 
 ## Internal consistency invariants
 
