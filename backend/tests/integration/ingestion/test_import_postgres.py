@@ -1,5 +1,8 @@
+import contextlib
 import hashlib
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from pathlib import Path
 
@@ -10,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from recon.ingestion.adapters.outbound.simulator_files import read_export
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport, ManifestMismatch
+from recon.ingestion.domain.batch import ImportBatch
 from recon.ingestion.domain.records import RecordType
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
@@ -215,3 +219,29 @@ def test_instants_are_stored_as_utc_whatever_the_session_time_zone(
         " FROM ingestion.orders WHERE external_id = 'ORD-000001'",
     )
     assert utc == "2026-10-01T03:46:51"
+
+
+def test_two_concurrent_imports_of_the_same_export_both_return_the_same_batches(
+    engine: Engine, sample: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from recon.ingestion.adapters.outbound import sql
+
+    # Hold both imports right after their duplicate-file check, so they race to insert.
+    barrier = threading.Barrier(2, timeout=1)
+    original = sql.SqlAlchemyImportBatches.add
+
+    def add_after_both_checked(self: sql.SqlAlchemyImportBatches, batch: ImportBatch) -> None:
+        if batch.record_type == RecordType.ORDERS:
+            with contextlib.suppress(threading.BrokenBarrierError):
+                barrier.wait()
+        original(self, batch)
+
+    monkeypatch.setattr(sql.SqlAlchemyImportBatches, "add", add_after_both_checked)
+    export = read_export(sample)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(_import(engine, sample), export) for _ in range(2)]
+        results = [future.result() for future in futures]
+
+    assert [b.id for b in results[0]] == [b.id for b in results[1]]
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.import_batches") == 7
+    assert _scalar(engine, "SELECT count(*) FROM ingestion.orders") == 200

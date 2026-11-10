@@ -1,6 +1,7 @@
 import hashlib
 import json
 from collections import Counter
+from collections.abc import Callable
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -191,3 +192,77 @@ def test_a_file_whose_hash_differs_from_the_manifest_is_rejected_before_any_writ
 
     assert uow.total_rows() == 0
     assert uow.stored_batches() == []
+
+
+@pytest.mark.parametrize(
+    ("name", "record_type", "field", "value"),
+    [
+        ("payments.json", RecordType.PAYMENTS, "currency", "EUR"),
+        ("fees.json", RecordType.FEES, "fee_type", "chargeback"),
+    ],
+)
+def test_a_value_outside_the_reference_data_fails_the_batch_instead_of_the_import(
+    sample: Path,
+    import_export: ImportExport,
+    name: str,
+    record_type: RecordType,
+    field: str,
+    value: str,
+) -> None:
+    records = _editable(sample, record_type)
+    records[3] = {**records[3], field: value}
+    _rewrite(sample, name, records)
+
+    batches = import_export(read_export(sample))
+
+    batch = next(b for b in batches if b.file_name == name)
+    assert batch.status == "failed"
+    assert [(e.line_no, e.field) for e in batch.errors] == [(4, field)]
+
+
+@pytest.mark.parametrize(
+    ("change", "field"),
+    [
+        (lambda d: d.update(record_type="refunds"), "record_type"),
+        (lambda d: d.update(schema_version="2.0.0"), "schema_version"),
+        (lambda d: d.update(records="not a list"), "records"),
+    ],
+)
+def test_a_file_with_a_bad_envelope_fails_with_a_file_level_error(
+    sample: Path,
+    import_export: ImportExport,
+    change: Callable[[dict[str, object]], None],
+    field: str,
+) -> None:
+    path = sample / "payments.json"
+    data = json.loads(path.read_text())
+    change(data)
+    path.write_text(json.dumps(data))
+    manifest = json.loads((sample / "manifest.json").read_text())
+    manifest["files"]["payments.json"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (sample / "manifest.json").write_text(json.dumps(manifest))
+
+    batches = import_export(read_export(sample))
+
+    batch = next(b for b in batches if b.file_name == "payments.json")
+    assert batch.status == "failed"
+    assert [(e.line_no, e.field) for e in batch.errors] == [(0, field)]
+
+
+def test_a_file_missing_from_the_manifest_is_a_mismatch(
+    sample: Path, uow: InMemoryIngestionUnitOfWork, import_export: ImportExport
+) -> None:
+    manifest = json.loads((sample / "manifest.json").read_text())
+    del manifest["files"]["refunds.json"]
+    (sample / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(ManifestMismatch, match=r"refunds\.json"):
+        import_export(read_export(sample))
+    assert uow.stored_batches() == []
+
+
+def test_a_data_file_missing_from_the_directory_is_reported_by_name(sample: Path) -> None:
+    (sample / "settlements.json").unlink()
+
+    with pytest.raises(FileNotFoundError, match=r"settlements\.json"):
+        read_export(sample)

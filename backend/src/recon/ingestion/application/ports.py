@@ -7,6 +7,10 @@ from recon.shared_kernel.ports import UnitOfWork
 
 
 class ImportBatchRepository(Protocol):
+    def lock_source(self, source: str) -> None:
+        """Serialize imports of one source until the current transaction ends."""
+        ...
+
     def get_by_file(self, source: str, file_sha256: str) -> ImportBatch | None: ...
 
     def add(self, batch: ImportBatch) -> None: ...

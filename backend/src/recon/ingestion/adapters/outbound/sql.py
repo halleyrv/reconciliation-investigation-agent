@@ -8,7 +8,7 @@ from datetime import date, datetime
 from types import TracebackType
 from typing import Self
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from recon.ingestion.adapters.outbound.orm import (
@@ -172,6 +172,12 @@ class SqlAlchemyImportBatches:
     def __init__(self, session: Session, sources: _Sources) -> None:
         self._session = session
         self._sources = sources
+
+    def lock_source(self, source: str) -> None:
+        self._session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+            {"key": f"ingestion.source:{source}"},
+        )
 
     def get_by_file(self, source: str, file_sha256: str) -> ImportBatch | None:
         row = self._session.scalars(

@@ -1,5 +1,6 @@
-"""In-memory Ingestion persistence for unit tests. It keeps the same transaction and uniqueness
-rules as PostgreSQL, so a test that passes here cannot rely on a skipped rule."""
+"""In-memory Ingestion persistence for unit tests. It keeps PostgreSQL's transaction semantics
+(nothing survives without ``commit``) and its natural-key uniqueness. Reference foreign keys,
+CHECK constraints and locking are PostgreSQL's alone; integration tests cover them."""
 
 import copy
 import uuid
@@ -53,6 +54,9 @@ class _State:
 class _Batches:
     def __init__(self, uow: InMemoryIngestionUnitOfWork) -> None:
         self._uow = uow
+
+    def lock_source(self, source: str) -> None:
+        pass  # one thread, one unit of work: nothing to serialize
 
     def get_by_file(self, source: str, file_sha256: str) -> ImportBatch | None:
         for batch in self._uow.state.batches.values():

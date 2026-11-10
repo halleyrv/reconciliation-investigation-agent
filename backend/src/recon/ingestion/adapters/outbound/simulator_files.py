@@ -54,7 +54,10 @@ def _minor_units(value: object) -> int:
 Instant = Annotated[datetime, BeforeValidator(_instant)]
 Day = Annotated[date, BeforeValidator(_date)]
 MinorUnits = Annotated[int, BeforeValidator(_minor_units)]
-Currency = Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")]
+# shortcut: the reference values seeded in ref.currencies and ref.fee_types (migration 0001);
+# read them from the database when an operator can add currencies or fee types.
+Currency = Literal["USD"]
+FeeType = Literal["processing"]
 Text = Annotated[str, StringConstraints(min_length=1)]
 OrderId = Annotated[str, StringConstraints(pattern=r"^ORD-[0-9]{6}$")]
 PaymentId = Annotated[str, StringConstraints(pattern=r"^PAY-[0-9]{6}$")]
@@ -139,7 +142,7 @@ class _FeeRow(_Row):
     fee_id: FeeId
     payment_ref: Text
     gateway: Text
-    fee_type: Text
+    fee_type: FeeType
     amount: MinorUnits
     currency: Currency
     settlement_ref: Text

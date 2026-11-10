@@ -63,6 +63,9 @@ class ImportExport:
     def _import(self, file: SourceFile) -> ImportBatch:
         source = SOURCE_OF[file.record_type]
         with self._uow:
+            # Without the lock, two concurrent imports both see no batch and one fails on the
+            # unique key instead of returning the batch the other wrote.
+            self._uow.batches.lock_source(source)
             existing = self._uow.batches.get_by_file(source, file.sha256)
             if existing is not None:
                 return existing
