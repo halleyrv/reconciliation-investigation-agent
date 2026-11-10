@@ -260,3 +260,14 @@ def test_the_cli_shows_that_a_failed_run_could_not_be_marked_failed(
     err = capsys.readouterr().err
     assert "injected failure" in err
     assert "could not be marked failed" in err
+
+
+def test_a_period_with_no_bank_data_imported_is_refused() -> None:
+    book = _book_with_two_anomalies()
+    book.bank.clear()
+    uow = InMemoryReconciliationUnitOfWork(book.snapshot(), (SCHEDULE,), CALENDAR.holidays)
+
+    with pytest.raises(PeriodNotClosed, match="no bank data is imported, its last payouts"):
+        _reconcile(uow)(COVERED)
+
+    assert uow.committed.runs == {}
