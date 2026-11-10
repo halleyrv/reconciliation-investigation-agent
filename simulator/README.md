@@ -66,7 +66,7 @@ One JSON Schema (draft 2020-12) per record type and one for the ground truth, in
 | `gateways.<name>.percentage_bps` | Percentage fee in basis points, integer |
 | `gateways.<name>.fixed_fee` | Fixed fee per payment, quoted decimal string |
 | `settlement_lag_business_days` | Business days from batch date to bank value date |
-| `holidays` | Fictional bank holidays, ISO dates (`"2026-10-09"`); optional, default none. Payouts skip them like weekends |
+| `holidays` | Fictional bank holidays, ISO dates (`"2026-10-09"`); optional; absent or empty means none. Payouts skip them like weekends |
 | `refund_rate` | Fraction of orders with a normal (authorized) refund, quoted decimal string |
 | `anomaly_rates.<type>` | Rate per anomaly type, quoted decimal string; omitted types are `0` |
 

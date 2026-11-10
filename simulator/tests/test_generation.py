@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 import yaml
 from conftest import DEFAULT_CONFIG, raw_default, run
-from simulator.checks import validate_files
+from simulator.checks import find_violations, validate_files
 from simulator.cli import main
 from simulator.config import ANOMALY_TYPES, ConfigError, parse_config
 from simulator.sim import count_for
@@ -119,6 +119,25 @@ def test_config_reads_holidays_sorted_and_keeps_them_in_the_resolved_config() ->
     config = parse_config(raw)
     assert config.holidays == (date(2026, 10, 9), date(2026, 10, 20))
     assert config.to_dict()["holidays"] == ["2026-10-09", "2026-10-20"]
+
+
+def test_config_with_no_holidays_or_an_empty_key_has_none() -> None:
+    raw = raw_default()
+    del raw["holidays"]
+    assert parse_config(raw).holidays == ()
+    raw["holidays"] = None
+    assert parse_config(raw).holidays == ()
+
+
+def test_a_run_without_holidays_publishes_none_and_verifies(tmp_path: Path) -> None:
+    raw = raw_default()
+    del raw["holidays"]
+    raw["anomaly_rates"] = {}
+    out = run(tmp_path, raw)
+    policy = (out / "policies" / "settlement_policy.md").read_text()
+    assert "Bank holidays: none\n" in policy
+    assert json.loads((out / "manifest.json").read_text())["config"]["holidays"] == []
+    assert find_violations(out) == []
 
 
 def test_config_rejects_an_invalid_holiday() -> None:

@@ -86,6 +86,8 @@ def _int(value: Any, name: str, minimum: int) -> int:
 
 
 def _holidays(value: Any) -> tuple[date, ...]:
+    if value is None:  # absent, or an empty YAML key
+        return ()
     if not isinstance(value, list):
         raise ConfigError(f"holidays must be a list of dates, got {value!r}")
     try:
@@ -121,7 +123,7 @@ def parse_config(raw: Any) -> Config:
             settlement_lag_business_days=_int(
                 raw["settlement_lag_business_days"], "settlement_lag_business_days", 0
             ),
-            holidays=_holidays(raw.get("holidays", [])),
+            holidays=_holidays(raw.get("holidays")),
             refund_rate=_rate(raw["refund_rate"], "refund_rate"),
             anomaly_rates={
                 t: _rate(rates.get(t, "0"), f"anomaly_rates.{t}") for t in ANOMALY_TYPES

@@ -173,8 +173,12 @@ def test_validate_files_detects_csv_that_differs_from_json(clean_run: Path, tmp_
 
 @pytest.mark.parametrize(
     "damage",
-    [lambda raw: codecs.BOM_UTF8 + raw, lambda raw: raw.replace(b"\n", b"\r\n")],
-    ids=["bom", "crlf"],
+    [
+        lambda raw: codecs.BOM_UTF8 + raw,
+        lambda raw: raw.replace(b"\n", b"\r\n"),
+        lambda raw: raw.rstrip(b"\n"),
+    ],
+    ids=["bom", "crlf", "no-final-lf"],
 )
 def test_validate_files_detects_a_csv_outside_the_dialect(
     clean_run: Path, tmp_path: Path, damage: Callable[[bytes], bytes]
