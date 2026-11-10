@@ -111,7 +111,7 @@
             "minItems": 1,
             "items": {
               "type": "string",
-              "pattern": "^I[1-9]$"
+              "pattern": "^I([1-9]|10)$"
             }
           }
         }

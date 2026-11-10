@@ -64,7 +64,40 @@ TAMPERS: list[tuple[str, str, Callable[[list[dict[str, Any]]], object]]] = [
     ("I6", "orders", lambda rs: rs[0].update(placed_at="2026-12-31T00:00:00Z")),
     ("I7", "orders", lambda rs: rs.append(dict(rs[0]))),
     ("I8", "authorizations", lambda rs: rs[0].update(max_amount="1.5")),
+    ("I10", "payments", lambda rs: rs.append({**rs[0], "payment_id": "PAY-999999"})),
 ]
+
+
+def test_a_second_full_payment_breaks_i10_and_not_i1(clean_run: Path, tmp_path: Path) -> None:
+    out = _copy(clean_run, tmp_path)
+    _tamper(out, "payments", lambda rs: rs.append({**rs[0], "payment_id": "PAY-999999"}))
+    by_invariant = {v.invariant: v for v in find_violations(out) if v.invariant in {"I1", "I10"}}
+    assert set(by_invariant) == {"I10"}
+    assert ("payments", "PAY-999999") in by_invariant["I10"].records
+
+
+def test_a_payment_below_its_order_total_breaks_i1_and_not_i10(
+    clean_run: Path, tmp_path: Path
+) -> None:
+    out = _copy(clean_run, tmp_path)
+    _tamper(out, "payments", _bump("amount", "-1.00"))
+    assert {v.invariant for v in find_violations(out)} & {"I1", "I10"} == {"I1"}
+
+
+def test_order_payment_anomalies_declare_the_invariants_of_adr_0012(anomalous_run: Path) -> None:
+    ground_truth = json.loads((anomalous_run / "ground_truth.json").read_text())
+    declared = {
+        a["subtype"] or a["type"]: a["invariants_broken"]
+        for a in ground_truth["anomalies"]
+        if (a["subtype"] or a["type"])
+        in {"duplicate_payment", "partial_payment", "missing_in_orders", "inconsistent_reference"}
+    }
+    assert declared == {
+        "duplicate_payment": ["I10"],
+        "partial_payment": ["I1"],
+        "missing_in_orders": ["I1"],
+        "inconsistent_reference": ["I1", "I10"],
+    }
 
 
 @pytest.mark.parametrize(("invariant", "record_type", "change"), TAMPERS)

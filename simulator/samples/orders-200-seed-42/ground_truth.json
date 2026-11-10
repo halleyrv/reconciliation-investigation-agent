@@ -25,7 +25,7 @@
       "description": "Order captured twice by the gateway",
       "injector": "duplicate_payment",
       "invariants_broken": [
-        "I1"
+        "I10"
       ]
     },
     {
@@ -51,7 +51,7 @@
       "description": "Order captured twice by the gateway",
       "injector": "duplicate_payment",
       "invariants_broken": [
-        "I1"
+        "I10"
       ]
     },
     {
@@ -257,7 +257,8 @@
       "description": "Gateway reports order reference 'ORD000151' for ORD-000151",
       "injector": "inconsistent_reference",
       "invariants_broken": [
-        "I1"
+        "I1",
+        "I10"
       ]
     },
     {
@@ -279,7 +280,8 @@
       "description": "Gateway reports order reference 'ORD000195' for ORD-000195",
       "injector": "inconsistent_reference",
       "invariants_broken": [
-        "I1"
+        "I1",
+        "I10"
       ]
     },
     {

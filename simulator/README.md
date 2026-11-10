@@ -79,7 +79,7 @@ A run with every anomaly rate at 0 satisfies all of them (checked by `simulate-v
 
 | ID | Invariant |
 |----|-----------|
-| I1 | Every payment references an existing order, and the payments of each order sum to its total |
+| I1 | Every payment references an existing order, and its amount equals the order total |
 | I2 | Every refund references an existing payment, and the refunds of one payment never exceed its amount |
 | I3 | Every refund has an authorization that covers its amount and was approved before the refund |
 | I4 | Every payment has exactly one fee, equal to its gateway's schedule rounded once to cents |
@@ -88,6 +88,7 @@ A run with every anomaly rate at 0 satisfies all of them (checked by `simulate-v
 | I7 | External IDs are unique per source |
 | I8 | Every monetary value is positive with exactly 2 decimals |
 | I9 | The numbers in the policy documents equal the config |
+| I10 | Every order has exactly one payment (v1 scope: split payments are out of scope, ADR-0012) |
 
 ## Anomaly catalog
 
@@ -95,7 +96,7 @@ Each anomaly owns its records: no record belongs to two anomalies, and no paymen
 
 | Type | Subtype | What is injected | Breaks | `expected_delta` |
 |------|---------|------------------|--------|------------------|
-| `duplicate_payment` | | A second gateway capture of the same order and amount | I1 | + payment amount |
+| `duplicate_payment` | | A second gateway capture of the same order and amount | I10 | + payment amount |
 | `unauthorized_refund` | | A refund with no authorization | I3 | − refund amount |
 | `incorrect_fee` | | A fee 0.05 to 2.00 above the schedule | I4 | + overcharge (fee charged minus fee due) |
 | `missing_transaction` | `missing_in_orders` | A gateway payment for an order the shop never sent | I1 | + payment amount |
@@ -104,7 +105,7 @@ Each anomaly owns its records: no record belongs to two anomalies, and no paymen
 | `partial_payment` | | The customer paid 50% to 95% of the order total | I1 | paid − total |
 | `delayed_settlement` | | The bank credit arrives 1 to 3 business days late | I5 | 0.00 |
 | `incorrect_amount` | | The bank credit differs from the batch net | I5 | credit − net |
-| `inconsistent_reference` | | The payment's `order_ref` is a variant of the real ID (`ORD000123`, `ord-000123`, `ORD_000123`) | I1 | 0.00 |
+| `inconsistent_reference` | | The payment's `order_ref` is a variant of the real ID (`ORD000123`, `ord-000123`, `ORD_000123`) | I1, I10 | 0.00 |
 | `out_of_order_event` | `payment_before_order` | The order is timestamped after its payment | I6 | 0.00 |
 | `duplicate_refund` | | An authorized refund (60% to 100% of the payment) issued twice; the copy has no authorization | I2, I3 | − refund amount |
 | `conflicting_resent_record` | `orders` | The shop re-sends an order with the same ID and a different customer email | I7 | 0.00 |

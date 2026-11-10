@@ -237,7 +237,7 @@ def missing_in_gateway(sim: Sim, target: Target) -> Effect:
 
 
 INJECTORS: tuple[Injector, ...] = (
-    Injector("duplicate_payment", "duplicate_payment", "", ("I1",), "records", "order",
+    Injector("duplicate_payment", "duplicate_payment", "", ("I10",), "records", "order",
              duplicate_payment),
     Injector("unauthorized_refund", "unauthorized_refund", "", ("I3",), "records",
              "refundable_order", unauthorized_refund),
@@ -254,7 +254,8 @@ INJECTORS: tuple[Injector, ...] = (
              delayed_settlement),
     Injector("incorrect_amount", "incorrect_amount", "", ("I5",), "bank", "settlement",
              incorrect_amount),
-    Injector("inconsistent_reference", "inconsistent_reference", "", ("I1",), "records", "order",
+    Injector("inconsistent_reference", "inconsistent_reference", "", ("I1", "I10"), "records",
+             "order",
              inconsistent_reference),
     Injector("out_of_order_event", "out_of_order_event", "", ("I6",), "records", "order",
              out_of_order_event),

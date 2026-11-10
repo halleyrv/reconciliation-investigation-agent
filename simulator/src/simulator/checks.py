@@ -1,6 +1,6 @@
 """Data validation of a generated run, read back from its files.
 
-- `find_violations`: internal consistency invariants I1-I9 (phase 1 amendment).
+- `find_violations`: internal consistency invariants I1-I10 (phase 1 amendments).
 - `explain`: every violation is explained by exactly one ground-truth anomaly, and every
   anomaly breaks exactly the invariants it declares.
 - `validate_files`: JSON Schemas, CSV equals JSON, manifest hashes.
@@ -98,15 +98,14 @@ def _total(rows: list[Row]) -> Decimal:
 def _i1(run: _Run) -> list[Violation]:
     orders, found = run.by_id["orders"], []
     for p in run.rows["payments"]:
-        if p["order_ref"] not in orders:
+        order = orders.get(p["order_ref"])
+        if order is None:
             found.append(Violation("I1", (run.ref("payments", p),), "payment for unknown order"))
-    by_order = run.grouped("payments", "order_ref")
-    for order_id, order in orders.items():
-        payments = by_order.get(order_id, [])
-        paid, total = _total(payments), _amount(order["total_amount"])
+            continue
+        paid, total = _amount(p["amount"]), _amount(order["total_amount"])
         if paid != total:
-            refs = (("orders", order_id), *(run.ref("payments", p) for p in payments))
-            found.append(Violation("I1", refs, f"payments total {paid}, order total {total}"))
+            refs = (run.ref("orders", order), run.ref("payments", p))
+            found.append(Violation("I1", refs, f"payment {paid}, order total {total}"))
     return found
 
 
@@ -291,7 +290,18 @@ def _i9(run: _Run) -> list[Violation]:
     return found
 
 
-INVARIANTS = (_i1, _i2, _i3, _i4, _i5, _i6, _i7, _i8, _i9)
+def _i10(run: _Run) -> list[Violation]:
+    """v1 scope (ADR-0012): exactly one payment per order; split payments are out of scope."""
+    by_order, found = run.grouped("payments", "order_ref"), []
+    for order_id in run.by_id["orders"]:
+        payments = by_order.get(order_id, [])
+        if len(payments) != 1:
+            refs = (("orders", order_id), *(run.ref("payments", p) for p in payments))
+            found.append(Violation("I10", refs, f"{len(payments)} payments"))
+    return found
+
+
+INVARIANTS = (_i1, _i2, _i3, _i4, _i5, _i6, _i7, _i8, _i9, _i10)
 
 
 def find_violations(out: Path) -> list[Violation]:
