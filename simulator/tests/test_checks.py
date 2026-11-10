@@ -131,6 +131,16 @@ def test_checker_detects_policy_numbers_that_differ_from_the_config(
     assert [v.invariant for v in find_violations(out)] == ["I9"]
 
 
+def test_checker_detects_a_holiday_list_that_differs_from_the_config(
+    clean_run: Path, tmp_path: Path
+) -> None:
+    out = _copy(clean_run, tmp_path)
+    policy = out / "policies" / "settlement_policy.md"
+    assert "2026-10-09" in policy.read_text()
+    policy.write_text(policy.read_text().replace("2026-10-09", "2026-10-10"))
+    assert [v.invariant for v in find_violations(out)] == ["I9"]
+
+
 def test_explain_reports_violations_and_anomalies_that_do_not_match(
     clean_run: Path, tmp_path: Path
 ) -> None:

@@ -6,6 +6,7 @@ from decimal import ROUND_HALF_EVEN, Decimal
 
 from faker import Faker
 
+from simulator.business_days import add_business_days
 from simulator.config import Config
 from simulator.records import (
     CENT,
@@ -36,17 +37,6 @@ def cents(value: int) -> Decimal:
 
 def round_cents(value: Decimal) -> Decimal:
     return value.quantize(CENT, rounding=ROUND_HALF_EVEN)
-
-
-def add_business_days(day: date, days: int) -> date:
-    """Monday-Friday business days, no holidays (assumption A4)."""
-    current = day
-    added = 0
-    while added < days:
-        current += timedelta(days=1)
-        if current.weekday() < 5:
-            added += 1
-    return current
 
 
 def count_for(rate: Decimal, population: int) -> int:
@@ -302,7 +292,7 @@ class Sim:
                     self.bank_id(),
                     ACCOUNT_REF,
                     "credit",
-                    add_business_days(settlement.batch_date, lag),
+                    add_business_days(settlement.batch_date, lag, self.config.holidays),
                     settlement.net_amount,
                     settlement.currency,
                     self.payout_description(settlement.gateway, settlement.settlement_id),

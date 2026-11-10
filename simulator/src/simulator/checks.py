@@ -20,9 +20,9 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from simulator.business_days import add_business_days
 from simulator.config import Config, parse_config
 from simulator.records import RECORD_TYPES
-from simulator.sim import add_business_days
 
 type RecordRef = tuple[str, str]
 type Row = dict[str, Any]
@@ -40,6 +40,7 @@ MONEY_PATTERN = re.compile(r"^[0-9]+\.[0-9]{2}$")
 SETTLEMENT_REF = re.compile(r"\bSTL-[0-9]{6}\b")
 FEE_ROW = re.compile(r"^\| (\S+) \| ([0-9]+) \| ([0-9.]+) \|$", re.MULTILINE)
 LAG_LINE = re.compile(r"^Settlement lag: ([0-9]+) business days$", re.MULTILINE)
+HOLIDAYS_LINE = re.compile(r"^Bank holidays: (.+)$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -202,7 +203,7 @@ def _i5(run: _Run) -> list[Violation]:
             found.append(Violation("I5", refs, f"{len(paid)} bank credits"))
             continue
         credit = paid[0]
-        due = add_business_days(date.fromisoformat(s["batch_date"]), lag)
+        due = add_business_days(date.fromisoformat(s["batch_date"]), lag, run.config.holidays)
         if (
             _amount(credit["amount"]) != stated
             or credit["direction"] != "credit"
@@ -286,6 +287,12 @@ def _i9(run: _Run) -> list[Violation]:
     if lag is None or int(lag.group(1)) != run.config.settlement_lag_business_days:
         found.append(
             Violation("I9", (("policies", "settlement_policy.md"),), "settlement lag differs")
+        )
+    holidays = HOLIDAYS_LINE.search(lag_text)
+    expected_holidays = ", ".join(h.isoformat() for h in run.config.holidays) or "none"
+    if holidays is None or holidays.group(1) != expected_holidays:
+        found.append(
+            Violation("I9", (("policies", "settlement_policy.md"),), "bank holidays differ")
         )
     return found
 

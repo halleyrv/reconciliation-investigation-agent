@@ -41,6 +41,7 @@ class Config:
     currency: str
     gateways: dict[str, GatewayFees]
     settlement_lag_business_days: int
+    holidays: tuple[date, ...]
     refund_rate: Decimal
     anomaly_rates: dict[str, Decimal]
 
@@ -55,6 +56,7 @@ class Config:
                 for name, g in sorted(self.gateways.items())
             },
             "settlement_lag_business_days": self.settlement_lag_business_days,
+            "holidays": [h.isoformat() for h in self.holidays],
             "refund_rate": str(self.refund_rate),
             "anomaly_rates": {k: str(v) for k, v in self.anomaly_rates.items()},
         }
@@ -81,6 +83,15 @@ def _int(value: Any, name: str, minimum: int) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
         raise ConfigError(f"{name} must be an integer >= {minimum}, got {value!r}")
     return value
+
+
+def _holidays(value: Any) -> tuple[date, ...]:
+    if not isinstance(value, list):
+        raise ConfigError(f"holidays must be a list of dates, got {value!r}")
+    try:
+        return tuple(sorted({date.fromisoformat(str(day)) for day in value}))
+    except ValueError:
+        raise ConfigError(f"holidays must be ISO dates (YYYY-MM-DD), got {value!r}") from None
 
 
 def parse_config(raw: Any) -> Config:
@@ -110,6 +121,7 @@ def parse_config(raw: Any) -> Config:
             settlement_lag_business_days=_int(
                 raw["settlement_lag_business_days"], "settlement_lag_business_days", 0
             ),
+            holidays=_holidays(raw.get("holidays", [])),
             refund_rate=_rate(raw["refund_rate"], "refund_rate"),
             anomaly_rates={
                 t: _rate(rates.get(t, "0"), f"anomaly_rates.{t}") for t in ANOMALY_TYPES

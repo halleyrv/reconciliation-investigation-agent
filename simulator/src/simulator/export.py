@@ -39,6 +39,7 @@ def policy_documents(config: Config) -> dict[str, str]:
         for name, g in sorted(config.gateways.items())
     )
     lag = config.settlement_lag_business_days
+    holidays = ", ".join(h.isoformat() for h in config.holidays) or "none"
     return {
         "fee_schedule.md": (
             "# Gateway Fee Schedule\n\n"
@@ -62,8 +63,10 @@ def policy_documents(config: Config) -> dict[str, str]:
             "nets the day's captured payments minus the refunds it absorbs and the fees of its "
             "payments.\n\n"
             f"Settlement lag: {lag} business days\n\n"
+            f"Bank holidays: {holidays}\n\n"
             "Each batch is paid out as exactly one bank credit, dated the batch date plus the "
-            "settlement lag. Business days are Monday to Friday.\n"
+            "settlement lag. Business days are Monday to Friday, except the bank holidays "
+            "listed above.\n"
         ),
     }
 

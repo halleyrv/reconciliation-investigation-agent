@@ -54,7 +54,7 @@ One JSON Schema (draft 2020-12) per record type and one for the ground truth, in
 - Each order has one gateway payment for its full total, captured 30 s to 1 h after the order, and one processing fee: `amount × bps / 10000 + fixed`, rounded once to cents with `ROUND_HALF_EVEN`.
 - `refund_rate` of the orders get a full or partial refund 1 to 5 days after the payment, each with an authorization approved 5 to 240 minutes before it.
 - Each gateway settles one batch per capture day. A batch nets its payments minus their fees minus the refunds it absorbs (a refund goes to the first batch of its gateway on or after its date that stays positive; if none exists late in the period, the refund and its authorization are moved earlier, to the first batch since the payment that can absorb it). Fees are not returned on refunds.
-- Each batch is paid as one bank credit, dated the batch date plus `settlement_lag_business_days` (Monday to Friday, no holidays).
+- Each batch is paid as one bank credit, dated the batch date plus `settlement_lag_business_days`. Business days are Monday to Friday minus the configured `holidays` (ADR-0014); the settlement policy lists them.
 
 ## Configuration
 
@@ -66,6 +66,7 @@ One JSON Schema (draft 2020-12) per record type and one for the ground truth, in
 | `gateways.<name>.percentage_bps` | Percentage fee in basis points, integer |
 | `gateways.<name>.fixed_fee` | Fixed fee per payment, quoted decimal string |
 | `settlement_lag_business_days` | Business days from batch date to bank value date |
+| `holidays` | Fictional bank holidays, ISO dates (`"2026-10-09"`); optional, default none. Payouts skip them like weekends |
 | `refund_rate` | Fraction of orders with a normal (authorized) refund, quoted decimal string |
 | `anomaly_rates.<type>` | Rate per anomaly type, quoted decimal string; omitted types are `0` |
 
@@ -87,7 +88,7 @@ A run with every anomaly rate at 0 satisfies all of them (checked by `simulate-v
 | I6 | Order ≤ payment ≤ settlement batch ≤ bank value date, and every refund is after its payment |
 | I7 | External IDs are unique per source |
 | I8 | Every monetary value is positive with exactly 2 decimals |
-| I9 | The numbers in the policy documents equal the config |
+| I9 | The numbers and bank holidays in the policy documents equal the config |
 | I10 | Every order has exactly one payment (v1 scope: split payments are out of scope, ADR-0012) |
 
 ## Anomaly catalog

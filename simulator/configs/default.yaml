@@ -16,6 +16,8 @@ gateways:
     percentage_bps: 250
     fixed_fee: "0.25"
 settlement_lag_business_days: 2
+# Fictional bank holidays (ADR-0014): payouts skip them like weekends.
+holidays: ["2026-10-09", "2026-10-20", "2026-10-28"]
 refund_rate: "0.08"
 anomaly_rates:
   duplicate_payment: "0.01"

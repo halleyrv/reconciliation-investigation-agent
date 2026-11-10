@@ -1,9 +1,11 @@
 import json
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from conftest import raw_default, run
+from simulator.business_days import add_business_days
 from simulator.checks import find_violations
 from simulator.config import parse_config
 from simulator.sim import Sim
@@ -164,13 +166,33 @@ def test_checker_applies_half_even_to_a_fee_on_a_tie(clean_run: Path, tmp_path: 
 
 
 def test_settlement_lag_skips_weekends() -> None:
-    from datetime import date
+    no_holidays: frozenset[date] = frozenset()
+    assert add_business_days(date(2026, 10, 2), 2, no_holidays) == date(2026, 10, 6)  # Fri -> Tue
+    assert add_business_days(date(2026, 10, 3), 2, no_holidays) == date(2026, 10, 6)  # Sat -> Tue
+    assert add_business_days(date(2026, 10, 5), 2, no_holidays) == date(2026, 10, 7)  # Mon -> Wed
 
-    from simulator.sim import add_business_days
 
-    assert add_business_days(date(2026, 10, 2), 2) == date(2026, 10, 6)  # Friday -> Tuesday
-    assert add_business_days(date(2026, 10, 3), 2) == date(2026, 10, 6)  # Saturday -> Tuesday
-    assert add_business_days(date(2026, 10, 5), 2) == date(2026, 10, 7)  # Monday -> Wednesday
+def test_settlement_lag_skips_configured_holidays() -> None:
+    holidays = frozenset({date(2026, 10, 9)})
+    # Thursday batch, Friday is a holiday: Monday and Tuesday are the two business days.
+    assert add_business_days(date(2026, 10, 8), 2, holidays) == date(2026, 10, 13)
+
+
+def test_default_config_lists_fictional_holidays_inside_its_period() -> None:
+    config = parse_config(raw_default())
+    assert 2 <= len(config.holidays) <= 3
+    assert all(config.period_start <= h <= config.period_end for h in config.holidays)
+
+
+def test_a_batch_before_a_default_holiday_is_paid_one_business_day_later(clean_run: Path) -> None:
+    data, _ = _load(clean_run)
+    paid_on = {
+        b["description"].split()[2]: b["value_date"] for b in data["bank_transactions"].values()
+    }
+    # 2026-10-09 is a default holiday: without it, a 2026-10-08 batch would be paid 2026-10-12.
+    thursday = [s for s in data["settlements"].values() if s["batch_date"] == "2026-10-08"]
+    assert thursday
+    assert {paid_on[s["settlement_id"]] for s in thursday} == {"2026-10-13"}
 
 
 def test_a_late_refund_with_no_later_batch_to_absorb_it_still_generates(tmp_path: Path) -> None:

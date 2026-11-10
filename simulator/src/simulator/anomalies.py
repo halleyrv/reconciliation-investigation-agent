@@ -10,8 +10,9 @@ from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 from typing import Literal
 
+from simulator.business_days import add_business_days
 from simulator.records import BankTransaction, Order, Settlement
-from simulator.sim import ACCOUNT_REF, Sim, add_business_days, cents, count_for, round_cents
+from simulator.sim import ACCOUNT_REF, Sim, cents, count_for, round_cents
 
 type RecordRef = tuple[str, str]
 
@@ -185,7 +186,9 @@ def conflicting_resent_record(sim: Sim, target: Target) -> Effect:
 def delayed_settlement(sim: Sim, target: Target) -> Effect:
     settlement = _settlement(target)
     credit = _credit_of(sim, settlement)
-    credit.value_date = add_business_days(credit.value_date, sim.rng.randint(1, 3))
+    credit.value_date = add_business_days(
+        credit.value_date, sim.rng.randint(1, 3), sim.config.holidays
+    )
     records = (
         ("settlements", settlement.settlement_id),
         ("bank_transactions", credit.bank_transaction_id),
@@ -225,7 +228,7 @@ def missing_in_gateway(sim: Sim, target: Target) -> Effect:
         sim.bank_id(),
         ACCOUNT_REF,
         "credit",
-        add_business_days(day, config.settlement_lag_business_days),
+        add_business_days(day, config.settlement_lag_business_days, config.holidays),
         amount,
         config.currency,
         sim.payout_description(gateway, sim.next_id("STL")),

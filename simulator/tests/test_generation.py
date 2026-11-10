@@ -3,6 +3,7 @@ import json
 import re
 import tomllib
 from collections import Counter
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -109,6 +110,21 @@ def test_config_rejects_unknown_anomaly_type() -> None:
     raw = raw_default()
     raw["anomaly_rates"]["made_up"] = "0.01"
     with pytest.raises(ConfigError, match="unknown anomaly types: made_up"):
+        parse_config(raw)
+
+
+def test_config_reads_holidays_sorted_and_keeps_them_in_the_resolved_config() -> None:
+    raw = raw_default()
+    raw["holidays"] = ["2026-10-20", "2026-10-09"]
+    config = parse_config(raw)
+    assert config.holidays == (date(2026, 10, 9), date(2026, 10, 20))
+    assert config.to_dict()["holidays"] == ["2026-10-09", "2026-10-20"]
+
+
+def test_config_rejects_an_invalid_holiday() -> None:
+    raw = raw_default()
+    raw["holidays"] = ["2026-13-01"]
+    with pytest.raises(ConfigError, match="holidays"):
         parse_config(raw)
 
 
