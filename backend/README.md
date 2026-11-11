@@ -32,6 +32,7 @@ payments.json: completed, 206 records
 | 0 | Every file completed (also when every file was already imported) |
 | 1 | At least one file was rejected; each error shows its line and field |
 | 2 | Nothing was imported: a file differs from `manifest.json` or is missing |
+| 3 | The database is unreachable or not migrated: one line on stderr, `<command>: database unavailable: <reason>`; anything committed before the failure stays |
 
 `recon-reference` loads the fee schedules and bank holidays the engine applies. An operator transcribes them by hand from the gateway's published policy into [`reference/gateway-policy-2026.json`](reference/gateway-policy-2026.json); a test checks that file against the policy text, and no code parses the policy (OD1). Loading is idempotent:
 
@@ -48,6 +49,7 @@ calendar years: 1 added, 0 already loaded
 | 0 | Loaded, or already loaded |
 | 1 | Nothing loaded: a fee schedule overlaps a different one already loaded for the same gateway and fee type |
 | 2 | Nothing loaded: the file is missing or does not match the format |
+| 3 | The database is unreachable or not migrated: one line on stderr, `<command>: database unavailable: <reason>`; anything committed before the failure stays |
 
 `recon-reconcile` runs the engine for an inclusive period and prints the run; running the same period and ruleset again returns the same run and writes nothing (AC-2b.5). The rules see every ingested record, and the run keeps what belongs to its period: a discrepancy goes to the period of the latest settlement batch date among its records, a match group to the period of its batch (ADR-0016). A period that shares a day with another live run of the same ruleset is refused, and so is a period whose last payouts are not in the imported bank data yet (its end plus the 2-business-day settlement lag): running it early would report its last batches as `missing_in_bank`:
 
@@ -59,7 +61,8 @@ run 93ee173f-d4f2-4080-b9a9-34c40ad4b27e (v1, 2026-10-01 to 2026-10-31): complet
 |-----------|---------|
 | 0 | The run completed, now or before |
 | 1 | The run failed, for example with no fee schedule or holiday calendar for its period (a December run also needs the next year's calendar for its due dates); it is recorded as `failed` with no partial output, and a new call may retry. If it could not even be marked failed, a second line says so and the run stays `running` |
-| 2 | Nothing was run: an invalid period, a period overlapping another live run, a period whose last payouts are not imported yet, a run of it still in progress, or an unreachable database |
+| 2 | Nothing was run: an invalid period, a period overlapping another live run, a period whose last payouts are not imported yet, or a run of it still in progress |
+| 3 | The database is unreachable or not migrated: one line on stderr, `<command>: database unavailable: <reason>`; anything committed before the failure stays |
 
 After `recon-import` or `recon-reconcile` exits 0, it delivers the events their run wrote (`ingestion.outbox`, `recon.outbox`, `investigation.outbox`) in-process: each `DiscrepancyDetected` opens its discrepancy's case in `investigation.cases`, one case per discrepancy (AC-2c.1). An event whose handler fails, or every event when the database fails during delivery, stays unpublished, is reported on stderr as a warning without changing the exit code, and is delivered by the next successful command.
 
@@ -79,6 +82,7 @@ report: docs/evaluation/p2b-seed-42-orders-200.md (PASS)
 | 0 | Everything matched |
 | 1 | The report lists misses, extras or wrong deltas |
 | 2 | Nothing was evaluated: no completed run of the period, or no readable ground truth |
+| 3 | The database is unreachable or not migrated: one line on stderr, `<command>: database unavailable: <reason>`; anything committed before the failure stays |
 
 The database URL comes from `RECON_DATABASE_URL` (default: the Compose database, which uses trust auth on loopback and has no password).
 

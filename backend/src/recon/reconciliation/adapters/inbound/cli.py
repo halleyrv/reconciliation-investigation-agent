@@ -6,6 +6,8 @@ from collections.abc import Callable, Sequence
 from datetime import date
 from pathlib import Path
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from recon.reconciliation.adapters.inbound.ground_truth import read_ground_truth
 from recon.reconciliation.adapters.inbound.reference_file import read_reference_file
 from recon.reconciliation.adapters.inbound.report import render_report
@@ -58,7 +60,8 @@ def _period(parser: argparse.ArgumentParser) -> None:
 
 
 def run_reconcile(argv: Sequence[str] | None, reconcile: Callable[[], ReconcilePeriod]) -> int:
-    """Exit codes: 0 completed (or already completed), 1 the run failed, 2 nothing was run."""
+    """Exit codes: 0 completed (or already completed), 1 the run failed, 2 nothing was run;
+    a database failure propagates (exit 3 at the entry point)."""
     parser = argparse.ArgumentParser(
         prog="recon-reconcile", description="Reconcile a period (inclusive dates)."
     )
@@ -72,7 +75,9 @@ def run_reconcile(argv: Sequence[str] | None, reconcile: Callable[[], ReconcileP
         for note in getattr(exc, "__notes__", []):  # e.g. it could not be marked failed
             print(f"recon-reconcile: {note}", file=sys.stderr)
         return 1
-    except Exception as exc:  # no run was started: bad period, overlap, unreachable database
+    except SQLAlchemyError:
+        raise  # an infrastructure failure: the entry point gives it its own exit code
+    except Exception as exc:  # no run was started: bad period, overlap, run in progress
         print(f"recon-reconcile: nothing run: {exc}", file=sys.stderr)
         return 2
     print(f"run {run.id} ({run.ruleset_version}, {period.start} to {period.end}): {run.status}")
