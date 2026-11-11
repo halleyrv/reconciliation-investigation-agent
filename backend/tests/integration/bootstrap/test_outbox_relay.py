@@ -5,7 +5,9 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.exc import OperationalError
 
+from recon.bootstrap import cli as bootstrap_cli
 from recon.bootstrap.cli import main, reconcile_main, reference_main
 from recon.bootstrap.outbox import OutboxRelay, default_relay
 
@@ -88,3 +90,33 @@ def test_the_default_relay_routes_discrepancy_detected_to_open_case(database: En
     relay = default_relay(database)
 
     assert "DiscrepancyDetected" in relay.event_types
+
+
+def test_an_unreachable_database_still_exits_2_with_its_message_and_no_traceback(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("RECON_DATABASE_URL", "postgresql+psycopg://recon@127.0.0.1:1/none")
+
+    assert reconcile_main(OCTOBER) == 2
+
+    err = capsys.readouterr().err
+    assert err.startswith("recon-reconcile: nothing run:") and "warning" not in err
+
+
+def test_a_database_error_while_dispatching_is_a_warning_and_keeps_the_exit_code(
+    database: Engine,
+    sample: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    class DownRelay:
+        def drain(self) -> None:
+            raise OperationalError("SELECT", {}, Exception("connection lost"))
+
+    monkeypatch.setattr(bootstrap_cli, "default_relay", lambda engine: DownRelay())
+
+    assert main([str(sample)]) == 0
+
+    assert "recon-import: warning: events not dispatched, retried by the next command" in (
+        capsys.readouterr().err
+    )
