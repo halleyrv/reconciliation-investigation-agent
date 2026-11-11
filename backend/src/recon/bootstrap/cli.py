@@ -1,8 +1,11 @@
+import sys
 from collections.abc import Sequence
 
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
+from recon.bootstrap.outbox import default_relay
 from recon.bootstrap.settings import database_url
 from recon.ingestion.adapters.inbound import cli
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
@@ -15,10 +18,32 @@ from recon.reconciliation.application.reconcile_period import ReconcilePeriod
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
 
+def _dispatch(engine: Engine, command: str, exit_code: int) -> int:
+    """Deliver the events a successful command wrote. Delivery problems are warnings: the
+    events stay in their outbox for the next command, and the exit code is the command's."""
+    if exit_code != 0:
+        return exit_code
+    try:
+        failures = default_relay(engine).drain().failed
+    except SQLAlchemyError as exc:
+        print(
+            f"{command}: warning: events not dispatched, retried by the next command: {exc}",
+            file=sys.stderr,
+        )
+        return exit_code
+    for failure in failures:
+        print(
+            f"{command}: warning: event {failure.event_id} ({failure.event_type}) of"
+            f" {failure.outbox} not delivered, retried by the next command: {failure.error}",
+            file=sys.stderr,
+        )
+    return exit_code
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        return cli.run(
+        exit_code = cli.run(
             argv,
             lambda: ImportExport(
                 SqlAlchemyIngestionUnitOfWork(sessionmaker(engine)),
@@ -26,6 +51,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 UuidIdGenerator(),
             ),
         )
+        return _dispatch(engine, "recon-import", exit_code)
     finally:
         engine.dispose()
 
@@ -46,7 +72,7 @@ def reference_main(argv: Sequence[str] | None = None) -> int:
 def reconcile_main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        return run_reconcile(
+        exit_code = run_reconcile(
             argv,
             lambda: ReconcilePeriod(
                 SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine)),
@@ -54,6 +80,7 @@ def reconcile_main(argv: Sequence[str] | None = None) -> int:
                 UuidIdGenerator(),
             ),
         )
+        return _dispatch(engine, "recon-reconcile", exit_code)
     finally:
         engine.dispose()
 
