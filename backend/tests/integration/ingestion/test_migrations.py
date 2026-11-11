@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text
 from recon.bootstrap.migrations import downgrade, upgrade
 from tests.integration.conftest import create_database, drop_database
 
-CONTEXT_SCHEMAS = {"ref", "ingestion", "recon", "investigation"}
+CONTEXT_SCHEMAS = {"ref", "ingestion", "recon", "investigation", "audit"}
 
 
 def test_migrations_go_up_from_empty_and_back_to_base_with_every_table_in_its_schema() -> None:
@@ -35,5 +35,6 @@ def test_migrations_go_up_from_empty_and_back_to_base_with_every_table_in_its_sc
         ("recon", "discrepancies"),
         ("investigation", "cases"),
         ("investigation", "outbox"),
+        ("audit", "events"),
     } <= after_upgrade
     assert after_downgrade == {("public", "alembic_version")}

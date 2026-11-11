@@ -105,6 +105,24 @@ source_modules = ["recon.ingestion", "recon.reconciliation"]
 forbidden_modules = ["recon.investigation"]
 
 [[tool.importlinter.contracts]]
+name = "Audit layers: adapters > api > application > domain"
+type = "layers"
+containers = ["recon.audit"]
+layers = ["adapters", "api", "application", "domain"]
+
+[[tool.importlinter.contracts]]
+name = "Audit is a conformist consumer: it imports no other context"
+type = "forbidden"
+source_modules = ["recon.audit"]
+forbidden_modules = ["recon.ingestion", "recon.reconciliation", "recon.investigation"]
+
+[[tool.importlinter.contracts]]
+name = "No context depends on Audit"
+type = "forbidden"
+source_modules = ["recon.ingestion", "recon.reconciliation", "recon.investigation"]
+forbidden_modules = ["recon.audit"]
+
+[[tool.importlinter.contracts]]
 name = "Contexts integrate only through each other's api module"
 type = "forbidden"
 source_modules = ["recon.reconciliation"]
@@ -131,6 +149,9 @@ forbidden_modules = [
     "recon.investigation.application",
     "recon.investigation.adapters",
     "recon.investigation.api",
+    "recon.audit.application",
+    "recon.audit.adapters",
+    "recon.audit.api",
     "alembic",
     "fastapi",
     "psycopg",

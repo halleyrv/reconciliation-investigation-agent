@@ -11,12 +11,17 @@ from dataclasses import dataclass, field
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import sessionmaker
 
+from recon.audit.adapters.inbound.events import record_every_event
+from recon.audit.adapters.outbound.sql import SqlAlchemyAuditUnitOfWork
+from recon.audit.application.record_event import RecordEvent
 from recon.investigation.adapters.inbound.events import on_discrepancy_detected
 from recon.investigation.adapters.outbound.sql import SqlAlchemyInvestigationUnitOfWork
 from recon.investigation.application.open_case import OpenCase
+from recon.shared_kernel.actor import Actor, ActorType
+from recon.shared_kernel.events import OutboxMessage
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
-Handler = Callable[[dict[str, object]], None]
+Handler = Callable[[OutboxMessage], None]
 OUTBOXES = ("ingestion.outbox", "recon.outbox", "investigation.outbox")
 
 
@@ -35,9 +40,16 @@ class DrainResult:
 
 
 class OutboxRelay:
-    def __init__(self, engine: Engine, handlers: Mapping[str, Sequence[Handler]]) -> None:
+    def __init__(
+        self,
+        engine: Engine,
+        handlers: Mapping[str, Sequence[Handler]],
+        every: Sequence[Handler] = (),
+    ) -> None:
+        """``handlers`` run for their event type, ``every`` for every event (the audit trail)."""
         self._engine = engine
         self._handlers = handlers
+        self._every = every
 
     @property
     def event_types(self) -> frozenset[str]:
@@ -57,7 +69,8 @@ class OutboxRelay:
             # SKIP LOCKED: a concurrent drain takes the next row instead of waiting on this one
             row = connection.execute(
                 text(
-                    f"SELECT id, event_type, payload FROM {outbox}"  # OUTBOXES names only
+                    "SELECT id, event_type, event_version, payload, created_at, actor_type,"
+                    f" actor_id, aggregate_type, aggregate_id FROM {outbox}"  # OUTBOXES names only
                     " WHERE published_at IS NULL AND id > :after"
                     " ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED"
                 ),
@@ -65,9 +78,20 @@ class OutboxRelay:
             ).first()
             if row is None:
                 return None
+            message = OutboxMessage(
+                outbox=outbox,
+                id=row.id,
+                event_type=row.event_type,
+                event_version=row.event_version,
+                payload=row.payload,
+                created_at=row.created_at,
+                actor=Actor(ActorType(row.actor_type), row.actor_id),
+                aggregate_type=row.aggregate_type,
+                aggregate_id=row.aggregate_id,
+            )
             try:
-                for handle in self._handlers.get(row.event_type, ()):
-                    handle(row.payload)
+                for handle in (*self._handlers.get(row.event_type, ()), *self._every):
+                    handle(message)
             except Exception as exc:  # kept for the next drain, reported
                 result.failed.append(FailedDelivery(outbox, row.id, row.event_type, repr(exc)))
                 return int(row.id)
@@ -80,7 +104,16 @@ class OutboxRelay:
 
 
 def default_relay(engine: Engine) -> OutboxRelay:
+    sessions = sessionmaker(engine)
     open_case = OpenCase(
-        SqlAlchemyInvestigationUnitOfWork(sessionmaker(engine)), SystemClock(), UuidIdGenerator()
+        SqlAlchemyInvestigationUnitOfWork(
+            sessions, actor=Actor.system("open-case-on-discrepancy-detected")
+        ),
+        SystemClock(),
+        UuidIdGenerator(),
     )
-    return OutboxRelay(engine, {"DiscrepancyDetected": [on_discrepancy_detected(open_case)]})
+    return OutboxRelay(
+        engine,
+        {"DiscrepancyDetected": [on_discrepancy_detected(open_case)]},
+        every=[record_every_event(RecordEvent(SqlAlchemyAuditUnitOfWork(sessions)))],
+    )

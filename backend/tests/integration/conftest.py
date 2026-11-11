@@ -49,7 +49,7 @@ def engine(migrated_url: str) -> Iterator[Engine]:
     with engine.begin() as connection:
         connection.execute(
             text(
-                "TRUNCATE investigation.outbox, investigation.cases,"
+                "TRUNCATE audit.events, investigation.outbox, investigation.cases,"
                 " recon.outbox, recon.discrepancy_records, recon.discrepancies,"
                 " recon.match_group_members, recon.match_groups, recon.reconciliation_runs,"
                 " recon.fee_schedules, recon.holidays, recon.calendar_years, ingestion.outbox,"

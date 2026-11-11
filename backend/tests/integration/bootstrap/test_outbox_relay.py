@@ -10,6 +10,7 @@ from sqlalchemy.exc import OperationalError
 from recon.bootstrap import cli as bootstrap_cli
 from recon.bootstrap.cli import main, reconcile_main, reference_main
 from recon.bootstrap.outbox import OutboxRelay, default_relay
+from recon.shared_kernel.events import OutboxMessage
 
 REFERENCE_FILE = Path(__file__).parents[3] / "reference" / "gateway-policy-2026.json"
 OCTOBER = ["--from", "2026-10-01", "--to", "2026-10-31"]
@@ -59,18 +60,19 @@ def test_a_failing_handler_leaves_its_event_unpublished_and_the_next_drain_retri
         for n in (1, 2):
             connection.execute(
                 text(
-                    "INSERT INTO recon.outbox (event_type, event_version, payload, created_at)"
-                    " VALUES ('Probe', 1, CAST(:p AS jsonb), now())"
+                    "INSERT INTO recon.outbox (event_type, event_version, payload, created_at,"
+                    " actor_type, actor_id) VALUES ('Probe', 1, CAST(:p AS jsonb), now(),"
+                    " 'system', 'test')"
                 ),
                 {"p": f'{{"n": {n}}}'},
             )
     seen: list[object] = []
     broken = {"n": 1}
 
-    def handler(payload: dict[str, object]) -> None:
-        if payload["n"] == broken["n"]:
+    def handler(message: OutboxMessage) -> None:
+        if message.payload["n"] == broken["n"]:
             raise RuntimeError("handler down")
-        seen.append(payload["n"])
+        seen.append(message.payload["n"])
 
     relay = OutboxRelay(create_engine(migrated_url), {"Probe": [handler]})
 

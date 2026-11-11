@@ -24,6 +24,7 @@ from recon.reconciliation.application.reconcile_period import (
 )
 from recon.reconciliation.domain.results import DiscrepancyType, Period
 from recon.reconciliation.domain.run import RunStatus
+from recon.shared_kernel.actor import Actor
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
 OCTOBER = Period(date(2026, 10, 1), date(2026, 10, 31))
@@ -37,15 +38,15 @@ def _rows(engine: Engine, sql: str, **params: object) -> list[tuple[object, ...]
 
 @pytest.fixture
 def loaded(engine: Engine, sample: Path) -> Engine:
-    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine))
+    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     ImportExport(uow, SystemClock(), UuidIdGenerator())(read_export(sample))
-    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     LoadReferenceData(reference, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
     return engine
 
 
 def _reconcile(engine: Engine) -> ReconcilePeriod:
-    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     return ReconcilePeriod(uow, SystemClock(), UuidIdGenerator())
 
 
@@ -141,7 +142,7 @@ def test_a_month_split_in_two_halves_reports_exactly_what_the_whole_month_report
     first = _reconcile(loaded)(Period(date(2026, 10, 1), date(2026, 10, 15)), "halves")
     second = _reconcile(loaded)(Period(date(2026, 10, 16), date(2026, 10, 31)), "halves")
 
-    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded))
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded), actor=Actor.system("test"))
     with uow:
         month = sorted(map(_comparable, uow.outputs.findings(whole.id)))
         halves = [sorted(map(_comparable, uow.outputs.findings(run.id))) for run in (first, second)]
@@ -154,12 +155,12 @@ def test_a_month_split_in_two_halves_reports_exactly_what_the_whole_month_report
 def test_a_run_without_reference_data_fails_and_succeeds_once_it_is_loaded(
     engine: Engine, sample: Path
 ) -> None:
-    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine))
+    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     ImportExport(uow, SystemClock(), UuidIdGenerator())(read_export(sample))
 
     with pytest.raises(RunFailed, match="no bank holiday calendar for 2026"):
         _reconcile(engine)(OCTOBER)
-    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     LoadReferenceData(reference, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
 
     assert _reconcile(engine)(OCTOBER).status is RunStatus.COMPLETED
