@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import sessionmaker
 
@@ -15,8 +15,10 @@ from recon.audit.adapters.outbound.sql import SqlAlchemyAuditUnitOfWork
 from recon.audit.application.record_event import RecordEvent, VerifyChain
 from recon.audit.domain.chain import AuditRecord
 from recon.bootstrap.cli import main, reconcile_main, reference_main
+from recon.bootstrap.migrations import upgrade
 from recon.bootstrap.outbox import default_relay
 from recon.shared_kernel.actor import Actor
+from tests.integration.conftest import create_database, drop_database
 
 REFERENCE_FILE = Path(__file__).parents[3] / "reference" / "gateway-policy-2026.json"
 OCTOBER = ["--from", "2026-10-01", "--to", "2026-10-31"]
@@ -133,3 +135,29 @@ def test_concurrent_recording_keeps_one_linear_chain(engine: Engine) -> None:
     assert _verify(engine) == (8, None)
     [(links,)] = _rows(engine, "SELECT count(DISTINCT prev_sha256) FROM audit.events")
     assert links == 7  # every entry but the first links a different predecessor
+
+
+def test_upgrading_to_0004_redelivers_events_published_before_it_so_they_are_audited() -> None:
+    url = create_database()
+    engine = create_engine(url)
+    try:
+        upgrade(url, "0003")
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO recon.outbox (event_type, event_version, payload, created_at,"
+                    " published_at) VALUES ('Probe', 1, '{}', now(), now())"
+                )
+            )
+        upgrade(url)
+
+        assert _rows(engine, "SELECT actor_type, actor_id, published_at FROM recon.outbox") == [
+            ("system", "before-0004", None)
+        ]
+        assert default_relay(engine).drain().failed == []
+        assert _rows(engine, "SELECT event_type, actor_id FROM audit.events") == [
+            ("Probe", "before-0004")
+        ]
+    finally:
+        engine.dispose()
+        drop_database(url)

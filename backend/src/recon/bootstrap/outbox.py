@@ -46,7 +46,7 @@ class OutboxRelay:
         handlers: Mapping[str, Sequence[Handler]],
         every: Sequence[Handler] = (),
     ) -> None:
-        """``handlers`` run for their event type, ``every`` for every event (the audit trail)."""
+        """``every`` runs for every event (the audit trail), then ``handlers`` of its type."""
         self._engine = engine
         self._handlers = handlers
         self._every = every
@@ -78,19 +78,20 @@ class OutboxRelay:
             ).first()
             if row is None:
                 return None
-            message = OutboxMessage(
-                outbox=outbox,
-                id=row.id,
-                event_type=row.event_type,
-                event_version=row.event_version,
-                payload=row.payload,
-                created_at=row.created_at,
-                actor=Actor(ActorType(row.actor_type), row.actor_id),
-                aggregate_type=row.aggregate_type,
-                aggregate_id=row.aggregate_id,
-            )
             try:
-                for handle in (*self._handlers.get(row.event_type, ()), *self._every):
+                message = OutboxMessage(
+                    outbox=outbox,
+                    id=row.id,
+                    event_type=row.event_type,
+                    event_version=row.event_version,
+                    payload=row.payload,
+                    created_at=row.created_at,
+                    actor=Actor(ActorType(row.actor_type), row.actor_id),
+                    aggregate_type=row.aggregate_type,
+                    aggregate_id=row.aggregate_id,
+                )
+                # the audit trail first, so a failing business handler cannot hide an event
+                for handle in (*self._every, *self._handlers.get(row.event_type, ())):
                     handle(message)
             except Exception as exc:  # kept for the next drain, reported
                 result.failed.append(FailedDelivery(outbox, row.id, row.event_type, repr(exc)))

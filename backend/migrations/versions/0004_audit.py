@@ -22,6 +22,9 @@ ALTER TABLE {outbox}
     ADD COLUMN aggregate_type TEXT CHECK (aggregate_type <> ''),
     ADD COLUMN aggregate_id UUID;
 ALTER TABLE {outbox} ALTER COLUMN actor_type DROP DEFAULT, ALTER COLUMN actor_id DROP DEFAULT;
+-- Events delivered before the audit trail existed are delivered again so it records them;
+-- every handler is idempotent.
+UPDATE {outbox} SET published_at = NULL;
 """
 
 
