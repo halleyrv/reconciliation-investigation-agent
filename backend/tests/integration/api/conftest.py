@@ -32,6 +32,29 @@ def assert_problem(response: Any, status: int) -> dict[str, Any]:
     return body
 
 
+def second_run(engine: Engine, first_run: str) -> str:
+    """A second run's copy of every discrepancy, inserted with fresh random IDs; its ID."""
+    with engine.begin() as connection:
+        second = connection.execute(
+            text(
+                "INSERT INTO recon.reconciliation_runs (id, period, ruleset_version, status,"
+                " started_at, finished_at) VALUES (gen_random_uuid(), '[2027-01-01,2027-02-01)',"
+                " 'v1', 'completed', now(), now()) RETURNING id"
+            )
+        ).scalar_one()
+        connection.execute(
+            text(
+                "INSERT INTO recon.discrepancies (id, run_id, type, severity, expected_minor,"
+                " actual_minor, currency, fingerprint, status, detected_at)"
+                " SELECT gen_random_uuid(), :second, type, severity, expected_minor,"
+                " actual_minor, currency, fingerprint, status, now()"
+                " FROM recon.discrepancies WHERE run_id = :first"
+            ),
+            {"first": first_run, "second": second},
+        )
+        return str(second)
+
+
 @pytest.fixture
 def client(engine: Engine, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setenv("RECON_IMPORT_ROOT", str(tmp_path))

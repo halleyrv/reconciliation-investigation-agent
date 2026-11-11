@@ -11,3 +11,12 @@ class CaseOpened(DomainEvent):
     case_id: uuid.UUID
     discrepancy_id: uuid.UUID
     priority: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class CaseUpdated(DomainEvent):
+    aggregate: ClassVar[tuple[str, str]] = ("ReconciliationCase", "case_id")
+    case_id: uuid.UUID
+    version: int
+    priority: str
+    assignee_id: str | None

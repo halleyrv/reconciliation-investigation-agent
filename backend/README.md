@@ -97,8 +97,13 @@ uv run --locked python -c "from recon.bootstrap.app import create_app; print(sor
 | `POST` | `/reconciliation-runs` | Body `{"from": "2026-10-01", "to": "2026-10-31"}` (inclusive, ruleset `v1`). `200` with the run; a second identical POST returns the same run |
 | `GET` | `/reconciliation-runs/{id}` | The run plus its match group count and discrepancies per type |
 | `GET` | `/discrepancies` | Optional `run_id`, `type`, `severity` (`low`, `medium`, `high`), `min_abs_delta` (minor units, `abs(delta) >= value`); `limit` 1-200 (default 50); ordered by ID. Pass `next_cursor` back as `cursor` until it is `null` |
+| `POST` | `/cases` | Body `{"discrepancy_id": "<uuid>"}`. `201` with the opened case, `200` with the existing one (one case per discrepancy; a run already opens them through `DiscrepancyDetected`). Unknown discrepancy `404` |
+| `GET` | `/cases` | Optional `status`, `discrepancy_type`, `run_id`; `limit` and `cursor` as for `/discrepancies` |
+| `GET` | `/cases/{id}` | The case, its discrepancy and its involved records (`type` and `id` of each source record). `ETag` is the case version |
+| `PATCH` | `/cases/{id}` | Body with `priority` and/or `assignee_id` (`null` unassigns). Requires `If-Match: "<version>"` (missing: `428`, stale: `409`, nothing changes) and `X-Actor-Id` (missing: `422`), recorded as a claimed, unverified `user` |
+| `GET` | `/cases/{id}/history` | The case's events from `audit.events`, oldest first, each with its actor |
 
-`POST /imports` reads only under the directory named by `RECON_IMPORT_ROOT`: when it is unset, or the path resolves outside it, nothing is read and the answer is `422`. Events a POST writes are delivered in-process like the CLI does; a delivery problem is logged as a warning and never changes the response. Every API write is recorded with the actor `system:api` (ADR-0018).
+`POST /imports` reads only under the directory named by `RECON_IMPORT_ROOT`: when it is unset, or the path resolves outside it, nothing is read and the answer is `422`. Events a POST writes are delivered in-process like the CLI does; a delivery problem is logged as a warning and never changes the response. Every API write except `PATCH /cases/{id}` is recorded with the actor `system:api` (ADR-0018).
 
 Errors are Problem Details (`application/problem+json`: `type`, `title`, `status`, `detail`), never a stack trace:
 

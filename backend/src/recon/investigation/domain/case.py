@@ -1,6 +1,7 @@
 """ReconciliationCase: the unit of work an investigator (later the agent) takes on, one per
 discrepancy. Every change is guarded by an optimistic version check."""
 
+import dataclasses
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -38,9 +39,17 @@ class ReconciliationCase:
         closed = self.status in (CaseStatus.RESOLVED, CaseStatus.ESCALATED)
         if closed != (self.closed_at is not None):
             raise ValueError("a case has a close time exactly when it is resolved or escalated")
+        if self.assignee_id is not None and not self.assignee_id.strip():
+            raise ValueError("an assignee needs a non-empty ID")
 
     @classmethod
     def open(
         cls, case_id: uuid.UUID, discrepancy_id: uuid.UUID, priority: Priority, at: datetime
     ) -> ReconciliationCase:
         return cls(case_id, discrepancy_id, CaseStatus.OPEN, priority, at, version=1)
+
+    def reassigned(self, priority: Priority, assignee_id: str | None) -> ReconciliationCase:
+        """The case with a new priority and assignee, one version later."""
+        return dataclasses.replace(
+            self, priority=priority, assignee_id=assignee_id, version=self.version + 1
+        )

@@ -16,6 +16,9 @@ def test_openapi_lists_every_endpoint_of_the_api_surface(client: TestClient) -> 
         "/reconciliation-runs": {"post"},
         "/reconciliation-runs/{id}": {"get"},
         "/discrepancies": {"get"},
+        "/cases": {"post", "get"},
+        "/cases/{id}": {"get", "patch"},
+        "/cases/{id}/history": {"get"},
     }
     assert {path: set(paths.get(path, ())) for path in surface} == surface
 
