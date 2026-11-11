@@ -9,6 +9,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 from sqlalchemy import Engine, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from recon.audit.adapters.inbound.events import record_every_event
@@ -118,3 +119,18 @@ def default_relay(engine: Engine) -> OutboxRelay:
         {"DiscrepancyDetected": [on_discrepancy_detected(open_case)]},
         every=[record_every_event(RecordEvent(SqlAlchemyAuditUnitOfWork(sessions)))],
     )
+
+
+def dispatch(relay: OutboxRelay) -> list[str]:
+    """Deliver the events a successful command or request wrote, and return a warning per
+    problem. Delivery problems never fail the caller: the events stay in their outbox and the
+    next drain retries them."""
+    try:
+        failures = relay.drain().failed
+    except SQLAlchemyError as exc:
+        return [f"events not dispatched, retried by the next command: {exc}"]
+    return [
+        f"event {f.event_id} ({f.event_type}) of {f.outbox} not delivered, retried by the next"
+        f" command: {f.error}"
+        for f in failures
+    ]

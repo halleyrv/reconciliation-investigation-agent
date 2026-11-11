@@ -58,6 +58,10 @@ class _Batches:
     def lock_source(self, source: str) -> None:
         pass  # one thread, one unit of work: nothing to serialize
 
+    def get(self, batch_id: uuid.UUID) -> ImportBatch | None:
+        batch = self._uow.state.batches.get(batch_id)
+        return None if batch is None else copy.deepcopy(batch)
+
     def get_by_file(self, source: str, file_sha256: str) -> ImportBatch | None:
         for batch in self._uow.state.batches.values():
             if (batch.source, batch.file_sha256) == (source, file_sha256):

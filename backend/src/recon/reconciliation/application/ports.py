@@ -1,10 +1,12 @@
 import uuid
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
 from recon.reconciliation.application.evaluation import Finding, Link
 from recon.reconciliation.domain.fees import FeeSchedule
-from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
+from recon.reconciliation.domain.results import Discrepancy, DiscrepancyType, MatchGroup, Period
 from recon.reconciliation.domain.run import ReconciliationRun
 from recon.reconciliation.domain.snapshot import Snapshot
 from recon.shared_kernel.ports import UnitOfWork
@@ -94,3 +96,46 @@ class ReconciliationUnitOfWork(UnitOfWork, Protocol):
 
     @property
     def outputs(self) -> RunOutputReader: ...
+
+
+@dataclass(frozen=True, slots=True)
+class RunSummary:
+    run: ReconciliationRun
+    match_groups: int
+    discrepancies_by_type: Mapping[str, int]
+
+
+@dataclass(frozen=True, slots=True)
+class DiscrepancyFilter:
+    """Every field is optional; the ones given all apply."""
+
+    run_id: uuid.UUID | None = None
+    type: DiscrepancyType | None = None
+    severity: str | None = None
+    min_abs_delta_minor: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DiscrepancyView:
+    id: uuid.UUID
+    run_id: uuid.UUID
+    type: str
+    severity: str
+    expected_minor: int
+    actual_minor: int
+    delta_minor: int
+    currency: str
+    status: str
+    detected_at: datetime
+
+
+class RunQueries(Protocol):
+    """What the API reads about runs and their discrepancies: views, not aggregates."""
+
+    def summary(self, run_id: uuid.UUID) -> RunSummary | None: ...
+
+    def discrepancies(
+        self, where: DiscrepancyFilter, after: uuid.UUID | None, limit: int
+    ) -> list[DiscrepancyView]:
+        """At most ``limit`` matching discrepancies whose ID is above ``after``, by ID."""
+        ...

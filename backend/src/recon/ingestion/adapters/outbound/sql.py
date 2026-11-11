@@ -151,6 +151,7 @@ class _Sources:
     def __init__(self, session: Session) -> None:
         rows = session.execute(select(DataSourceRow.name, DataSourceRow.id)).all()
         self.id_of = {name: source_id for name, source_id in rows}
+        self.name_of = {source_id: name for name, source_id in rows}
 
 
 class SqlAlchemyImportBatches:
@@ -164,6 +165,10 @@ class SqlAlchemyImportBatches:
             {"key": f"ingestion.source:{source}"},
         )
 
+    def get(self, batch_id: uuid.UUID) -> ImportBatch | None:
+        row = self._session.get(ImportBatchRow, batch_id)
+        return None if row is None else self._to_batch(row)
+
     def get_by_file(self, source: str, file_sha256: str) -> ImportBatch | None:
         row = self._session.scalars(
             select(ImportBatchRow).where(
@@ -171,8 +176,9 @@ class SqlAlchemyImportBatches:
                 ImportBatchRow.file_sha256 == file_sha256,
             )
         ).one_or_none()
-        if row is None:
-            return None
+        return None if row is None else self._to_batch(row)
+
+    def _to_batch(self, row: ImportBatchRow) -> ImportBatch:
         errors = self._session.scalars(
             select(ImportBatchErrorRow)
             .where(ImportBatchErrorRow.batch_id == row.id)
@@ -180,7 +186,7 @@ class SqlAlchemyImportBatches:
         )
         return ImportBatch(
             id=row.id,
-            source=source,
+            source=self._sources.name_of[row.source_id],
             record_type=RecordType(row.record_type),
             file_name=row.file_name,
             file_sha256=row.file_sha256,
