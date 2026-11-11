@@ -115,3 +115,35 @@ def test_the_database_rejects_a_second_case_and_a_case_without_its_discrepancy(
     for target in (discrepancy_id, uuid.uuid4()):
         with pytest.raises(IntegrityError), reconciled.begin() as connection:
             connection.execute(text(insert), {"id": uuid.uuid4(), "d": target})
+
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    [
+        ("status", "'closed'"),
+        ("priority", "'urgent'"),
+        ("version", "0"),
+        ("assignee_id", "''"),
+        ("closed_at", "now()"),  # open with a close time
+    ],
+)
+def test_the_database_rejects_a_case_breaking_its_checks(
+    reconciled: Engine, column: str, value: str
+) -> None:
+    discrepancy_id, _ = _a_discrepancy(reconciled)
+    values = {"status": "'open'", "priority": "'low'", "version": "1"} | {column: value}
+    columns = ", ".join(values)
+    with pytest.raises(IntegrityError), reconciled.begin() as connection:
+        connection.execute(
+            text(
+                f"INSERT INTO investigation.cases (id, discrepancy_id, opened_at, {columns})"
+                f" VALUES (:id, :d, now(), {', '.join(values.values())})"
+            ),
+            {"id": uuid.uuid4(), "d": discrepancy_id},
+        )
+    resolved_open = (
+        "INSERT INTO investigation.cases (id, discrepancy_id, status, priority, opened_at, version)"
+        " VALUES (:id, :d, 'resolved', 'low', now(), 1)"
+    )
+    with pytest.raises(IntegrityError), reconciled.begin() as connection:
+        connection.execute(text(resolved_open), {"id": uuid.uuid4(), "d": discrepancy_id})

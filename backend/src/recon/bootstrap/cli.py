@@ -1,8 +1,10 @@
+import sys
 from collections.abc import Sequence
 
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import sessionmaker
 
+from recon.bootstrap.outbox import default_relay
 from recon.bootstrap.settings import database_url
 from recon.ingestion.adapters.inbound import cli
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
@@ -15,10 +17,20 @@ from recon.reconciliation.application.reconcile_period import ReconcilePeriod
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
 
+def _dispatch(engine: Engine, command: str) -> None:
+    """Deliver the events the command wrote; an undelivered one waits for the next command."""
+    for failure in default_relay(engine).drain().failed:
+        print(
+            f"{command}: warning: event {failure.event_id} ({failure.event_type}) of"
+            f" {failure.outbox} not delivered, retried by the next command: {failure.error}",
+            file=sys.stderr,
+        )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        return cli.run(
+        exit_code = cli.run(
             argv,
             lambda: ImportExport(
                 SqlAlchemyIngestionUnitOfWork(sessionmaker(engine)),
@@ -26,6 +38,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 UuidIdGenerator(),
             ),
         )
+        _dispatch(engine, "recon-import")
+        return exit_code
     finally:
         engine.dispose()
 
@@ -46,7 +60,7 @@ def reference_main(argv: Sequence[str] | None = None) -> int:
 def reconcile_main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        return run_reconcile(
+        exit_code = run_reconcile(
             argv,
             lambda: ReconcilePeriod(
                 SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine)),
@@ -54,6 +68,8 @@ def reconcile_main(argv: Sequence[str] | None = None) -> int:
                 UuidIdGenerator(),
             ),
         )
+        _dispatch(engine, "recon-reconcile")
+        return exit_code
     finally:
         engine.dispose()
 
