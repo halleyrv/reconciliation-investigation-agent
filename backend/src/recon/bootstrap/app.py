@@ -13,6 +13,14 @@ from recon.ingestion.adapters.inbound.http import imports_router
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.get_import_batch import GetImportBatch
 from recon.ingestion.application.import_export import ImportExport
+from recon.investigation.adapters.inbound.http import cases_router
+from recon.investigation.adapters.outbound.sql import (
+    SqlAlchemyInvestigationUnitOfWork,
+    SqlCaseQueries,
+)
+from recon.investigation.application.case_queries import GetCaseDetail, GetCaseHistory, ListCases
+from recon.investigation.application.open_case import OpenCase
+from recon.investigation.application.update_case import UpdateCase
 from recon.reconciliation.adapters.inbound.http import runs_router
 from recon.reconciliation.adapters.outbound.sql import (
     SqlAlchemyReconciliationUnitOfWork,
@@ -32,6 +40,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
     engine = engine or create_engine(database_url())
     sessions = sessionmaker(engine)
     queries = SqlRunQueries(sessions)
+    case_queries = SqlCaseQueries(sessions)
 
     def deliver_events() -> None:
         # like the CLI: a delivery problem is a warning and never changes the response
@@ -67,6 +76,23 @@ def create_app(engine: Engine | None = None) -> FastAPI:
             ),
             lambda: GetRunSummary(queries),
             lambda: ListDiscrepancies(queries),
+            deliver_events,
+        )
+    )
+    app.include_router(
+        cases_router(
+            lambda: OpenCase(
+                SqlAlchemyInvestigationUnitOfWork(sessions, actor=API),
+                SystemClock(),
+                UuidIdGenerator(),
+            ),
+            lambda: GetCaseDetail(case_queries),
+            lambda: ListCases(case_queries),
+            lambda: GetCaseHistory(case_queries),
+            # D2: the case update is the one endpoint acting as the user it names
+            lambda actor: UpdateCase(
+                SqlAlchemyInvestigationUnitOfWork(sessions, actor=actor), SystemClock()
+            ),
             deliver_events,
         )
     )

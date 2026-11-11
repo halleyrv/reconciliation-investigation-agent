@@ -14,6 +14,7 @@ from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport
 from recon.investigation.adapters.outbound.sql import SqlAlchemyInvestigationUnitOfWork
 from recon.investigation.application.open_case import DiscrepancyNotFound, OpenCase
+from recon.investigation.domain.case import Priority
 from recon.reconciliation.adapters.inbound.reference_file import read_reference_file
 from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationUnitOfWork
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
@@ -150,3 +151,22 @@ def test_the_database_rejects_a_case_breaking_its_checks(
     )
     with pytest.raises(IntegrityError), reconciled.begin() as connection:
         connection.execute(text(resolved_open), {"id": uuid.uuid4(), "d": discrepancy_id})
+
+
+def test_an_update_whose_version_another_writer_took_writes_nothing(reconciled: Engine) -> None:
+    discrepancy_id, _ = _a_discrepancy(reconciled)
+    case = _open_case(reconciled)(discrepancy_id).case
+    uow = SqlAlchemyInvestigationUnitOfWork(sessionmaker(reconciled), actor=Actor.system("test"))
+    with uow:
+        assert uow.cases.update(case.reassigned(Priority.HIGH, "a"), expected_version=1)
+        uow.commit()
+
+    with uow:  # a writer that read version 1 before the first one committed
+        assert not uow.cases.update(case.reassigned(Priority.LOW, "b"), expected_version=1)
+        uow.commit()
+
+    assert _rows(
+        reconciled,
+        "SELECT priority, assignee_id, version FROM investigation.cases WHERE id = :id",
+        id=case.id,
+    ) == [("high", "a", 2)]

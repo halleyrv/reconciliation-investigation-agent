@@ -88,6 +88,8 @@ layers = ["adapters", "api", "application", "domain"]
 [[tool.importlinter.contracts]]
 name = "Investigation integrates with upstream contexts only through their api module"
 type = "forbidden"
+# the api module is the gate: it may re-export upstream types, a direct import stays forbidden
+allow_indirect_imports = true
 source_modules = ["recon.investigation"]
 forbidden_modules = [
     "recon.ingestion.domain",

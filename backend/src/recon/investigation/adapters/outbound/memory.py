@@ -19,9 +19,18 @@ class State:
 
 
 class _Cases:
-    def __init__(self, state: State, opened_concurrently: ReconciliationCase | None) -> None:
+    def __init__(
+        self,
+        state: State,
+        opened_concurrently: ReconciliationCase | None,
+        updated_concurrently: bool,
+    ) -> None:
         self._state = state
         self._concurrent = opened_concurrently
+        self._updated_concurrently = updated_concurrently
+
+    def get(self, case_id: uuid.UUID) -> ReconciliationCase | None:
+        return self._state.cases.get(case_id)
 
     def find_by_discrepancy(self, discrepancy_id: uuid.UUID) -> ReconciliationCase | None:
         if self._concurrent is not None:
@@ -34,6 +43,13 @@ class _Cases:
 
     def add(self, case: ReconciliationCase) -> bool:
         if self.find_by_discrepancy(case.discrepancy_id) is not None:
+            return False
+        self._state.cases[case.id] = case
+        return True
+
+    def update(self, case: ReconciliationCase, expected_version: int) -> bool:
+        stored = self._state.cases.get(case.id)
+        if self._updated_concurrently or stored is None or stored.version != expected_version:
             return False
         self._state.cases[case.id] = case
         return True
@@ -60,11 +76,12 @@ class InMemoryInvestigationUnitOfWork:
         self.committed = State()
         self.discrepancies = _Discrepancies(discrepancies)
         self.opened_concurrently = opened_concurrently  # test hook, used by the next transaction
+        self.updated_concurrently = False  # test hook: the next transaction's update loses
 
     def __enter__(self) -> Self:
         self._working = copy.deepcopy(self.committed)
-        self.cases = _Cases(self._working, self.opened_concurrently)
-        self.opened_concurrently = None
+        self.cases = _Cases(self._working, self.opened_concurrently, self.updated_concurrently)
+        self.opened_concurrently, self.updated_concurrently = None, False
         return self
 
     def __exit__(

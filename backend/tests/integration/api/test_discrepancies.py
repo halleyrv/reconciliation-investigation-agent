@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
-from tests.integration.api.conftest import assert_problem, scalar
+from tests.integration.api.conftest import assert_problem, scalar, second_run
 
 ITEM_KEYS = {
     "id",
@@ -45,28 +45,6 @@ def _walk(client: TestClient, limit: int, **filters: str | int) -> list[dict[str
             return items
 
 
-def _second_run(engine: Engine, first_run: str) -> None:
-    """A second run's copy of every discrepancy, inserted with fresh random IDs."""
-    with engine.begin() as connection:
-        second = connection.execute(
-            text(
-                "INSERT INTO recon.reconciliation_runs (id, period, ruleset_version, status,"
-                " started_at, finished_at) VALUES (gen_random_uuid(), '[2027-01-01,2027-02-01)',"
-                " 'v1', 'completed', now(), now()) RETURNING id"
-            )
-        ).scalar_one()
-        connection.execute(
-            text(
-                "INSERT INTO recon.discrepancies (id, run_id, type, severity, expected_minor,"
-                " actual_minor, currency, fingerprint, status, detected_at)"
-                " SELECT gen_random_uuid(), :second, type, severity, expected_minor,"
-                " actual_minor, currency, fingerprint, status, now()"
-                " FROM recon.discrepancies WHERE run_id = :first"
-            ),
-            {"first": first_run, "second": second},
-        )
-
-
 def test_an_unfiltered_list_returns_every_discrepancy_ordered_by_id(
     reconciled: dict[str, Any], imported: TestClient, engine: Engine
 ) -> None:
@@ -82,7 +60,7 @@ def test_an_unfiltered_list_returns_every_discrepancy_ordered_by_id(
 
 
 def test_filter_by_run(reconciled: dict[str, Any], imported: TestClient, engine: Engine) -> None:
-    _second_run(engine, reconciled["id"])
+    second_run(engine, reconciled["id"])
 
     items = _walk(imported, 200, run_id=reconciled["id"])
 
@@ -117,7 +95,7 @@ def test_filter_by_minimum_absolute_delta(
 
 
 def test_filters_combine(reconciled: dict[str, Any], imported: TestClient, engine: Engine) -> None:
-    _second_run(engine, reconciled["id"])
+    second_run(engine, reconciled["id"])
     severity = scalar(
         engine, "SELECT min(severity) FROM recon.discrepancies WHERE abs(delta_minor) >= 1"
     )
@@ -138,7 +116,7 @@ def test_walking_pages_returns_each_row_once_while_rows_are_inserted(
 ) -> None:
     before = set(_ids(engine))
     first = imported.get("/discrepancies", params={"limit": 7}).json()
-    _second_run(engine, reconciled["id"])
+    second_run(engine, reconciled["id"])
 
     rest: list[dict[str, Any]] = []
     cursor = first["next_cursor"]
