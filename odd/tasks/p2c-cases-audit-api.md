@@ -1,7 +1,7 @@
 # P2c Cases, audit and API
 
 Objective: one case per discrepancy, an append-only hash-chained audit history of every Phase 2 domain event, and the REST API of the phase, plus the run replacement and recovery work carried over from 2b. Spec: `docs/roadmap/phase-2-backend-and-reconciliation-engine.md` (sub-phase 2c and its amendments).
-Branch: `feat/p2c-cases-audit-api`. Delivery: work-unit commits, one PR for the sub-phase as in 2a and 2b, phase review, owner merges. Test runner: `pytest` through `uv run --locked`; integration tests on PostgreSQL from Docker Compose. Migrations 0001 and 0002 are on `main`: every schema change is a new revision.
+Branch: `feat/p2c-cases-audit-api`. Delivery (owner decision 2026-11-10, `AGENTS.md` quality-gate rules 4-6, chained-pr strategy `feature-branch-chain`): one small PR per task from a task branch cut from the updated phase branch into the phase branch; one final PR from the phase branch into `main` after the phase review and the owner report. Test runner: `pytest` through `uv run --locked`; integration tests on PostgreSQL from Docker Compose. Migrations 0001 and 0002 are on `main`: every schema change is a new revision.
 
 ## Specs
 

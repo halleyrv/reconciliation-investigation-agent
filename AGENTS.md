@@ -60,6 +60,8 @@ One script validates that the repository works: formatting, lint, import contrac
 2. **Before closing a task:** run `scripts/check.sh` again. A task is not done while it fails.
 3. **Never bypass it:** no `--no-verify`, no skipped or deleted tests to get green. A failure you cannot fix is reported to the owner as a blocker.
 4. **Branches:** each phase is developed on its own branch (`feat/pN-<name>`), never directly on `main`.
+5. **One PR per task:** each task is a small PR (about 400 authored lines, code, tests and docs together; larger only with a stated reason, never splitting one behavior) from a task branch cut from the updated phase branch, never from another open task, into the phase branch.
+6. **One PR per phase into `main`:** the phase branch reaches `main` in a single final PR, after the phase review and the report to the owner.
 
 Commands (run on this repository):
 
