@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 from types import TracebackType
 from typing import Any, Self
 
-from sqlalchemy import insert, select, text, update
+from sqlalchemy import func, insert, select, text, update
 from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -26,6 +26,11 @@ from recon.reconciliation.adapters.outbound.orm import (
     RunRow,
 )
 from recon.reconciliation.application.evaluation import Finding, Link
+from recon.reconciliation.application.ports import (
+    DiscrepancyFilter,
+    DiscrepancyView,
+    RunSummary,
+)
 from recon.reconciliation.domain.fees import FeeSchedule
 from recon.reconciliation.domain.records import (
     Authorization,
@@ -409,6 +414,62 @@ class SqlRunOutputs:
     def links(self, run_id: uuid.UUID) -> set[Link]:
         rows = self._session.execute(text(_LINKS), {"run_id": run_id})
         return {Link(*row) for row in rows}
+
+
+class SqlRunQueries:
+    """Read-only: each call is its own short transaction."""
+
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def summary(self, run_id: uuid.UUID) -> RunSummary | None:
+        with self._session_factory() as session:
+            row = session.get(RunRow, run_id)
+            if row is None:
+                return None
+            groups = session.scalar(
+                select(func.count())
+                .select_from(MatchGroupRow)
+                .where(MatchGroupRow.run_id == run_id)
+            )
+            per_type = session.execute(
+                select(DiscrepancyRow.type, func.count())
+                .where(DiscrepancyRow.run_id == run_id)
+                .group_by(DiscrepancyRow.type)
+            ).all()
+            return RunSummary(_run_from_row(row), groups or 0, dict(per_type))
+
+    def discrepancies(
+        self, where: DiscrepancyFilter, after: uuid.UUID | None, limit: int
+    ) -> list[DiscrepancyView]:
+        query = select(DiscrepancyRow).order_by(DiscrepancyRow.id).limit(limit)
+        if after is not None:
+            query = query.where(DiscrepancyRow.id > after)
+        if where.run_id is not None:
+            query = query.where(DiscrepancyRow.run_id == where.run_id)
+        if where.type is not None:
+            query = query.where(DiscrepancyRow.type == where.type.value)
+        if where.severity is not None:
+            query = query.where(DiscrepancyRow.severity == where.severity)
+        if where.min_abs_delta_minor is not None:
+            delta = DiscrepancyRow.actual_minor - DiscrepancyRow.expected_minor
+            query = query.where(func.abs(delta) >= where.min_abs_delta_minor)
+        with self._session_factory() as session:
+            return [
+                DiscrepancyView(
+                    id=row.id,
+                    run_id=row.run_id,
+                    type=row.type,
+                    severity=row.severity,
+                    expected_minor=row.expected_minor,
+                    actual_minor=row.actual_minor,
+                    delta_minor=row.actual_minor - row.expected_minor,
+                    currency=row.currency,
+                    status=row.status,
+                    detected_at=row.detected_at,
+                )
+                for row in session.scalars(query)
+            ]
 
 
 class SqlAlchemyReconciliationUnitOfWork:

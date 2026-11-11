@@ -67,6 +67,7 @@ A port exists only with a named reason. If a row cannot fill the "reason" column
 | `ReferenceDataRepository` | reconciliation | Fee schedules and holidays loaded by an operator (OD1); test seam | SQLAlchemy, in-memory fake |
 | `ResultRepository` | reconciliation | Writes a run's `MatchGroup`s and `Discrepancy`s, which are aggregates the run does not contain; test seam | SQLAlchemy, in-memory fake |
 | `RunOutputReader` | reconciliation | The evaluation use case scores a completed run's output against a known answer; test seam (not a cross-context read model) | SQL query, in-memory fake |
+| `RunQueries` | reconciliation | The API reads run summaries and filtered, keyset-paginated discrepancies as views, not aggregates, without SQL in the HTTP adapter | SQL queries (tested through the API against PostgreSQL) |
 | `HypothesisGenerator` | investigation | External LLM; test seam with scripted outputs | LLM adapter, scripted fake |
 | `EmbeddingProvider` | knowledge | External model; swappable (ADR-0006) | provider adapter, hash-based fake |
 | `Reranker` | knowledge | External model; swappable (ADR-0006) | provider adapter, identity fake |

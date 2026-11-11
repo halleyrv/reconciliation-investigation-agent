@@ -82,6 +82,33 @@ report: docs/evaluation/p2b-seed-42-orders-200.md (PASS)
 
 The database URL comes from `RECON_DATABASE_URL` (default: the Compose database, which uses trust auth on loopback and has no password).
 
+## HTTP API
+
+`recon.bootstrap.app:create_app` is the FastAPI application factory. No ASGI server is a dependency yet, so the API is exercised through `fastapi.testclient.TestClient` (`backend/tests/integration/api/`). This prints its paths:
+
+```bash
+uv run --locked python -c "from recon.bootstrap.app import create_app; print(sorted(create_app().openapi()['paths']))"
+```
+
+| Method | Path | Answer |
+|--------|------|--------|
+| `POST` | `/imports` | Body `{"directory": "<path>"}`. `200` with every batch (status, row count, errors). Re-posting the same export returns the same batches and writes nothing |
+| `GET` | `/imports/{id}` | The batch with its stored errors |
+| `POST` | `/reconciliation-runs` | Body `{"from": "2026-10-01", "to": "2026-10-31"}` (inclusive, ruleset `v1`). `200` with the run; a second identical POST returns the same run |
+| `GET` | `/reconciliation-runs/{id}` | The run plus its match group count and discrepancies per type |
+| `GET` | `/discrepancies` | Optional `run_id`, `type`, `severity` (`low`, `medium`, `high`), `min_abs_delta` (minor units, `abs(delta) >= value`); `limit` 1-200 (default 50); ordered by ID. Pass `next_cursor` back as `cursor` until it is `null` |
+
+`POST /imports` reads only under the directory named by `RECON_IMPORT_ROOT`: when it is unset, or the path resolves outside it, nothing is read and the answer is `422`. Events a POST writes are delivered in-process like the CLI does; a delivery problem is logged as a warning and never changes the response. Every API write is recorded with the actor `system:api` (ADR-0018).
+
+Errors are Problem Details (`application/problem+json`: `type`, `title`, `status`, `detail`), never a stack trace:
+
+| Status | When |
+|--------|------|
+| `422` | Invalid request (field errors in `errors`), import path outside the root or not an export, manifest mismatch, period ending before it starts, malformed cursor, a run that failed (its ID in `run_id`) |
+| `404` | Unknown batch, run or path |
+| `409` | The period overlaps a live run, a run of it is still running, or its bank data does not reach the last payout due date |
+| `500` | Anything unexpected, with a generic detail |
+
 ## What an import guarantees
 
 | Rule | How |

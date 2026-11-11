@@ -2,10 +2,9 @@ import sys
 from collections.abc import Sequence
 
 from sqlalchemy import Engine, create_engine
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-from recon.bootstrap.outbox import default_relay
+from recon.bootstrap.outbox import default_relay, dispatch
 from recon.bootstrap.settings import database_url
 from recon.ingestion.adapters.inbound import cli
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
@@ -24,20 +23,8 @@ def _dispatch(engine: Engine, command: str, exit_code: int) -> int:
     events stay in their outbox for the next command, and the exit code is the command's."""
     if exit_code != 0:
         return exit_code
-    try:
-        failures = default_relay(engine).drain().failed
-    except SQLAlchemyError as exc:
-        print(
-            f"{command}: warning: events not dispatched, retried by the next command: {exc}",
-            file=sys.stderr,
-        )
-        return exit_code
-    for failure in failures:
-        print(
-            f"{command}: warning: event {failure.event_id} ({failure.event_type}) of"
-            f" {failure.outbox} not delivered, retried by the next command: {failure.error}",
-            file=sys.stderr,
-        )
+    for warning in dispatch(default_relay(engine)):
+        print(f"{command}: warning: {warning}", file=sys.stderr)
     return exit_code
 
 

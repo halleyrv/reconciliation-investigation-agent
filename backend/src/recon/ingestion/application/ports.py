@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Collection
 from typing import Protocol
 
@@ -10,6 +11,8 @@ class ImportBatchRepository(Protocol):
     def lock_source(self, source: str) -> None:
         """Serialize imports of one source until the current transaction ends."""
         ...
+
+    def get(self, batch_id: uuid.UUID) -> ImportBatch | None: ...
 
     def get_by_file(self, source: str, file_sha256: str) -> ImportBatch | None: ...
 
