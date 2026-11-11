@@ -38,15 +38,19 @@ Quoted verbatim from the phase file.
 
 ### Open decisions (owner)
 
-- **D1** AC-2c.5 needs a case update, but the API surface has no update endpoint and the state machine transitions (`investigating`, `awaiting_approval`, `resolved`, `escalated`) belong to the agent and approval phases.
+- **D1** (decided by the owner on 2026-11-10, L3) `PATCH /cases/{id}` changes only `priority` and `assignee_id`, expected version in `If-Match`, stale -> `409` and nothing changes; status transitions stay with phases 4 and 5. Phase-file amendment row added.
 - **D2** AC-2c.6 records an actor per event, but authentication is out of scope.
 - **D3** What a run replacement does to the cases of the discrepancies it supersedes.
+
+### Agent assumptions (owner to confirm at the 2c report)
+
+- **C1** A case opens with priority equal to its discrepancy's severity (`ref.discrepancy_types.default_severity`, B8).
 
 ## Tasks
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T1 | S3, AC-2c.1: Investigation context, `Case` aggregate, migration 0003 `investigation.cases`, idempotent `OpenCase`, `CaseOpened` in its outbox | inline | pending | |
+| T1 | S3, AC-2c.1: Investigation context, `Case` aggregate, migration 0003 `investigation.cases`, idempotent `OpenCase`, `CaseOpened` in its outbox | inline | done | L4 |
 | T2 | S3, AC-2c.1: in-process outbox dispatch; the `DiscrepancyDetected` handler calls `OpenCase` | inline | pending | |
 | T3 | AC-2c.6: Audit context, `audit.events` with hash chain, consumer of every Phase 2 event with its actor, application role without `UPDATE`/`DELETE` | inline | pending | |
 | T4 | S1, S2, AC-2c.2, AC-2c.3, AC-2c.4: imports, runs and discrepancies endpoints, Problem Details, keyset pagination | inline | pending | |
@@ -60,3 +64,5 @@ Route: inline. No writer trigger: each task builds on the previous one (cases â†
 
 - **L1** (2026-11-10, owner) After the 2b report: "continua en que te quedaste?"; asked whether 2b is accepted and 2c starts on `feat/p2c-cases-audit-api`: "si".
 - **L2** (2026-11-10) Baseline on the new branch: `scripts/check.sh` exit 0, 236 passed in 52.5 s. Existing: per-context outboxes (`ingestion`, `recon`) written in the state change's transaction, `shared_kernel.events.event_payload`, FastAPI `create_app` with `/health` only; no dispatcher yet. Feature document created with 7 tasks and 3 open decisions.
+- **L3** (2026-11-10, owner) D1: proposed `PATCH /cases/{id}` for `priority` and `assignee_id` only, version in `If-Match`, stale -> `409`, status transitions left to phases 4 and 5, recorded as an amendment row: "si".
+- **L4** (2026-11-10) T1. New context `recon.investigation`: `ReconciliationCase` (statuses of the state machine, `Priority`, version from 1, close time exactly when resolved or escalated), `CaseOpened`; `OpenCase` returns `Opened(case, created)`: an existing case as is, `DiscrepancyNotFound` for an unknown discrepancy, otherwise a new `open` case at version 1 with priority = the discrepancy's severity (assumption C1) and one `CaseOpened`. Port `DiscrepancyReader` returns a `DiscrepancyView` (anti-corruption layer); the SQL adapter reads `recon.discrepancies` read-only and imports no Reconciliation code. Migration 0003: `investigation.cases` (UNIQUE and FK on `discrepancy_id`, status, priority, version and close-time checks), `investigation.outbox`. `SqlAlchemyCases.add` inserts with `ON CONFLICT (discrepancy_id) DO NOTHING`; the loser of a race re-reads the winner. Contracts: Investigation layers; Investigation imports no Ingestion or Reconciliation domain, application or adapters; upstream contexts import nothing from Investigation; domain forbidden list extended. RED: `uv run --locked pytest -q backend/tests/unit/investigation` -> `ModuleNotFoundError: No module named 'recon.investigation'`; `.../integration/investigation` -> `ModuleNotFoundError: No module named 'recon.investigation.adapters.outbound.sql'`. GREEN: 3 unit tests (opens with event, second call returns it and writes nothing, unknown discrepancy refused) and 4 PostgreSQL tests (persisted row and outbox payload once, unknown refused, 4 concurrent openings -> 1 case and 1 event, the database rejects a second case and a dangling discrepancy). Mutation check: without `on_conflict_do_nothing` the concurrency test fails. The migrations test lists `investigation` among the context schemas. `data-model.md` investigation section matches 0003. Gate exit 0, 246 passed.

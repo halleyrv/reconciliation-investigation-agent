@@ -80,6 +80,31 @@ containers = ["recon.reconciliation"]
 layers = ["adapters", "api", "application", "domain"]
 
 [[tool.importlinter.contracts]]
+name = "Investigation layers: adapters > api > application > domain"
+type = "layers"
+containers = ["recon.investigation"]
+layers = ["adapters", "api", "application", "domain"]
+
+[[tool.importlinter.contracts]]
+name = "Investigation integrates with upstream contexts only through their api module"
+type = "forbidden"
+source_modules = ["recon.investigation"]
+forbidden_modules = [
+    "recon.ingestion.domain",
+    "recon.ingestion.application",
+    "recon.ingestion.adapters",
+    "recon.reconciliation.domain",
+    "recon.reconciliation.application",
+    "recon.reconciliation.adapters",
+]
+
+[[tool.importlinter.contracts]]
+name = "Upstream contexts do not depend on Investigation"
+type = "forbidden"
+source_modules = ["recon.ingestion", "recon.reconciliation"]
+forbidden_modules = ["recon.investigation"]
+
+[[tool.importlinter.contracts]]
 name = "Contexts integrate only through each other's api module"
 type = "forbidden"
 source_modules = ["recon.reconciliation"]
@@ -103,6 +128,9 @@ forbidden_modules = [
     "recon.reconciliation.application",
     "recon.reconciliation.adapters",
     "recon.reconciliation.api",
+    "recon.investigation.application",
+    "recon.investigation.adapters",
+    "recon.investigation.api",
     "alembic",
     "fastapi",
     "psycopg",
