@@ -9,6 +9,8 @@ from recon.investigation.application.open_case import DiscrepancyNotFound, OpenC
 from recon.investigation.application.ports import DiscrepancyView
 from recon.investigation.domain.case import CaseStatus, Priority, ReconciliationCase
 from recon.investigation.domain.events import CaseOpened
+from recon.shared_kernel.actor import Actor
+from recon.shared_kernel.events import OutboxMessage
 from recon.shared_kernel.ports import FixedClock, SequenceIdGenerator
 
 AT = datetime(2026, 11, 10, 12, tzinfo=UTC)
@@ -78,7 +80,17 @@ def test_the_discrepancy_detected_handler_opens_the_case_from_the_event_payload(
     uow = _uow()
 
     on_discrepancy_detected(_open_case(uow))(
-        {"discrepancy_id": str(DISCREPANCY), "type": "fee_mismatch", "delta_minor": 5}
+        OutboxMessage(
+            outbox="recon.outbox",
+            id=1,
+            event_type="DiscrepancyDetected",
+            event_version=1,
+            payload={"discrepancy_id": str(DISCREPANCY), "type": "fee_mismatch", "delta_minor": 5},
+            created_at=AT,
+            actor=Actor.system("recon-reconcile"),
+            aggregate_type="Discrepancy",
+            aggregate_id=DISCREPANCY,
+        )
     )
 
     [case] = uow.committed.cases.values()

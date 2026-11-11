@@ -19,6 +19,7 @@ from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationU
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import ReconcilePeriod
 from recon.reconciliation.domain.results import Period
+from recon.shared_kernel.actor import Actor
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
 REFERENCE_FILE = Path(__file__).parents[3] / "reference" / "gateway-policy-2026.json"
@@ -32,9 +33,11 @@ def _rows(engine: Engine, sql: str, **params: object) -> list[tuple[object, ...]
 @pytest.fixture
 def reconciled(engine: Engine, sample: Path) -> Engine:
     ImportExport(
-        SqlAlchemyIngestionUnitOfWork(sessionmaker(engine)), SystemClock(), UuidIdGenerator()
+        SqlAlchemyIngestionUnitOfWork(sessionmaker(engine), actor=Actor.system("test")),
+        SystemClock(),
+        UuidIdGenerator(),
     )(read_export(sample))
-    recon_uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    recon_uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     LoadReferenceData(recon_uow, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
     ReconcilePeriod(recon_uow, SystemClock(), UuidIdGenerator())(
         Period(date(2026, 10, 1), date(2026, 10, 31))
@@ -43,7 +46,7 @@ def reconciled(engine: Engine, sample: Path) -> Engine:
 
 
 def _open_case(engine: Engine) -> OpenCase:
-    uow = SqlAlchemyInvestigationUnitOfWork(sessionmaker(engine))
+    uow = SqlAlchemyInvestigationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     return OpenCase(uow, SystemClock(), UuidIdGenerator())
 
 

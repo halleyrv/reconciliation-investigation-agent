@@ -15,7 +15,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from recon.investigation.adapters.outbound.orm import CaseRow, OutboxRow
 from recon.investigation.application.ports import DiscrepancyView
 from recon.investigation.domain.case import CaseStatus, Priority, ReconciliationCase
-from recon.shared_kernel.events import DomainEvent, event_payload
+from recon.shared_kernel.actor import Actor
+from recon.shared_kernel.events import DomainEvent, outbox_columns
 
 
 def _case_from_row(row: CaseRow) -> ReconciliationCase:
@@ -79,8 +80,9 @@ class SqlAlchemyInvestigationUnitOfWork:
     cases: SqlAlchemyCases
     discrepancies: SqlDiscrepancies
 
-    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+    def __init__(self, session_factory: sessionmaker[Session], *, actor: Actor) -> None:
         self._session_factory = session_factory
+        self._actor = actor  # stamped on every event this unit of work writes (ADR-0018)
 
     def __enter__(self) -> Self:
         self._session = self._session_factory()
@@ -101,11 +103,4 @@ class SqlAlchemyInvestigationUnitOfWork:
         self._session.commit()
 
     def add_event(self, event: DomainEvent) -> None:
-        self._session.add(
-            OutboxRow(
-                event_type=event.event_type,
-                event_version=event.event_version,
-                payload=event_payload(event),
-                created_at=event.occurred_at,
-            )
-        )
+        self._session.add(OutboxRow(**outbox_columns(event, self._actor)))

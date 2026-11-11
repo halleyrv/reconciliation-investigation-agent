@@ -4,12 +4,13 @@ once, and a DiscrepancyDetected opens the discrepancy's case."""
 from pathlib import Path
 
 import pytest
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, text
 from sqlalchemy.exc import OperationalError
 
 from recon.bootstrap import cli as bootstrap_cli
 from recon.bootstrap.cli import main, reconcile_main, reference_main
 from recon.bootstrap.outbox import OutboxRelay, default_relay
+from recon.shared_kernel.events import OutboxMessage
 
 REFERENCE_FILE = Path(__file__).parents[3] / "reference" / "gateway-policy-2026.json"
 OCTOBER = ["--from", "2026-10-01", "--to", "2026-10-31"]
@@ -59,20 +60,21 @@ def test_a_failing_handler_leaves_its_event_unpublished_and_the_next_drain_retri
         for n in (1, 2):
             connection.execute(
                 text(
-                    "INSERT INTO recon.outbox (event_type, event_version, payload, created_at)"
-                    " VALUES ('Probe', 1, CAST(:p AS jsonb), now())"
+                    "INSERT INTO recon.outbox (event_type, event_version, payload, created_at,"
+                    " actor_type, actor_id) VALUES ('Probe', 1, CAST(:p AS jsonb), now(),"
+                    " 'system', 'test')"
                 ),
                 {"p": f'{{"n": {n}}}'},
             )
     seen: list[object] = []
     broken = {"n": 1}
 
-    def handler(payload: dict[str, object]) -> None:
-        if payload["n"] == broken["n"]:
+    def handler(message: OutboxMessage) -> None:
+        if message.payload["n"] == broken["n"]:
             raise RuntimeError("handler down")
-        seen.append(payload["n"])
+        seen.append(message.payload["n"])
 
-    relay = OutboxRelay(create_engine(migrated_url), {"Probe": [handler]})
+    relay = OutboxRelay(database, {"Probe": [handler]})
 
     first = relay.drain()
 
@@ -119,4 +121,82 @@ def test_a_database_error_while_dispatching_is_a_warning_and_keeps_the_exit_code
 
     assert "recon-import: warning: events not dispatched, retried by the next command" in (
         capsys.readouterr().err
+    )
+
+
+def _probe(engine: Engine, actor_id: str = "test") -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO recon.outbox (event_type, event_version, payload, created_at,"
+                " actor_type, actor_id) VALUES ('Probe', 1, '{}', now(), 'system', :a)"
+            ),
+            {"a": actor_id},
+        )
+
+
+def test_the_audit_records_an_event_whose_business_handler_keeps_failing(
+    database: Engine, migrated_url: str
+) -> None:
+    _probe(database)
+    audited: list[str] = []
+
+    def failing(message: OutboxMessage) -> None:
+        raise RuntimeError("case handler down")
+
+    relay = OutboxRelay(
+        database,
+        {"Probe": [failing]},
+        every=[lambda m: audited.append(m.event_type)],
+    )
+
+    [failure] = relay.drain().failed
+
+    assert "case handler down" in failure.error
+    assert audited == ["Probe"]  # audited before the business handler ran
+    assert _count(database, "SELECT count(*) FROM recon.outbox WHERE published_at IS NULL") == 1
+
+
+def test_a_row_whose_actor_is_invalid_is_a_failed_delivery_not_a_crash(
+    database: Engine, migrated_url: str
+) -> None:
+    _probe(database, actor_id=" ")
+
+    [failure] = OutboxRelay(database, {}).drain().failed
+
+    assert "non-empty ID" in failure.error
+
+
+def test_a_failed_delivery_after_a_command_is_a_warning_and_keeps_exit_0(
+    database: Engine,
+    sample: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def failing(message: OutboxMessage) -> None:
+        raise RuntimeError("handler down")
+
+    monkeypatch.setattr(
+        bootstrap_cli,
+        "default_relay",
+        lambda engine: OutboxRelay(engine, {"SourceConflictDetected": [failing]}),
+    )
+    with database.begin() as connection:  # one event to deliver, whatever the sample holds
+        connection.execute(
+            text(
+                "INSERT INTO ingestion.outbox (event_type, event_version, payload, created_at,"
+                " actor_type, actor_id) VALUES ('SourceConflictDetected', 1, '{}', now(),"
+                " 'system', 'test')"
+            )
+        )
+
+    assert main([str(sample)]) == 0
+
+    warnings = [line for line in capsys.readouterr().err.splitlines() if "warning" in line]
+    assert warnings and all(
+        line.startswith("recon-import: warning: event ")
+        and "(SourceConflictDetected) of ingestion.outbox not delivered, retried by the next"
+        " command: RuntimeError('handler down')"
+        in line
+        for line in warnings
     )

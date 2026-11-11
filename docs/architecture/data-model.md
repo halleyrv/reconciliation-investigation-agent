@@ -158,6 +158,8 @@ cases(id UUID PK, discrepancy_id UUID NOT NULL UNIQUE REFERENCES recon.discrepan
       opened_at TIMESTAMPTZ NOT NULL, closed_at TIMESTAMPTZ, version INT NOT NULL CHECK (>= 1),
       CHECK ((status IN ('resolved','escalated')) = (closed_at IS NOT NULL)))
 outbox(id BIGINT IDENTITY PK, event_type, event_version, payload JSONB, created_at, published_at)
+-- Every outbox (ingestion, recon, investigation) also has, from migration 0004: actor_type,
+-- actor_id (NOT NULL, ADR-0018), aggregate_type, aggregate_id.
 -- A case opens with priority = its discrepancy's severity. OpenCase inserts with
 -- ON CONFLICT (discrepancy_id) DO NOTHING, so concurrent openings leave one case and one event.
 
@@ -224,10 +226,21 @@ The composite FK `(action_id, action_type)` guarantees that a detail row matches
 ### `audit`
 
 ```sql
-events(id BIGINT GENERATED ALWAYS AS IDENTITY PK, occurred_at, actor_type CHECK IN ('user','agent','system'),
-       actor_id TEXT NOT NULL, aggregate_type TEXT, aggregate_id UUID, event_type TEXT,
-       event_version INT, payload JSONB NOT NULL, prev_sha256 CHAR(64), sha256 CHAR(64) NOT NULL UNIQUE)
--- The application role gets INSERT and SELECT only. UPDATE and DELETE are revoked.
+-- Migration 0004 (Phase 2c, ADR-0018).
+events(id BIGINT GENERATED ALWAYS AS IDENTITY PK, source TEXT NOT NULL, source_event_id BIGINT NOT NULL,
+       occurred_at TIMESTAMPTZ NOT NULL, actor_type TEXT NOT NULL CHECK IN ('user','agent','system'),
+       actor_id TEXT NOT NULL CHECK (<> ''), aggregate_type TEXT, aggregate_id UUID,
+       event_type TEXT NOT NULL, event_version INT NOT NULL, payload JSONB NOT NULL,
+       prev_sha256 CHAR(64) UNIQUE, sha256 CHAR(64) NOT NULL UNIQUE,
+       UNIQUE (source, source_event_id))
+INDEX (aggregate_type, aggregate_id)
+-- source = the outbox the event came from ('recon.outbox', ...), source_event_id its row ID:
+-- an event delivered twice is audited once.
+-- sha256 = SHA-256 over the canonical JSON of the entry's content and prev_sha256; the first
+-- entry has prev_sha256 NULL. Appends are serialized by an advisory lock, so the chain is linear.
+-- A BEFORE UPDATE OR DELETE trigger rejects every change for every role, the application's
+-- included. TRUNCATE is not blocked (test cleanup); a separate INSERT/SELECT-only application
+-- role is a follow-up for deployment.
 ```
 
 ### `read` (read models)
