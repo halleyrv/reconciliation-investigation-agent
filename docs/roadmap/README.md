@@ -21,7 +21,7 @@ All phases start as pending. A phase is never marked done just because files wer
 |-------|------|--------|------|--------|
 | 0 | Foundations: git, uv workspace, tooling, quality gate | done | [phase-0](phase-0-foundations.md) | [p0-foundations](../../odd/tasks/p0-foundations.md) |
 | 1 | Financial Data Simulator | done | [phase-1](phase-1-financial-data-simulator.md) | [p1-financial-data-simulator](../../odd/tasks/p1-financial-data-simulator.md) |
-| 2 | Backend and reconciliation engine (2a ingestion, 2b engine + evaluation, 2c cases, audit, API) | in progress (2a done, 2b awaiting the owner's report) | [phase-2](phase-2-backend-and-reconciliation-engine.md) | [p2a-ingestion](../../odd/tasks/p2a-ingestion.md), [p2b-reconciliation-engine](../../odd/tasks/p2b-reconciliation-engine.md) |
+| 2 | Backend and reconciliation engine (2a ingestion, 2b engine + evaluation, 2c cases, audit, API) | in progress (2a and 2b done, 2c in progress) | [phase-2](phase-2-backend-and-reconciliation-engine.md) | [p2a-ingestion](../../odd/tasks/p2a-ingestion.md), [p2b-reconciliation-engine](../../odd/tasks/p2b-reconciliation-engine.md), [p2c-cases-audit-api](../../odd/tasks/p2c-cases-audit-api.md) |
 | 3 | Hybrid RAG and evidence verification | pending | [phase-3](phase-3-hybrid-rag-and-evidence-verification.md) | — |
 | 4 | LangGraph investigation agent | pending | [phase-4](phase-4-langgraph-investigation-agent.md) | — |
 | 5 | Resolution and human approval | pending | [phase-5](phase-5-resolution-and-human-approval.md) | — |
