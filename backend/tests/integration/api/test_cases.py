@@ -454,3 +454,39 @@ def test_the_history_is_the_case_audit_trail_in_order_with_actors(
 
 def test_the_history_of_an_unknown_case_is_404(client: TestClient) -> None:
     assert_problem(client.get(f"/cases/{uuid.uuid4()}/history"), 404)
+
+
+@pytest.mark.parametrize(
+    ("if_match", "status"),
+    [
+        ('W/"1"', 412),  # RFC 9110 13.1.1: If-Match compares strongly, a weak tag never matches
+        ("*", 428),  # names no version
+        ("+1", 422),
+        ("1_0", 422),
+        ('"1", "2"', 422),
+    ],
+)
+def test_an_if_match_that_is_not_one_strong_version_changes_nothing(
+    reconciled: dict[str, Any], imported: TestClient, if_match: str, status: int
+) -> None:
+    case = _a_case(imported)
+    url = f"/cases/{case['id']}"
+
+    response = imported.patch(
+        url, json={"priority": "high"}, headers={**USER, "If-Match": if_match}
+    )
+
+    assert_problem(response, status)
+    assert imported.get(url).json()["version"] == 1
+
+
+def test_a_bare_version_in_if_match_is_accepted(
+    reconciled: dict[str, Any], imported: TestClient
+) -> None:
+    case = _a_case(imported)
+
+    response = imported.patch(
+        f"/cases/{case['id']}", json={"priority": "high"}, headers={**USER, "If-Match": "1"}
+    )
+
+    assert response.status_code == 200

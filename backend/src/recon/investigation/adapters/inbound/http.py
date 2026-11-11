@@ -3,6 +3,7 @@ under an optimistic version (D1), read a case's audit history."""
 
 import base64
 import binascii
+import re
 import uuid
 from collections.abc import Callable
 from datetime import datetime
@@ -127,13 +128,21 @@ def _etag(response: Response, case: ReconciliationCase) -> None:
     response.headers["ETag"] = f'"{case.version}"'
 
 
+_VERSION_TAG = re.compile(r'"?([0-9]+)"?')
+
+
 def _expected_version(if_match: str | None) -> int:
-    if if_match is None:
+    """One strong entity tag, ``"<version>"`` as the ETag gives it (or the bare number)."""
+    tag = None if if_match is None else if_match.strip()
+    if tag is None or tag == "*":
         raise HTTPException(428, "send If-Match with the case version (its ETag) you read")
-    try:
-        return int(if_match.strip().strip('"'))
-    except ValueError as exc:
-        raise HTTPException(422, "If-Match must be a case version, as in its ETag") from exc
+    if tag.startswith("W/"):
+        # RFC 9110 13.1.1: If-Match uses the strong comparison, a weak tag never matches
+        raise HTTPException(412, "a weak entity tag never matches If-Match; send the ETag as is")
+    match = _VERSION_TAG.fullmatch(tag)
+    if match is None or tag.count('"') == 1:
+        raise HTTPException(422, "If-Match must be one case version, as in its ETag")
+    return int(match.group(1))
 
 
 # shortcut: the same cursor codec as the discrepancies router; contexts share no adapter code
