@@ -3,10 +3,13 @@
 import uuid
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
-from tests.integration.api.conftest import OCTOBER, assert_problem, scalar
+from recon.bootstrap.cli import reference_main
+from recon.reconciliation.domain.engine import MatchingEngine
+from tests.integration.api.conftest import OCTOBER, REFERENCE_FILE, assert_problem, scalar
 
 WRITES = (
     "SELECT (SELECT count(*) FROM recon.reconciliation_runs)"
@@ -127,3 +130,21 @@ def test_a_failed_run_is_422_with_its_id(imported: TestClient, engine: Engine) -
     assert body["run_id"] == str(scalar(engine, "SELECT id FROM recon.reconciliation_runs"))
     assert scalar(engine, "SELECT status FROM recon.reconciliation_runs") == "failed"
     assert "load it first" in body["detail"]
+
+
+def test_a_run_failed_by_an_unexpected_error_does_not_leak_its_text(
+    imported: TestClient, engine: Engine, migrated_url: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RECON_DATABASE_URL", migrated_url)
+    assert reference_main([str(REFERENCE_FILE)]) == 0
+
+    def broken(*args: object) -> None:
+        raise RuntimeError("connection to secret-host:5432 failed")
+
+    monkeypatch.setattr(MatchingEngine, "run", broken)
+
+    body = assert_problem(imported.post("/reconciliation-runs", json=OCTOBER), 422)
+
+    assert body["run_id"] == str(scalar(engine, "SELECT id FROM recon.reconciliation_runs"))
+    assert "secret-host" not in str(body)
+    assert body["detail"] == "the run failed and was recorded as failed; a new request may retry"

@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from recon.reconciliation.application.ports import DiscrepancyFilter, DiscrepancyView
 from recon.reconciliation.application.reconcile_period import (
+    MissingReferenceData,
     PeriodNotClosed,
     PeriodOverlaps,
     ReconcilePeriod,
@@ -130,10 +131,13 @@ def runs_router(
         except (PeriodOverlaps, RunInProgress, PeriodNotClosed) as exc:
             raise HTTPException(409, str(exc)) from exc
         except RunFailed as exc:  # recorded as failed with no output; a new POST may retry
-            cause = exc.__cause__
-            raise HTTPException(
-                422, {"detail": str(cause or exc), "run_id": str(exc.run.id)}
-            ) from exc
+            # only domain causes are worded for clients; any other text may carry internals
+            detail = (
+                str(exc.__cause__)
+                if isinstance(exc.__cause__, MissingReferenceData)
+                else "the run failed and was recorded as failed; a new request may retry"
+            )
+            raise HTTPException(422, {"detail": detail, "run_id": str(exc.run.id)}) from exc
         after_write()
         return _run(run)
 
