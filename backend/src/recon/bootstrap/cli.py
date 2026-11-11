@@ -1,7 +1,8 @@
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from sqlalchemy import Engine, create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from recon.bootstrap.outbox import default_relay, dispatch
@@ -28,17 +29,33 @@ def _dispatch(engine: Engine, command: str, exit_code: int) -> int:
     return exit_code
 
 
+INFRASTRUCTURE_FAILURE = 3  # every command: the database is unreachable or not migrated
+
+
+def _guarded(command: str, body: Callable[[], int]) -> int:
+    """Run a command; a database failure is one stderr line and exit 3, never a traceback."""
+    try:
+        return body()
+    except SQLAlchemyError as exc:
+        reason = str(getattr(exc, "orig", None) or exc).splitlines()[0]
+        print(f"{command}: database unavailable: {reason}", file=sys.stderr)
+        return INFRASTRUCTURE_FAILURE
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        exit_code = cli.run(
-            argv,
-            lambda: ImportExport(
-                SqlAlchemyIngestionUnitOfWork(
-                    sessionmaker(engine), actor=Actor.system("recon-import")
+        exit_code = _guarded(
+            "recon-import",
+            lambda: cli.run(
+                argv,
+                lambda: ImportExport(
+                    SqlAlchemyIngestionUnitOfWork(
+                        sessionmaker(engine), actor=Actor.system("recon-import")
+                    ),
+                    SystemClock(),
+                    UuidIdGenerator(),
                 ),
-                SystemClock(),
-                UuidIdGenerator(),
             ),
         )
         return _dispatch(engine, "recon-import", exit_code)
@@ -49,13 +66,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 def reference_main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        return run_reference(
-            argv,
-            lambda: LoadReferenceData(
-                SqlAlchemyReconciliationUnitOfWork(
-                    sessionmaker(engine), actor=Actor.system("recon-reference")
+        return _guarded(
+            "recon-reference",
+            lambda: run_reference(
+                argv,
+                lambda: LoadReferenceData(
+                    SqlAlchemyReconciliationUnitOfWork(
+                        sessionmaker(engine), actor=Actor.system("recon-reference")
+                    ),
+                    UuidIdGenerator(),
                 ),
-                UuidIdGenerator(),
             ),
         )
     finally:
@@ -65,14 +85,17 @@ def reference_main(argv: Sequence[str] | None = None) -> int:
 def reconcile_main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        exit_code = run_reconcile(
-            argv,
-            lambda: ReconcilePeriod(
-                SqlAlchemyReconciliationUnitOfWork(
-                    sessionmaker(engine), actor=Actor.system("recon-reconcile")
+        exit_code = _guarded(
+            "recon-reconcile",
+            lambda: run_reconcile(
+                argv,
+                lambda: ReconcilePeriod(
+                    SqlAlchemyReconciliationUnitOfWork(
+                        sessionmaker(engine), actor=Actor.system("recon-reconcile")
+                    ),
+                    SystemClock(),
+                    UuidIdGenerator(),
                 ),
-                SystemClock(),
-                UuidIdGenerator(),
             ),
         )
         return _dispatch(engine, "recon-reconcile", exit_code)
@@ -83,12 +106,15 @@ def reconcile_main(argv: Sequence[str] | None = None) -> int:
 def evaluate_main(argv: Sequence[str] | None = None) -> int:
     engine = create_engine(database_url())
     try:
-        return run_evaluate(
-            argv,
-            lambda: EvaluateRun(
-                SqlAlchemyReconciliationUnitOfWork(
-                    sessionmaker(engine), actor=Actor.system("recon-evaluate")
-                )
+        return _guarded(
+            "recon-evaluate",
+            lambda: run_evaluate(
+                argv,
+                lambda: EvaluateRun(
+                    SqlAlchemyReconciliationUnitOfWork(
+                        sessionmaker(engine), actor=Actor.system("recon-evaluate")
+                    )
+                ),
             ),
         )
     finally:
