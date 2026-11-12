@@ -48,7 +48,8 @@ class RunFailed(Exception):
 
 
 class PeriodNotClosed(Exception):
-    """The bank data does not reach the period's last payout due date yet (T+lag): running
+    """The bank data does not reach the period's last payout due date yet (T+lag), or a gap
+    between its bank statements stops it before (ADR-0020): running
     now would freeze false ``missing_in_bank`` findings for its last batches."""
 
     def __init__(self, period: Period, latest: date | None, due: date) -> None:
@@ -113,7 +114,8 @@ class ReconcilePeriod:
             if overlapping is not None:
                 raise PeriodOverlaps(period, overlapping)
             due = _last_due_date(period, uow.reference.holidays())
-            latest = uow.sources.latest_bank_date()
+            calendar = BusinessCalendar(uow.reference.holidays())
+            latest = _bank_reach(uow.sources.bank_statements(), period.start, calendar)
             if latest is None or latest < due:
                 raise PeriodNotClosed(period, latest, due)
             run = ReconciliationRun.start(
@@ -190,6 +192,19 @@ def _require_reference_data(
             f"no fee schedule for {gateway} {fee_type} on {day}"
             f" ({len(unscheduled)} fees unchecked); load it first"
         )
+
+
+def _bank_reach(
+    statements: list[tuple[date, date]], start: date, calendar: BusinessCalendar
+) -> date | None:
+    """How far the bank statements reach without a gap from the period start (ADR-0020): a
+    business day no statement covers stops the reach, whatever later statements hold."""
+    reach: date | None = None
+    for first, last in sorted(statements):
+        if reach is not None and reach >= start and first > calendar.add_business_days(reach, 1):
+            break
+        reach = last if reach is None else max(reach, last)
+    return reach
 
 
 def _last_due_date(period: Period, holidays: frozenset[date]) -> date:

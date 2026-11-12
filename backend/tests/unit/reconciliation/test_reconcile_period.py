@@ -29,6 +29,7 @@ from .book import CALENDAR, MONDAY, SCHEDULE, Book, clean_book
 
 # The book's payouts are dated 2026-10-07, the due date of a period ending on Monday the 5th.
 COVERED = Period(date(2026, 10, 1), date(2026, 10, 5))
+OCT_30 = date(2026, 10, 30)
 NOW = datetime(2026, 11, 10, 8, tzinfo=UTC)
 
 
@@ -340,3 +341,50 @@ def test_a_period_with_no_bank_data_imported_is_refused() -> None:
         _reconcile(uow)(COVERED)
 
     assert uow.committed.runs == {}
+
+
+def _with_statements(*spans: tuple[date, date]) -> InMemoryReconciliationUnitOfWork:
+    return InMemoryReconciliationUnitOfWork(
+        _book_with_two_anomalies().snapshot(),
+        (SCHEDULE,),
+        CALENDAR.holidays,
+        bank_statements=spans,
+    )
+
+
+def test_a_gap_between_bank_statements_keeps_the_period_open() -> None:
+    # Nothing covers Tuesday the 6th, although a later statement reaches past the due date.
+    uow = _with_statements((date(2026, 10, 5), date(2026, 10, 5)), (date(2026, 10, 7), OCT_30))
+
+    with pytest.raises(PeriodNotClosed, match=r"bank data reaches 2026-10-05.* due 2026-10-07"):
+        _reconcile(uow)(COVERED)
+
+    assert uow.committed.runs == {}
+
+
+def test_bank_statements_imported_out_of_order_still_cover_the_period() -> None:
+    uow = _with_statements((date(2026, 10, 6), OCT_30), (date(2026, 10, 1), date(2026, 10, 5)))
+
+    assert _reconcile(uow)(COVERED).status is RunStatus.COMPLETED
+
+
+def test_only_business_days_between_bank_statements_count_as_a_gap() -> None:
+    # Friday the 9th is a bank holiday: Thursday the 8th and Monday the 12th are adjacent.
+    uow = _with_statements((date(2026, 10, 1), date(2026, 10, 8)), (date(2026, 10, 12), OCT_30))
+
+    assert _reconcile(uow)(Period(date(2026, 10, 1), date(2026, 10, 8))).status is (
+        RunStatus.COMPLETED
+    )
+
+
+def test_a_gap_before_the_period_does_not_keep_it_open() -> None:
+    uow = _with_statements((date(2026, 9, 1), date(2026, 9, 10)), (date(2026, 10, 1), OCT_30))
+
+    assert _reconcile(uow)(COVERED).status is RunStatus.COMPLETED
+
+
+def test_no_bank_statement_imported_keeps_the_period_open() -> None:
+    uow = _with_statements()
+
+    with pytest.raises(PeriodNotClosed, match="no bank data is imported"):
+        _reconcile(uow)(COVERED)
