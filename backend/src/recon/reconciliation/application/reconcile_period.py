@@ -1,6 +1,6 @@
 """Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing."""
 
-from contextlib import ExitStack
+from contextlib import ExitStack, suppress
 from datetime import date
 
 from recon.reconciliation.application.ports import ReconciliationUnitOfWork, RunLiveness
@@ -9,7 +9,7 @@ from recon.reconciliation.domain.engine import MatchingEngine, default_engine
 from recon.reconciliation.domain.events import DiscrepancyDetected
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.rules import Ruleset
-from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
+from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
 from recon.reconciliation.domain.snapshot import Snapshot
 from recon.shared_kernel.ports import Clock, IdGenerator
 
@@ -96,7 +96,9 @@ class ReconcilePeriod:
             uow.runs.lock(period, ruleset_version)
             for run in uow.runs.running(ruleset_version):
                 if not self._liveness.is_alive(run.id):
-                    uow.runs.save(run.failed(self._clock.now()))
+                    # it may have finished between the read and the check: nothing to recover
+                    with suppress(InvalidRunTransition):
+                        uow.runs.save(run.failed(self._clock.now()))
             uow.commit()
 
     def _run(self, period: Period, ruleset_version: str, alive: ExitStack) -> ReconciliationRun:

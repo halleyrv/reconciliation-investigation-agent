@@ -326,6 +326,42 @@ def test_a_run_left_running_blocks_its_period_until_its_process_dies(loaded: Eng
     assert _rows(loaded, "SELECT count(*) FROM recon.discrepancies") == [(41,)]
 
 
+class _FinishesWhileChecked(PostgresRunLiveness):
+    """The run's process completes it between the read of running runs and this check."""
+
+    def is_alive(self, run_id: uuid.UUID) -> bool:
+        with self._engine.begin() as connection:
+            connection.execute(
+                text(
+                    "UPDATE recon.reconciliation_runs"
+                    " SET status = 'completed', finished_at = now() WHERE id = :id"
+                ),
+                {"id": run_id},
+            )
+        return super().is_alive(run_id)
+
+
+def test_a_run_that_completes_while_recovery_checks_it_is_left_alone(loaded: Engine) -> None:
+    with loaded.begin() as connection:
+        run_id = connection.scalar(
+            text(
+                "INSERT INTO recon.reconciliation_runs"
+                " (id, period, ruleset_version, status, started_at)"
+                " VALUES (gen_random_uuid(), '[2026-10-01,2026-11-01)', 'v1', 'running', now())"
+                " RETURNING id"
+            )
+        )
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded), actor=Actor.system("test"))
+    reconcile = ReconcilePeriod(
+        uow, _FinishesWhileChecked(loaded), SystemClock(), UuidIdGenerator()
+    )
+
+    run = reconcile(OCTOBER)
+
+    assert (run.id, run.status) == (run_id, RunStatus.COMPLETED)
+    assert _rows(loaded, "SELECT status FROM recon.reconciliation_runs") == [("completed",)]
+
+
 def test_a_run_no_longer_running_is_not_finished_again(loaded: Engine) -> None:
     done = _reconcile(loaded)(OCTOBER)
     stale = ReconciliationRun(
