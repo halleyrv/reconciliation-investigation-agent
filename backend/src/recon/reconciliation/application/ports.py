@@ -54,8 +54,8 @@ class SourceRecordReader(Protocol):
         """Every canonical source record Ingestion holds, read-only."""
         ...
 
-    def latest_bank_date(self) -> date | None:
-        """The latest value date of any imported bank transaction: how far bank data reaches."""
+    def bank_statements(self) -> list[tuple[date, date]]:
+        """First and last value date of each imported bank statement (one import batch)."""
         ...
 
 

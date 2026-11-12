@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,7 @@ from sqlalchemy import create_engine, text
 
 from recon.bootstrap.cli import evaluate_main, main, reconcile_main, reference_main
 from recon.bootstrap.migrations import upgrade
-from tests.integration.conftest import create_database, drop_database
+from tests.integration.conftest import SAMPLE, create_database, drop_database
 
 REFERENCE_FILE = Path(__file__).parents[3] / "reference" / "gateway-policy-2026.json"
 OCTOBER = ["--from", "2026-10-01", "--to", "2026-10-31"]
@@ -128,3 +129,32 @@ def test_october_is_refused_until_its_last_payouts_are_imported(
 
     err = capsys.readouterr().err
     assert "is not closed: bank data reaches 2026-10-30, its last payouts are due 2026-11-03" in err
+
+
+def _export_bank(sample: Path, keep: Callable[[str], bool]) -> None:
+    """Rewrite the export so it holds only the bank statement lines whose value date is kept."""
+    bank = sample / "bank_transactions.json"
+    data = json.loads((SAMPLE / "bank_transactions.json").read_text())
+    data["records"] = [r for r in data["records"] if keep(r["value_date"])]
+    bank.write_text(json.dumps(data))
+    manifest = json.loads((sample / "manifest.json").read_text())
+    manifest["files"]["bank_transactions.json"] = hashlib.sha256(bank.read_bytes()).hexdigest()
+    (sample / "manifest.json").write_text(json.dumps(manifest))
+
+
+def test_october_stays_open_while_a_gap_between_bank_statements_is_not_imported(
+    database: str, sample: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert reference_main([str(REFERENCE_FILE)]) == 0
+    _export_bank(sample, lambda day: day <= "2026-10-15")
+    assert main([str(sample)]) == 0
+    _export_bank(sample, lambda day: day >= "2026-10-21")  # 16th and 19th missing
+    assert main([str(sample)]) == 0
+
+    assert reconcile_main(OCTOBER) == 2
+    err = capsys.readouterr().err
+    assert "is not closed: bank data reaches 2026-10-15, its last payouts are due 2026-11-03" in err
+
+    _export_bank(sample, lambda day: True)  # the full statement brings the missing days
+    assert main([str(sample)]) == 0
+    assert reconcile_main(OCTOBER) == 0

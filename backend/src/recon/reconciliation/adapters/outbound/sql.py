@@ -215,11 +215,14 @@ class SqlSourceRecords:
         self.row_ids.update({RecordRef(source, r.external_id): r.id for r in rows})
         return rows
 
-    def latest_bank_date(self) -> date | None:
-        latest: date | None = self._session.execute(
-            text("SELECT max(value_date) FROM ingestion.bank_transactions")
-        ).scalar_one()
-        return latest
+    def bank_statements(self) -> list[tuple[date, date]]:
+        rows = self._session.execute(
+            text(
+                "SELECT min(t.value_date), max(t.value_date) FROM ingestion.bank_transactions t"
+                " JOIN ingestion.raw_records r ON r.id = t.raw_record_id GROUP BY r.batch_id"
+            )
+        )
+        return [(first, last) for first, last in rows]
 
     def snapshot(self, currency: str) -> Snapshot:
         # One consistent view of every table: an import committing between these queries must

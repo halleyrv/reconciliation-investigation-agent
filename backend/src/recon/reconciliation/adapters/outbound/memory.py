@@ -3,7 +3,7 @@ one live run per period and ruleset, unique fingerprints, a record in one group 
 
 import copy
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -106,14 +106,17 @@ class InMemoryRunLiveness:
 
 
 class _Sources:
-    def __init__(self, snapshot: Snapshot) -> None:
+    def __init__(self, snapshot: Snapshot, statements: Sequence[tuple[date, date]] | None) -> None:
         self._snapshot = snapshot
+        days = [b.value_date for b in snapshot.bank_transactions]
+        # by default every bank transaction of the snapshot came in one statement
+        self._statements = list(statements or ([(min(days), max(days))] if days else []))
 
     def snapshot(self, currency: str) -> Snapshot:
         return self._snapshot
 
-    def latest_bank_date(self) -> date | None:
-        return max((b.value_date for b in self._snapshot.bank_transactions), default=None)
+    def bank_statements(self) -> list[tuple[date, date]]:
+        return list(self._statements)
 
 
 class _Reference:
@@ -233,6 +236,7 @@ class InMemoryReconciliationUnitOfWork:
         holidays: frozenset[date] = frozenset(),
         fail_on_discrepancy: int | None = None,
         calendar_years: frozenset[int] | None = None,
+        bank_statements: Sequence[tuple[date, date]] | None = None,
     ) -> None:
         self.committed = State(
             fee_schedules={uuid.UUID(int=n): s for n, s in enumerate(fee_schedules, 1)},
@@ -242,7 +246,7 @@ class InMemoryReconciliationUnitOfWork:
                 frozenset({d.year for d in holidays}) if calendar_years is None else calendar_years
             ),
         )
-        self.sources = _Sources(snapshot)
+        self.sources = _Sources(snapshot, bank_statements)
         self._snapshot = snapshot
         self.fail_on_discrepancy = fail_on_discrepancy  # test hook, read by each transaction
 
