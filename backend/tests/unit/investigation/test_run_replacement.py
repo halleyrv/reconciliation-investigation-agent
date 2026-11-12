@@ -175,3 +175,24 @@ def test_a_close_reason_belongs_only_to_a_resolved_case() -> None:
             1,
             close_reason=CloseReason.SUPERSEDED,
         )
+
+
+def test_a_case_left_behind_by_undelivered_replacements_closes_when_a_later_one_drops_it() -> None:
+    # D1 -> D2 was never delivered, then a second replacement no longer finds D2
+    uow = _uow(
+        DiscrepancyView(D1, "low", superseded=True, superseded_by=D2),
+        DiscrepancyView(D2, "low", superseded=True),
+    )
+    case = _case_on(uow, D1)
+    handle = on_discrepancy_superseded(_open_case(uow), _close_case(uow))
+
+    handle(_superseded(D1, D2))  # D2 is retired: nothing to carry over to
+    handle(_superseded(D2, None))
+
+    [closed] = uow.committed.cases.values()
+    assert (closed.id, closed.discrepancy_id, closed.status, closed.close_reason) == (
+        case.id,
+        D1,
+        CaseStatus.RESOLVED,
+        CloseReason.SUPERSEDED,
+    )

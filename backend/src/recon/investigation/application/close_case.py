@@ -18,6 +18,11 @@ class CloseSupersededCase:
         raises ``StaleVersion`` and writes nothing; the event's redelivery retries it."""
         with self._uow as uow:
             case = uow.cases.find_by_discrepancy(discrepancy_id)
+            # a case left on an earlier discrepancy by replacements never delivered (like OpenCase)
+            earlier = uow.discrepancies.predecessor(discrepancy_id)
+            while case is None and earlier is not None:
+                case = uow.cases.find_by_discrepancy(earlier)
+                earlier = uow.discrepancies.predecessor(earlier)
             if case is None or case.closed:
                 return
             closed = case.closed_as_superseded(self._clock.now())
