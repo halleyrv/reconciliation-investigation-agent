@@ -5,7 +5,10 @@ from typing import Self
 import pytest
 
 from recon.reconciliation.adapters.inbound.cli import run_reconcile
-from recon.reconciliation.adapters.outbound.memory import InMemoryReconciliationUnitOfWork
+from recon.reconciliation.adapters.outbound.memory import (
+    InMemoryReconciliationUnitOfWork,
+    InMemoryRunLiveness,
+)
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import (
     MissingReferenceData,
@@ -46,8 +49,12 @@ def _uow(fail_on_discrepancy: int | None = None) -> InMemoryReconciliationUnitOf
     )
 
 
-def _reconcile(uow: InMemoryReconciliationUnitOfWork) -> ReconcilePeriod:
-    return ReconcilePeriod(uow, FixedClock(NOW), SequenceIdGenerator())
+def _reconcile(
+    uow: InMemoryReconciliationUnitOfWork, liveness: InMemoryRunLiveness | None = None
+) -> ReconcilePeriod:
+    return ReconcilePeriod(
+        uow, liveness or InMemoryRunLiveness(), FixedClock(NOW), SequenceIdGenerator()
+    )
 
 
 def test_a_run_records_groups_discrepancies_and_one_event_each_then_completes() -> None:
@@ -108,17 +115,79 @@ def test_a_failed_run_does_not_block_a_new_run_of_the_same_period() -> None:
     assert len(uow.committed.discrepancies) == 2
 
 
-def test_a_run_still_in_progress_is_reported_not_returned_as_a_result() -> None:
-    uow = _uow()
-    running = ReconciliationRun.start(uuid.uuid4(), COVERED, "v1", NOW)
+def _left_running(uow: InMemoryReconciliationUnitOfWork, period: Period) -> ReconciliationRun:
+    running = ReconciliationRun.start(uuid.uuid4(), period, "v1", NOW - timedelta(hours=1))
     with uow:
         uow.runs.add(running)
         uow.commit()
+    return running
 
-    with pytest.raises(RunInProgress, match=str(running.id)):
-        _reconcile(uow)(COVERED)
+
+def test_a_run_still_in_progress_is_reported_not_returned_as_a_result() -> None:
+    uow = _uow()
+    liveness = InMemoryRunLiveness()
+    running = _left_running(uow, COVERED)
+
+    with liveness.hold(running.id), pytest.raises(RunInProgress, match=str(running.id)):
+        _reconcile(uow, liveness)(COVERED)
 
     assert uow.committed.runs == {running.id: running}
+
+
+def test_a_run_whose_process_died_is_failed_and_its_period_runs_again() -> None:
+    uow = _uow()
+    liveness = InMemoryRunLiveness()
+    crashed = _left_running(uow, COVERED)
+
+    run = _reconcile(uow, liveness)(COVERED)
+
+    assert run.status is RunStatus.COMPLETED
+    assert uow.committed.runs == {crashed.id: crashed.failed(NOW), run.id: run}
+    assert len(uow.committed.discrepancies) == 2
+    assert liveness.held == set()
+
+
+def test_a_dead_run_of_an_overlapping_period_no_longer_blocks_it() -> None:
+    uow = _two_days_uow()
+    crashed = _left_running(uow, MONDAY_ONLY)
+
+    run = _reconcile(uow)(Period(MONDAY, TUESDAY_ONLY.end))
+
+    assert run.status is RunStatus.COMPLETED
+    assert uow.committed.runs[crashed.id] == crashed.failed(NOW)
+
+
+def test_a_dead_run_is_failed_even_when_the_new_run_is_refused() -> None:
+    uow = _uow()
+    not_closed = Period(date(2026, 10, 1), date(2026, 10, 6))
+    crashed = _left_running(uow, not_closed)
+
+    with pytest.raises(PeriodNotClosed):
+        _reconcile(uow)(not_closed)
+
+    assert uow.committed.runs == {crashed.id: crashed.failed(NOW)}
+
+
+class _Watched(InMemoryReconciliationUnitOfWork):
+    """Records which runs are alive at each commit."""
+
+    liveness = InMemoryRunLiveness()
+    alive_at_commit: list[set[uuid.UUID]]
+
+    def commit(self) -> None:
+        self.alive_at_commit.append(set(self.liveness.held))
+        super().commit()
+
+
+def test_a_run_is_alive_before_anyone_can_see_it_running_until_it_finishes() -> None:
+    uow = _Watched(_book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays)
+    uow.alive_at_commit = []
+
+    run = _reconcile(uow, uow.liveness)(COVERED)
+
+    # recovery, then the start (the run becomes visible), then its output
+    assert uow.alive_at_commit == [set(), {run.id}, {run.id}]
+    assert uow.liveness.held == set()
 
 
 class _DatabaseGone(InMemoryReconciliationUnitOfWork):

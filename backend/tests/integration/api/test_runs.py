@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
 from recon.bootstrap.cli import reference_main
+from recon.reconciliation.adapters.outbound.sql import PostgresRunLiveness
 from recon.reconciliation.domain.engine import MatchingEngine
 from tests.integration.api.conftest import OCTOBER, REFERENCE_FILE, assert_problem, scalar
 
@@ -97,15 +98,16 @@ def test_a_period_whose_bank_data_is_incomplete_is_409(
 
 def test_a_run_still_running_is_409(imported: TestClient, engine: Engine) -> None:
     with engine.begin() as connection:
-        connection.execute(
+        run_id = connection.scalar(
             text(
                 "INSERT INTO recon.reconciliation_runs (id, period, ruleset_version, status,"
                 " started_at) VALUES (gen_random_uuid(), '[2026-10-01,2026-11-01)', 'v1',"
-                " 'running', now())"
+                " 'running', now()) RETURNING id"
             )
         )
 
-    body = assert_problem(imported.post("/reconciliation-runs", json=OCTOBER), 409)
+    with PostgresRunLiveness(engine).hold(run_id):  # its process is still alive
+        body = assert_problem(imported.post("/reconciliation-runs", json=OCTOBER), 409)
 
     assert "still running" in body["detail"]
 

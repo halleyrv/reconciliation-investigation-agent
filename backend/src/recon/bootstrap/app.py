@@ -23,6 +23,7 @@ from recon.investigation.application.open_case import OpenCase
 from recon.investigation.application.update_case import UpdateCase
 from recon.reconciliation.adapters.inbound.http import runs_router
 from recon.reconciliation.adapters.outbound.sql import (
+    PostgresRunLiveness,
     SqlAlchemyReconciliationUnitOfWork,
     SqlRunQueries,
 )
@@ -71,6 +72,7 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         runs_router(
             lambda: ReconcilePeriod(
                 SqlAlchemyReconciliationUnitOfWork(sessions, actor=API),
+                PostgresRunLiveness(engine),
                 SystemClock(),
                 UuidIdGenerator(),
             ),

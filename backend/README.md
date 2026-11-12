@@ -60,8 +60,8 @@ run 93ee173f-d4f2-4080-b9a9-34c40ad4b27e (v1, 2026-10-01 to 2026-10-31): complet
 | Exit code | Meaning |
 |-----------|---------|
 | 0 | The run completed, now or before |
-| 1 | The run failed, for example with no fee schedule or holiday calendar for its period (a December run also needs the next year's calendar for its due dates); it is recorded as `failed` with no partial output, and a new call may retry. If it could not even be marked failed, a second line says so and the run stays `running` |
-| 2 | Nothing was run: an invalid period, a period overlapping another live run, a period whose last payouts are not imported yet, or a run of it still in progress |
+| 1 | The run failed, for example with no fee schedule or holiday calendar for its period (a December run also needs the next year's calendar for its due dates); it is recorded as `failed` with no partial output, and a new call may retry. If it could not even be marked failed, a second line says so and the run stays `running` until the next reconcile of its ruleset, which fails it once its process has ended |
+| 2 | Nothing was run: an invalid period, a period overlapping another live run, a period whose last payouts are not imported yet, or a run of it still in progress in a live process. A run whose process died (a crash, a killed container) blocks nothing: the next reconcile of its ruleset marks it `failed` first |
 | 3 | The database is unreachable or not migrated: one line on stderr, `<command>: database unavailable: <reason>`; anything committed before the failure stays |
 
 After `recon-import` or `recon-reconcile` exits 0, it delivers the events their run wrote (`ingestion.outbox`, `recon.outbox`, `investigation.outbox`) in-process: each `DiscrepancyDetected` opens its discrepancy's case in `investigation.cases`, one case per discrepancy (AC-2c.1). An event whose handler fails, or every event when the database fails during delivery, stays unpublished, is reported on stderr as a warning without changing the exit code, and is delivered by the next successful command.

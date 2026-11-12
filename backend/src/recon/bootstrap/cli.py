@@ -11,7 +11,10 @@ from recon.ingestion.adapters.inbound import cli
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport
 from recon.reconciliation.adapters.inbound.cli import run_evaluate, run_reconcile, run_reference
-from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationUnitOfWork
+from recon.reconciliation.adapters.outbound.sql import (
+    PostgresRunLiveness,
+    SqlAlchemyReconciliationUnitOfWork,
+)
 from recon.reconciliation.application.evaluate_run import EvaluateRun
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import ReconcilePeriod
@@ -93,6 +96,7 @@ def reconcile_main(argv: Sequence[str] | None = None) -> int:
                     SqlAlchemyReconciliationUnitOfWork(
                         sessionmaker(engine), actor=Actor.system("recon-reconcile")
                     ),
+                    PostgresRunLiveness(engine),
                     SystemClock(),
                     UuidIdGenerator(),
                 ),
