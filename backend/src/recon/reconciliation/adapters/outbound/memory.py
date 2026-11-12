@@ -110,7 +110,8 @@ class _Sources:
         self._snapshot = snapshot
         days = [b.value_date for b in snapshot.bank_transactions]
         # by default every bank transaction of the snapshot came in one statement
-        self._statements = list(statements or ([(min(days), max(days))] if days else []))
+        default = [(min(days), max(days))] if days else []
+        self._statements = list(default if statements is None else statements)
 
     def snapshot(self, currency: str) -> Snapshot:
         return self._snapshot

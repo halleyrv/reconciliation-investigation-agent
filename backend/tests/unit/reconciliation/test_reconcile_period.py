@@ -381,3 +381,10 @@ def test_a_gap_before_the_period_does_not_keep_it_open() -> None:
     uow = _with_statements((date(2026, 9, 1), date(2026, 9, 10)), (date(2026, 10, 1), OCT_30))
 
     assert _reconcile(uow)(COVERED).status is RunStatus.COMPLETED
+
+
+def test_no_bank_statement_imported_keeps_the_period_open() -> None:
+    uow = _with_statements()
+
+    with pytest.raises(PeriodNotClosed, match="no bank data is imported"):
+        _reconcile(uow)(COVERED)
