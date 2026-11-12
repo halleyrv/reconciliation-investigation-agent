@@ -1,12 +1,14 @@
-"""Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing."""
+"""Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing,
+unless the caller asks to replace its completed run (ADR-0021)."""
 
+import uuid
 from contextlib import ExitStack, suppress
 from datetime import date
 
 from recon.reconciliation.application.ports import ReconciliationUnitOfWork, RunLiveness
 from recon.reconciliation.domain.calendar import BusinessCalendar
 from recon.reconciliation.domain.engine import MatchingEngine, default_engine
-from recon.reconciliation.domain.events import DiscrepancyDetected
+from recon.reconciliation.domain.events import DiscrepancyDetected, DiscrepancySuperseded
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.rules import Ruleset
 from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
@@ -79,8 +81,13 @@ class ReconcilePeriod:
         self._ids = ids
         self._engine = engine or default_engine()
 
-    def __call__(self, period: Period, ruleset_version: str = RULESET_VERSION) -> ReconciliationRun:
+    def __call__(
+        self, period: Period, ruleset_version: str = RULESET_VERSION, *, replace: bool = False
+    ) -> ReconciliationRun:
         """Return the completed run of the period, or start one and record its whole output.
+        With ``replace`` a completed run is not returned: a new run starts, and only when it
+        completes does the old one become ``superseded``, each of its discrepancies linked to
+        the one found again (same fingerprint) or to none (``DiscrepancySuperseded``).
 
         A run that fails leaves status ``failed`` and nothing else (its transaction rolls
         back) and ``RunFailed`` is raised from the cause; a later call starts a new run. A
@@ -89,7 +96,7 @@ class ReconcilePeriod:
         """
         self._fail_dead_runs(period, ruleset_version)
         with ExitStack() as alive:
-            return self._run(period, ruleset_version, alive)
+            return self._run(period, ruleset_version, replace, alive)
 
     def _fail_dead_runs(self, period: Period, ruleset_version: str) -> None:
         """Committed on its own: a dead run is failed even when the new run is then refused."""
@@ -102,13 +109,15 @@ class ReconcilePeriod:
                         uow.runs.save(run.failed(self._clock.now()))
             uow.commit()
 
-    def _run(self, period: Period, ruleset_version: str, alive: ExitStack) -> ReconciliationRun:
+    def _run(
+        self, period: Period, ruleset_version: str, replace: bool, alive: ExitStack
+    ) -> ReconciliationRun:
         with self._uow as uow:
             uow.runs.lock(period, ruleset_version)
             existing = uow.runs.find_live(period, ruleset_version)
             if existing is not None and existing.status is RunStatus.RUNNING:
                 raise RunInProgress(existing)
-            if existing is not None:
+            if existing is not None and not replace:
                 return existing
             overlapping = uow.runs.find_overlapping(period, ruleset_version)
             if overlapping is not None:
@@ -127,7 +136,9 @@ class ReconcilePeriod:
             uow.commit()
         try:
             with self._uow as uow:
-                self._record_output(uow, run)
+                self._record_output(uow, run, replaces=existing)
+                if existing is not None:  # before ``done``: completed runs never share a day
+                    uow.runs.supersede(existing.superseded())
                 done = run.completed(self._clock.now())
                 uow.runs.save(done)
                 uow.commit()
@@ -142,7 +153,12 @@ class ReconcilePeriod:
             raise failure from error
         return done
 
-    def _record_output(self, uow: ReconciliationUnitOfWork, run: ReconciliationRun) -> None:
+    def _record_output(
+        self,
+        uow: ReconciliationUnitOfWork,
+        run: ReconciliationRun,
+        replaces: ReconciliationRun | None,
+    ) -> None:
         snapshot = uow.sources.snapshot(CURRENCY)
         ruleset = Ruleset(
             fee_schedules=uow.reference.fee_schedules(),
@@ -154,8 +170,10 @@ class ReconcilePeriod:
         for group in result.groups:
             uow.results.add_group(run.id, self._ids.new(), group)
         now = self._clock.now()
+        found: dict[str, uuid.UUID] = {}
         for discrepancy in result.discrepancies:
             discrepancy_id = self._ids.new()
+            found[discrepancy.fingerprint(run.period)] = discrepancy_id
             uow.results.add_discrepancy(run.id, discrepancy_id, discrepancy, run.period, now)
             uow.add_event(
                 DiscrepancyDetected(
@@ -164,6 +182,16 @@ class ReconcilePeriod:
                     type=discrepancy.type.value,
                     delta_minor=discrepancy.delta_minor,
                     currency=discrepancy.actual.currency,
+                )
+            )
+        if replaces is None:
+            return
+        for fingerprint, old_id in sorted(uow.results.detected(replaces.id).items()):
+            successor = found.get(fingerprint)
+            uow.results.supersede(old_id, successor)
+            uow.add_event(
+                DiscrepancySuperseded(
+                    occurred_at=now, discrepancy_id=old_id, superseded_by=successor
                 )
             )
 

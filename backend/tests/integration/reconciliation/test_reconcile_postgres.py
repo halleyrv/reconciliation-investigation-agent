@@ -225,18 +225,22 @@ def test_the_database_rejects_overlapping_fee_schedule_periods(loaded: Engine) -
     assert _rows(loaded, "SELECT count(*) FROM recon.fee_schedules") == [(4,)]
 
 
-def test_the_database_keeps_live_runs_of_one_ruleset_from_sharing_a_day(engine: Engine) -> None:
+def test_the_database_keeps_two_running_or_two_completed_runs_from_sharing_a_day(
+    engine: Engine,
+) -> None:
     insert = text(
         "INSERT INTO recon.reconciliation_runs"
         " (id, period, ruleset_version, status, started_at, finished_at)"
         " VALUES (gen_random_uuid(), '[2026-10-01,2026-11-01)', 'v1', :status, now(), :finished)"
     )
-    with engine.begin() as connection:  # failed runs stay for the record, any number of them
-        for _ in range(2):
-            connection.execute(insert, {"status": "failed", "finished": date(2026, 11, 1)})
+    with engine.begin() as connection:  # failed and superseded runs stay for the record
+        for status in ("failed", "failed", "superseded", "superseded"):
+            connection.execute(insert, {"status": status, "finished": date(2026, 11, 1)})
+        connection.execute(insert, {"status": "completed", "finished": date(2026, 11, 1)})
+        # the run replacing it runs beside it (ADR-0021)
         connection.execute(insert, {"status": "running", "finished": None})
     with (
-        pytest.raises(IntegrityError, match="reconciliation_runs_live_period_excl"),
+        pytest.raises(IntegrityError, match="reconciliation_runs_completed_period_excl"),
         engine.begin() as connection,
     ):
         connection.execute(insert, {"status": "completed", "finished": date(2026, 11, 1)})
@@ -246,7 +250,7 @@ def test_the_database_keeps_live_runs_of_one_ruleset_from_sharing_a_day(engine: 
         " VALUES (gen_random_uuid(), :period, :ruleset, 'running', now())"
     )
     with (
-        pytest.raises(IntegrityError, match="reconciliation_runs_live_period_excl"),
+        pytest.raises(IntegrityError, match="reconciliation_runs_running_period_excl"),
         engine.begin() as connection,
     ):
         connection.execute(overlapping, {"period": "[2026-10-31,2026-12-01)", "ruleset": "v1"})

@@ -18,7 +18,7 @@ from recon.reconciliation.application.reconcile_period import (
     RunFailed,
     RunInProgress,
 )
-from recon.reconciliation.domain.events import DiscrepancyDetected
+from recon.reconciliation.domain.events import DiscrepancyDetected, DiscrepancySuperseded
 from recon.reconciliation.domain.records import BankTransaction
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
@@ -51,10 +51,13 @@ def _uow(fail_on_discrepancy: int | None = None) -> InMemoryReconciliationUnitOf
 
 
 def _reconcile(
-    uow: InMemoryReconciliationUnitOfWork, liveness: InMemoryRunLiveness | None = None
+    uow: InMemoryReconciliationUnitOfWork,
+    liveness: InMemoryRunLiveness | None = None,
+    ids: SequenceIdGenerator | None = None,
 ) -> ReconcilePeriod:
+    """``ids``: share one across the runs of a test that writes after its first run."""
     return ReconcilePeriod(
-        uow, liveness or InMemoryRunLiveness(), FixedClock(NOW), SequenceIdGenerator()
+        uow, liveness or InMemoryRunLiveness(), FixedClock(NOW), ids or SequenceIdGenerator()
     )
 
 
@@ -388,3 +391,111 @@ def test_no_bank_statement_imported_keeps_the_period_open() -> None:
 
     with pytest.raises(PeriodNotClosed, match="no bank data is imported"):
         _reconcile(uow)(COVERED)
+
+
+def _book_with_the_refund_only() -> Book:
+    """The two-anomaly book after its fee was corrected: only the refund is still wrong."""
+    book = clean_book()
+    book.refund("RFD-000001", book.payments[0], 4_000, authorized=False)
+    book.close()
+    return book
+
+
+IDS = SequenceIdGenerator()  # shared: a replacing run must not reuse the first run's IDs
+
+
+def _later(
+    uow: InMemoryReconciliationUnitOfWork, book: Book, fail_on_discrepancy: int | None = None
+) -> InMemoryReconciliationUnitOfWork:
+    """The same database once the book reads differently: what was committed stays."""
+    later = InMemoryReconciliationUnitOfWork(
+        book.snapshot(), (SCHEDULE,), CALENDAR.holidays, fail_on_discrepancy=fail_on_discrepancy
+    )
+    later.committed = uow.committed
+    return later
+
+
+def test_replacing_a_completed_run_supersedes_it_and_links_each_discrepancy_found_again() -> None:
+    uow = _uow()
+    first = _reconcile(uow, ids=IDS)(COVERED)
+    old = {d.type.value: i for i, (_, d, _) in uow.committed.discrepancies.items()}
+    events_before = list(uow.committed.events)
+    later = _later(uow, _book_with_the_refund_only())
+
+    second = _reconcile(later, ids=IDS)(COVERED, replace=True)
+
+    state = later.committed
+    assert (second.status, second.period) == (RunStatus.COMPLETED, COVERED)
+    assert second.id != first.id
+    assert state.runs[first.id] == first.superseded()  # its finish time stays
+    assert state.runs[first.id].status is RunStatus.SUPERSEDED
+    [(new_id, (_, found_again, _))] = [
+        (i, row) for i, row in state.discrepancies.items() if row[0] == second.id
+    ]
+    assert found_again.type.value == "unauthorized_refund"
+    assert state.superseded == {old["unauthorized_refund"]: new_id, old["fee_mismatch"]: None}
+    assert state.events[: len(events_before)] == events_before
+    assert set(state.events[len(events_before) :]) == {
+        DiscrepancyDetected(
+            occurred_at=NOW,
+            discrepancy_id=new_id,
+            type="unauthorized_refund",
+            delta_minor=found_again.delta_minor,
+            currency="USD",
+        ),
+        DiscrepancySuperseded(
+            occurred_at=NOW, discrepancy_id=old["unauthorized_refund"], superseded_by=new_id
+        ),
+        DiscrepancySuperseded(
+            occurred_at=NOW, discrepancy_id=old["fee_mismatch"], superseded_by=None
+        ),
+    }
+
+
+def test_a_failed_replacement_leaves_the_completed_run_and_its_discrepancies_live() -> None:
+    uow = _uow()
+    first = _reconcile(uow, ids=IDS)(COVERED)
+    before = uow.committed
+    later = _later(uow, _book_with_two_anomalies(), fail_on_discrepancy=2)
+
+    with pytest.raises(RunFailed, match="injected failure"):
+        _reconcile(later, ids=IDS)(COVERED, replace=True)
+
+    state = later.committed
+    [failed] = [r for r in state.runs.values() if r.id != first.id]
+    assert failed.status is RunStatus.FAILED
+    assert state.runs[first.id] == first
+    assert (state.discrepancies, state.superseded, state.events) == (
+        before.discrepancies,
+        {},
+        before.events,
+    )
+    assert _reconcile(later, ids=IDS)(COVERED) == first  # still the run of the period
+
+
+def test_a_replacement_in_progress_is_reported_to_every_caller_of_the_period() -> None:
+    uow = _uow()
+    _reconcile(uow, ids=IDS)(COVERED)
+    liveness = InMemoryRunLiveness()
+    replacing = _left_running(uow, COVERED)
+
+    with liveness.hold(replacing.id):
+        for replace in (False, True):
+            with pytest.raises(RunInProgress, match=str(replacing.id)):
+                _reconcile(uow, liveness, IDS)(COVERED, replace=replace)
+
+
+def test_the_cli_replaces_the_completed_run_when_asked(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    uow = _uow()
+    first = _reconcile(uow, ids=IDS)(COVERED)
+    argv = ["--from", "2026-10-01", "--to", "2026-10-05"]
+
+    assert run_reconcile([*argv, "--replace"], lambda: _reconcile(uow, ids=IDS)) == 0
+
+    [second] = [r for r in uow.committed.runs.values() if r.id != first.id]
+    assert uow.committed.runs[first.id].status is RunStatus.SUPERSEDED
+    assert capsys.readouterr().out == (
+        f"run {second.id} (v1, 2026-10-01 to 2026-10-05): completed\n"
+    )

@@ -15,8 +15,12 @@ from sqlalchemy.orm import sessionmaker
 from recon.audit.adapters.inbound.events import record_every_event
 from recon.audit.adapters.outbound.sql import SqlAlchemyAuditUnitOfWork
 from recon.audit.application.record_event import RecordEvent
-from recon.investigation.adapters.inbound.events import on_discrepancy_detected
+from recon.investigation.adapters.inbound.events import (
+    on_discrepancy_detected,
+    on_discrepancy_superseded,
+)
 from recon.investigation.adapters.outbound.sql import SqlAlchemyInvestigationUnitOfWork
+from recon.investigation.application.close_case import CloseSupersededCase
 from recon.investigation.application.open_case import OpenCase
 from recon.shared_kernel.actor import Actor, ActorType
 from recon.shared_kernel.events import OutboxMessage
@@ -114,9 +118,18 @@ def default_relay(engine: Engine) -> OutboxRelay:
         SystemClock(),
         UuidIdGenerator(),
     )
+    close_case = CloseSupersededCase(
+        SqlAlchemyInvestigationUnitOfWork(
+            sessions, actor=Actor.system("close-case-on-discrepancy-superseded")
+        ),
+        SystemClock(),
+    )
     return OutboxRelay(
         engine,
-        {"DiscrepancyDetected": [on_discrepancy_detected(open_case)]},
+        {
+            "DiscrepancyDetected": [on_discrepancy_detected(open_case)],
+            "DiscrepancySuperseded": [on_discrepancy_superseded(open_case, close_case)],
+        },
         every=[record_every_event(RecordEvent(SqlAlchemyAuditUnitOfWork(sessions)))],
     )
 

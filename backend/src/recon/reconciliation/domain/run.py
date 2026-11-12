@@ -12,6 +12,7 @@ class RunStatus(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    SUPERSEDED = "superseded"  # completed, then replaced by a later run of its period
 
 
 class InvalidRunTransition(Exception):
@@ -44,6 +45,14 @@ class ReconciliationRun:
 
     def failed(self, at: datetime) -> ReconciliationRun:
         return self._finish(RunStatus.FAILED, at)
+
+    def superseded(self) -> ReconciliationRun:
+        """Replaced by a later run of its period; when it finished stays on record."""
+        if self.status is not RunStatus.COMPLETED:
+            raise InvalidRunTransition(
+                f"run {self.id} is {self.status}, only a completed run is replaced"
+            )
+        return replace(self, status=RunStatus.SUPERSEDED)
 
     def _finish(self, status: RunStatus, at: datetime) -> ReconciliationRun:
         if self.status is not RunStatus.RUNNING:

@@ -21,7 +21,12 @@ from recon.investigation.application.ports import (
     HistoryEntry,
     RecordRef,
 )
-from recon.investigation.domain.case import CaseStatus, Priority, ReconciliationCase
+from recon.investigation.domain.case import (
+    CaseStatus,
+    CloseReason,
+    Priority,
+    ReconciliationCase,
+)
 from recon.shared_kernel.actor import Actor, ActorType
 from recon.shared_kernel.events import DomainEvent, outbox_columns
 
@@ -36,6 +41,7 @@ def _case_from_row(row: CaseRow) -> ReconciliationCase:
         version=row.version,
         assignee_id=row.assignee_id,
         closed_at=row.closed_at,
+        close_reason=None if row.close_reason is None else CloseReason(row.close_reason),
     )
 
 
@@ -66,6 +72,33 @@ class SqlAlchemyCases:
         ).first()
         return updated is not None
 
+    def carry_over(self, case: ReconciliationCase, from_discrepancy_id: uuid.UUID) -> bool:
+        # waits for a concurrent carry-over of the same case, then matches nothing
+        moved = self._session.execute(
+            update(CaseRow)
+            .where(CaseRow.id == case.id, CaseRow.discrepancy_id == from_discrepancy_id)
+            .values(discrepancy_id=case.discrepancy_id)
+            .returning(CaseRow.id)
+            .execution_options(synchronize_session=False)
+        ).first()
+        return moved is not None
+
+    def close(self, case: ReconciliationCase, expected_version: int) -> bool:
+        assert case.close_reason is not None
+        closed = self._session.execute(
+            update(CaseRow)
+            .where(CaseRow.id == case.id, CaseRow.version == expected_version)
+            .values(
+                status=case.status.value,
+                closed_at=case.closed_at,
+                close_reason=case.close_reason.value,
+                version=case.version,
+            )
+            .returning(CaseRow.id)
+            .execution_options(synchronize_session=False)
+        ).first()
+        return closed is not None
+
     def add(self, case: ReconciliationCase) -> bool:
         # waits for a concurrent insert of the same discrepancy, then skips it
         inserted = self._session.execute(
@@ -92,10 +125,21 @@ class SqlDiscrepancies:
 
     def get(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
         row = self._session.execute(
-            text("SELECT id, severity FROM recon.discrepancies WHERE id = :id"),
+            text(
+                "SELECT id, severity, status = 'superseded' AS superseded, superseded_by"
+                " FROM recon.discrepancies WHERE id = :id"
+            ),
             {"id": discrepancy_id},
         ).first()
-        return None if row is None else DiscrepancyView(row.id, row.severity)
+        if row is None:
+            return None
+        return DiscrepancyView(row.id, row.severity, row.superseded, row.superseded_by)
+
+    def predecessor(self, discrepancy_id: uuid.UUID) -> uuid.UUID | None:
+        return self._session.execute(
+            text("SELECT id FROM recon.discrepancies WHERE superseded_by = :id"),
+            {"id": discrepancy_id},
+        ).scalar_one_or_none()
 
 
 # the exclusive arc of recon.discrepancy_records: one typed column per source record table

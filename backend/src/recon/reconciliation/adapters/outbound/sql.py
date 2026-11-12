@@ -101,6 +101,9 @@ def _run_from_row(row: RunRow) -> ReconciliationRun:
     )
 
 
+_LIVE = (RunStatus.RUNNING.value, RunStatus.COMPLETED.value)
+
+
 class SqlAlchemyRuns:
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -114,11 +117,15 @@ class SqlAlchemyRuns:
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
         row = self._session.scalars(
-            select(RunRow).where(
+            select(RunRow)
+            .where(
                 RunRow.period == to_range(period),
                 RunRow.ruleset_version == ruleset_version,
-                RunRow.status != RunStatus.FAILED.value,
+                RunRow.status.in_(_LIVE),
             )
+            # a run replacing the completed one comes first
+            .order_by(RunRow.status != RunStatus.RUNNING.value)
+            .limit(1)
         ).one_or_none()
         return None if row is None else _run_from_row(row)
 
@@ -129,7 +136,7 @@ class SqlAlchemyRuns:
                 RunRow.period.overlaps(to_range(period)),
                 RunRow.period != to_range(period),
                 RunRow.ruleset_version == ruleset_version,
-                RunRow.status != RunStatus.FAILED.value,
+                RunRow.status.in_(_LIVE),
             )
             .order_by(RunRow.started_at)
             .limit(1)
@@ -168,6 +175,16 @@ class SqlAlchemyRuns:
             raise InvalidRunTransition(
                 f"run {run.id} is no longer running, cannot become {run.status}"
             )
+
+    def supersede(self, run: ReconciliationRun) -> None:
+        saved = self._session.scalar(
+            update(RunRow)
+            .where(RunRow.id == run.id, RunRow.status == RunStatus.COMPLETED.value)
+            .values(status=run.status.value)
+            .returning(RunRow.id)
+        )
+        if saved is None:
+            raise InvalidRunTransition(f"run {run.id} is no longer completed, cannot be replaced")
 
 
 _ALIVE = text("SELECT pg_advisory_lock(hashtextextended(:key, 0))")
@@ -408,6 +425,21 @@ class SqlAlchemyResults:
                 {"discrepancy_id": discrepancy_id, **self._record_columns(ref)}
                 for ref in sorted(discrepancy.records)
             ],
+        )
+
+    def detected(self, run_id: uuid.UUID) -> dict[str, uuid.UUID]:
+        rows = self._session.execute(
+            select(DiscrepancyRow.fingerprint, DiscrepancyRow.id).where(
+                DiscrepancyRow.run_id == run_id, DiscrepancyRow.status == "detected"
+            )
+        )
+        return {fingerprint: discrepancy_id for fingerprint, discrepancy_id in rows}
+
+    def supersede(self, discrepancy_id: uuid.UUID, by: uuid.UUID | None) -> None:
+        self._session.execute(
+            update(DiscrepancyRow)
+            .where(DiscrepancyRow.id == discrepancy_id)
+            .values(status="superseded", superseded_by=by)
         )
 
 

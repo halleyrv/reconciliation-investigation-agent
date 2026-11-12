@@ -89,6 +89,7 @@ class DiscrepancyRow(Base):
     fingerprint: Mapped[str]
     status: Mapped[str]
     detected_at: Mapped[datetime]
+    superseded_by: Mapped[uuid.UUID | None]
 
 
 class DiscrepancyRecordRow(_OneRecord, Base):

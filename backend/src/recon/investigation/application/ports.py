@@ -14,10 +14,16 @@ class DiscrepancyView:
 
     id: uuid.UUID
     severity: str
+    superseded: bool = False
+    superseded_by: uuid.UUID | None = None  # the one a replacing run found again
 
 
 class DiscrepancyReader(Protocol):
     def get(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None: ...
+
+    def predecessor(self, discrepancy_id: uuid.UUID) -> uuid.UUID | None:
+        """The discrepancy of the replaced run this one was found again for, if any."""
+        ...
 
 
 class CaseRepository(Protocol):
@@ -31,7 +37,17 @@ class CaseRepository(Protocol):
 
     def update(self, case: ReconciliationCase, expected_version: int) -> bool:
         """Store the case if the stored one is still at ``expected_version``; ``False`` (nothing
-        written) when another writer changed it first."""
+        written) when another writer changed it first. Writes the priority, assignee and
+        version only."""
+        ...
+
+    def carry_over(self, case: ReconciliationCase, from_discrepancy_id: uuid.UUID) -> bool:
+        """Move the case to ``case.discrepancy_id`` if it is still on ``from_discrepancy_id``;
+        ``False`` (nothing written) when a concurrent carry-over moved it first."""
+        ...
+
+    def close(self, case: ReconciliationCase, expected_version: int) -> bool:
+        """Store the case's close if the stored one is still at ``expected_version``."""
         ...
 
 

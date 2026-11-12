@@ -66,10 +66,16 @@ def run_reconcile(argv: Sequence[str] | None, reconcile: Callable[[], ReconcileP
         prog="recon-reconcile", description="Reconcile a period (inclusive dates)."
     )
     _period(parser)
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="replace the completed run of the period: its cases move to the discrepancies"
+        " found again and close as superseded otherwise",
+    )
     args = parser.parse_args(argv)
     try:
         period = Period(args.start, args.end)
-        run = reconcile()(period, args.ruleset)
+        run = reconcile()(period, args.ruleset, replace=args.replace)
     except RunFailed as exc:  # recorded as failed with no output; a new call may retry
         print(f"recon-reconcile: {exc}", file=sys.stderr)
         for note in getattr(exc, "__notes__", []):  # e.g. it could not be marked failed
