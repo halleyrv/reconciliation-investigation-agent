@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Mapping
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
@@ -25,9 +26,27 @@ class RunRepository(Protocol):
         """A live run of this ruleset whose different period shares a day with ``period``."""
         ...
 
+    def running(self, ruleset_version: str) -> list[ReconciliationRun]:
+        """Every run of this ruleset still marked running, whether its process lives or not."""
+        ...
+
     def add(self, run: ReconciliationRun) -> None: ...
 
-    def save(self, run: ReconciliationRun) -> None: ...
+    def save(self, run: ReconciliationRun) -> None:
+        """Record a finished run. Raises ``InvalidRunTransition`` when it is no longer running,
+        e.g. recovered as dead while its process was in fact still finishing."""
+        ...
+
+
+class RunLiveness(Protocol):
+    """Whether the process that started a run still lives (B7). Outside the unit of work: it
+    spans the run's transactions, and a crash must end it without anyone cleaning up."""
+
+    def hold(self, run_id: uuid.UUID) -> AbstractContextManager[None]:
+        """Mark the run alive until the block exits or the process dies."""
+        ...
+
+    def is_alive(self, run_id: uuid.UUID) -> bool: ...
 
 
 class SourceRecordReader(Protocol):

@@ -1,8 +1,9 @@
 """Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing."""
 
+from contextlib import ExitStack
 from datetime import date
 
-from recon.reconciliation.application.ports import ReconciliationUnitOfWork
+from recon.reconciliation.application.ports import ReconciliationUnitOfWork, RunLiveness
 from recon.reconciliation.domain.calendar import BusinessCalendar
 from recon.reconciliation.domain.engine import MatchingEngine, default_engine
 from recon.reconciliation.domain.events import DiscrepancyDetected
@@ -21,7 +22,7 @@ CURRENCY = "USD"
 
 
 class RunInProgress(Exception):
-    """A run of this period and ruleset is still running, or was left running by a crash."""
+    """A live process is still running this period and ruleset."""
 
     def __init__(self, run: ReconciliationRun) -> None:
         super().__init__(f"run {run.id} of {run.period} ({run.ruleset_version}) is still running")
@@ -66,11 +67,13 @@ class ReconcilePeriod:
     def __init__(
         self,
         uow: ReconciliationUnitOfWork,
+        liveness: RunLiveness,
         clock: Clock,
         ids: IdGenerator,
         engine: MatchingEngine | None = None,
     ) -> None:
         self._uow = uow
+        self._liveness = liveness
         self._clock = clock
         self._ids = ids
         self._engine = engine or default_engine()
@@ -81,7 +84,22 @@ class ReconcilePeriod:
         A run that fails leaves status ``failed`` and nothing else (its transaction rolls
         back) and ``RunFailed`` is raised from the cause; a later call starts a new run. A
         run still running raises ``RunInProgress``, an overlapping one ``PeriodOverlaps``.
+        A run whose process died is failed first, so it blocks nothing (B7).
         """
+        self._fail_dead_runs(period, ruleset_version)
+        with ExitStack() as alive:
+            return self._run(period, ruleset_version, alive)
+
+    def _fail_dead_runs(self, period: Period, ruleset_version: str) -> None:
+        """Committed on its own: a dead run is failed even when the new run is then refused."""
+        with self._uow as uow:
+            uow.runs.lock(period, ruleset_version)
+            for run in uow.runs.running(ruleset_version):
+                if not self._liveness.is_alive(run.id):
+                    uow.runs.save(run.failed(self._clock.now()))
+            uow.commit()
+
+    def _run(self, period: Period, ruleset_version: str, alive: ExitStack) -> ReconciliationRun:
         with self._uow as uow:
             uow.runs.lock(period, ruleset_version)
             existing = uow.runs.find_live(period, ruleset_version)
@@ -100,6 +118,8 @@ class ReconcilePeriod:
                 self._ids.new(), period, ruleset_version, self._clock.now()
             )
             uow.runs.add(run)
+            # alive before it is committed: nobody sees it running with no live process
+            alive.enter_context(self._liveness.hold(run.id))
             uow.commit()
         try:
             with self._uow as uow:

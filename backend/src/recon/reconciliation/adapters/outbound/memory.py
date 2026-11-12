@@ -3,6 +3,8 @@ one live run per period and ruleset, unique fingerprints, a record in one group 
 
 import copy
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from types import TracebackType
@@ -12,7 +14,7 @@ from recon.reconciliation.application.evaluation import Finding, Link
 from recon.reconciliation.domain.fees import FeeSchedule
 from recon.reconciliation.domain.records import RecordRef, Source
 from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
-from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
+from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
 from recon.reconciliation.domain.snapshot import Snapshot
 from recon.shared_kernel.events import DomainEvent
 
@@ -64,6 +66,13 @@ class _Runs:
             None,
         )
 
+    def running(self, ruleset_version: str) -> list[ReconciliationRun]:
+        return [
+            r
+            for r in self._state.runs.values()
+            if r.ruleset_version == ruleset_version and r.status is RunStatus.RUNNING
+        ]
+
     def add(self, run: ReconciliationRun) -> None:
         if run.status is not RunStatus.FAILED and (
             self.find_live(run.period, run.ruleset_version)
@@ -73,7 +82,27 @@ class _Runs:
         self._state.runs[run.id] = run
 
     def save(self, run: ReconciliationRun) -> None:
+        if self._state.runs[run.id].status is not RunStatus.RUNNING:
+            raise InvalidRunTransition(f"run {run.id} is no longer running")
         self._state.runs[run.id] = run
+
+
+class InMemoryRunLiveness:
+    """``held`` is the set of runs whose process is alive; a test leaves a run out to crash it."""
+
+    def __init__(self) -> None:
+        self.held: set[uuid.UUID] = set()
+
+    @contextmanager
+    def hold(self, run_id: uuid.UUID) -> Iterator[None]:
+        self.held.add(run_id)
+        try:
+            yield
+        finally:
+            self.held.discard(run_id)
+
+    def is_alive(self, run_id: uuid.UUID) -> bool:
+        return run_id in self.held
 
 
 class _Sources:

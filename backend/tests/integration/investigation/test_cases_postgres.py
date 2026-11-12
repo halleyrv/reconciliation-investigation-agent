@@ -16,7 +16,10 @@ from recon.investigation.adapters.outbound.sql import SqlAlchemyInvestigationUni
 from recon.investigation.application.open_case import DiscrepancyNotFound, OpenCase
 from recon.investigation.domain.case import Priority
 from recon.reconciliation.adapters.inbound.reference_file import read_reference_file
-from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationUnitOfWork
+from recon.reconciliation.adapters.outbound.sql import (
+    PostgresRunLiveness,
+    SqlAlchemyReconciliationUnitOfWork,
+)
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import ReconcilePeriod
 from recon.reconciliation.domain.results import Period
@@ -40,7 +43,7 @@ def reconciled(engine: Engine, sample: Path) -> Engine:
     )(read_export(sample))
     recon_uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     LoadReferenceData(recon_uow, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
-    ReconcilePeriod(recon_uow, SystemClock(), UuidIdGenerator())(
+    ReconcilePeriod(recon_uow, PostgresRunLiveness(engine), SystemClock(), UuidIdGenerator())(
         Period(date(2026, 10, 1), date(2026, 10, 31))
     )
     return engine

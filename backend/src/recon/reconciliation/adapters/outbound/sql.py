@@ -6,11 +6,13 @@ Ingestion code is imported.
 """
 
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from types import TracebackType
 from typing import Any, Self
 
-from sqlalchemy import func, insert, select, text, update
+from sqlalchemy import Engine, func, insert, select, text, update
 from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -45,7 +47,7 @@ from recon.reconciliation.domain.records import (
     SourceConflict,
 )
 from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
-from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
+from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
 from recon.reconciliation.domain.snapshot import Snapshot
 from recon.shared_kernel.actor import Actor
 from recon.shared_kernel.events import DomainEvent, outbox_columns
@@ -134,6 +136,15 @@ class SqlAlchemyRuns:
         ).one_or_none()
         return None if row is None else _run_from_row(row)
 
+    def running(self, ruleset_version: str) -> list[ReconciliationRun]:
+        rows = self._session.scalars(
+            select(RunRow).where(
+                RunRow.ruleset_version == ruleset_version,
+                RunRow.status == RunStatus.RUNNING.value,
+            )
+        )
+        return [_run_from_row(row) for row in rows]
+
     def add(self, run: ReconciliationRun) -> None:
         self._session.add(
             RunRow(
@@ -147,11 +158,49 @@ class SqlAlchemyRuns:
         )
 
     def save(self, run: ReconciliationRun) -> None:
-        self._session.execute(
+        saved = self._session.scalar(
             update(RunRow)
-            .where(RunRow.id == run.id)
+            .where(RunRow.id == run.id, RunRow.status == RunStatus.RUNNING.value)
             .values(status=run.status.value, finished_at=run.finished_at)
+            .returning(RunRow.id)
         )
+        if saved is None:
+            raise InvalidRunTransition(
+                f"run {run.id} is no longer running, cannot become {run.status}"
+            )
+
+
+_ALIVE = text("SELECT pg_advisory_lock(hashtextextended(:key, 0))")
+_ALIVE_FREE = text("SELECT pg_try_advisory_xact_lock(hashtextextended(:key, 0))")
+
+
+class PostgresRunLiveness:
+    """A run is alive while its process holds a session advisory lock on its ID, on a
+    connection of its own. PostgreSQL drops the lock when that connection ends, so a process
+    that crashes frees its runs with no timeout to tune."""
+
+    def __init__(self, engine: Engine) -> None:
+        self._engine = engine
+
+    @contextmanager
+    def hold(self, run_id: uuid.UUID) -> Iterator[None]:
+        # autocommit: the connection is not left idle in a transaction for the whole run
+        connection = self._engine.connect().execution_options(isolation_level="AUTOCOMMIT")
+        try:
+            connection.execute(_ALIVE, {"key": _alive_key(run_id)})
+            yield
+        finally:
+            connection.invalidate()  # closed, never pooled: a pooled connection keeps the lock
+            connection.close()
+
+    def is_alive(self, run_id: uuid.UUID) -> bool:
+        # a transaction-level try lock is released at commit: checking leaves nothing behind
+        with self._engine.begin() as connection:
+            return not connection.scalar(_ALIVE_FREE, {"key": _alive_key(run_id)})
+
+
+def _alive_key(run_id: uuid.UUID) -> str:
+    return f"recon.run-alive:{run_id}"
 
 
 class SqlSourceRecords:
