@@ -314,8 +314,10 @@ def test_a_run_left_running_blocks_its_period_until_its_process_dies(loaded: Eng
             _reconcile(loaded)(OCTOBER)
         [(pid,)] = _rows(
             loaded,
+            # pg_locks is cluster-wide: keep only this test database's locks
             "SELECT pid FROM pg_locks WHERE locktype = 'advisory' AND granted"
-            " AND pid <> pg_backend_pid()",
+            " AND pid <> pg_backend_pid()"
+            " AND database = (SELECT oid FROM pg_database WHERE datname = current_database())",
         )
         _rows(loaded, "SELECT pg_terminate_backend(:pid)", pid=pid)  # the process crashes
 
