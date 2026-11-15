@@ -18,10 +18,10 @@ backend/
     reconciliation/             same shape
     investigation/
       ...
-      adapters/inbound/agent/   LangGraph graph, nodes, tools (thin: each calls a use case)
-      adapters/outbound/llm/    LLM provider adapters
-    knowledge/                  same shape (+ embeddings, reranker adapters)
-    resolution/                 same shape
+      adapters/inbound/agent/   LangGraph graph, nodes, tools (thin: each calls a use case; Phase 3)
+      adapters/outbound/llm/    LLM provider adapters (Phase 3)
+    knowledge/                  same shape (+ embeddings, reranker adapters; Phase 3)
+    resolution/                 same shape (approvals phase)
     audit/                      same shape
     bootstrap/                  composition root, settings, FastAPI app factory, DI wiring
   tests/
@@ -69,6 +69,8 @@ A port exists only with a named reason. If a row cannot fill the "reason" column
 | `RunLiveness` | reconciliation | Whether the process of a `running` run still lives, so a crash does not block its period (B7). It spans the run's transactions, so it is not in the unit of work; test seam | PostgreSQL session advisory lock on its own connection (released when the process dies), in-memory fake |
 | `RunOutputReader` | reconciliation | The evaluation use case scores a completed run's output against a known answer; test seam (not a cross-context read model) | SQL query, in-memory fake |
 | `RunQueries` | reconciliation | The API reads run summaries and filtered, keyset-paginated discrepancies as views, not aggregates, without SQL in the HTTP adapter | SQL queries (tested through the API against PostgreSQL) |
+| `DiscrepancyReader` | investigation | A case needs its discrepancy's severity and replacement lineage without importing Reconciliation (anti-corruption layer, D3); test seam | read-only SQL over `recon.discrepancies`, in-memory fake |
+| `AuditLog`, `AuditUnitOfWork` | audit | The append-only chain and its transaction; Audit writes no events, so it does not use the shared `UnitOfWork`; test seam | SQL over `audit.events`, in-memory fake |
 | `CaseQueries` | investigation | The API reads case pages, case detail (discrepancy and records) and the audit history as views, without SQL in the HTTP adapter | SQL queries over `investigation`, `recon` and `audit` (tested through the API against PostgreSQL) |
 | `HypothesisGenerator` | investigation | External LLM; test seam with scripted outputs | LLM adapter, scripted fake |
 | `EmbeddingProvider` | knowledge | External model; swappable (ADR-0006) | provider adapter, hash-based fake |
@@ -79,18 +81,20 @@ A port exists only with a named reason. If a row cannot fill the "reason" column
 
 - FastAPI, Pydantic, LangGraph: inbound adapters drive the application. The application never calls them.
 - Langfuse / tracing: a cross-cutting concern attached in adapters and bootstrap. The domain never traces.
-- Read-model queries: plain query functions in the outbound adapter, exposed through `api.py`. They are not repositories because they return DTOs, not aggregates.
+- Read-model queries other contexts need: plain query functions exposed through `api.py`. They are not repositories because they return DTOs, not aggregates. The API's own views (`RunQueries`, `CaseQueries`) are ports only to keep SQL out of the HTTP adapter.
 
 ## Repository shape
 
 One repository per aggregate. Methods carry business names. No generic `Repository[T]`, no `filter(**kwargs)`.
 
 ```python
-class CaseRepository(Protocol):
-    def get(self, case_id: CaseId) -> Case: ...
-    def get_by_discrepancy(self, discrepancy_id: DiscrepancyId) -> Case | None: ...
-    def add(self, case: Case) -> None: ...
-    def save(self, case: Case) -> None: ...  # raises ConcurrencyConflict on version mismatch
+class CaseRepository(Protocol):  # recon/investigation/application/ports.py, abridged
+    def find_by_discrepancy(self, discrepancy_id: UUID) -> ReconciliationCase | None: ...
+    def get(self, case_id: UUID) -> ReconciliationCase | None: ...
+    # False: its discrepancy already has a case
+    def add(self, case: ReconciliationCase) -> bool: ...
+    # False: another writer changed it first (stale version)
+    def update(self, case: ReconciliationCase, expected_version: int) -> bool: ...
 ```
 
 ## SOLID, applied
