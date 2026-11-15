@@ -124,10 +124,12 @@ class SqlDiscrepancies:
         self._session = session
 
     def get(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
+        # FOR SHARE: a replacement superseding it waits until a case opened on it commits,
+        # so the replacement's delivery carries that case over instead of opening another
         row = self._session.execute(
             text(
                 "SELECT id, severity, status = 'superseded' AS superseded, superseded_by"
-                " FROM recon.discrepancies WHERE id = :id"
+                " FROM recon.discrepancies WHERE id = :id FOR SHARE"
             ),
             {"id": discrepancy_id},
         ).first()
