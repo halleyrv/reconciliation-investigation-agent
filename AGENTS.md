@@ -19,6 +19,7 @@ An AI-powered financial reconciliation and investigation system. It ingests reco
 | Relational model and denormalization register | [`docs/architecture/data-model.md`](docs/architecture/data-model.md) |
 | Folder layout, layer rules, port inventory | [`docs/architecture/project-structure.md`](docs/architecture/project-structure.md) |
 | How a phase is reviewed before it closes | [`docs/process/phase-review.md`](docs/process/phase-review.md) |
+| Step-by-step cycle of a task and of the phase closure, with known traps | [`.agents/skills/odd-task-cycle/SKILL.md`](.agents/skills/odd-task-cycle/SKILL.md) (agent skill; `.claude/skills/` links to it) |
 | Why a decision was made | [`docs/adr/README.md`](docs/adr/README.md) (index with area and one-line decision) |
 
 ## Non-negotiable principles
