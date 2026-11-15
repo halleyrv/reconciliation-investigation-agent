@@ -37,6 +37,14 @@ class PeriodBody(BaseModel):
     end: date = Field(alias="to")
 
 
+class RunRequest(PeriodBody):
+    replace: bool = Field(
+        default=False,
+        description="Replace the completed run of the period: its cases move to the"
+        " discrepancies found again and close as superseded otherwise (ADR-0021).",
+    )
+
+
 class Run(BaseModel):
     id: uuid.UUID
     period: PeriodBody
@@ -120,14 +128,15 @@ def runs_router(
     router = APIRouter(tags=["reconciliation"])
 
     @router.post("/reconciliation-runs")
-    def post_run(body: PeriodBody) -> Run:
-        """Idempotent by (period, ruleset version): the ruleset in force, not a client choice."""
+    def post_run(body: RunRequest) -> Run:
+        """Idempotent by (period, ruleset version): the ruleset in force, not a client choice.
+        With ``replace`` a new run replaces the completed one."""
         try:
             period = Period(body.start, body.end)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
         try:
-            run = reconcile()(period)
+            run = reconcile()(period, replace=body.replace)
         except (PeriodOverlaps, RunInProgress, PeriodNotClosed) as exc:
             raise HTTPException(409, str(exc)) from exc
         except RunFailed as exc:  # recorded as failed with no output; a new POST may retry

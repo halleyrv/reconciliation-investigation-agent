@@ -19,7 +19,8 @@ class RunRepository(Protocol):
         ...
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
-        """The running or completed run of this period and ruleset, if any."""
+        """The running run of this period and ruleset, else its completed run, if any. A run
+        replacing the completed one is running next to it."""
         ...
 
     def find_overlapping(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
@@ -35,6 +36,11 @@ class RunRepository(Protocol):
     def save(self, run: ReconciliationRun) -> None:
         """Record a finished run. Raises ``InvalidRunTransition`` when it is no longer running,
         e.g. recovered as dead while its process was in fact still finishing."""
+        ...
+
+    def supersede(self, run: ReconciliationRun) -> None:
+        """Record a completed run as superseded. Raises ``InvalidRunTransition`` when it is no
+        longer completed."""
         ...
 
 
@@ -88,6 +94,14 @@ class ResultRepository(Protocol):
         period: Period,
         detected_at: datetime,
     ) -> None: ...
+
+    def detected(self, run_id: uuid.UUID) -> dict[str, uuid.UUID]:
+        """The run's discrepancies still detected, by fingerprint."""
+        ...
+
+    def supersede(self, discrepancy_id: uuid.UUID, by: uuid.UUID | None) -> None:
+        """Retire a discrepancy, linked to the one a replacing run found again, if any."""
+        ...
 
 
 class RunOutputReader(Protocol):

@@ -109,10 +109,13 @@ holidays(day DATE PK)                 -- business calendar (ADR-0014), loaded by
 calendar_years(year SMALLINT PK)      -- years whose holiday list is loaded; a run of another year fails (ADR-0016)
 
 reconciliation_runs(id PK, period DATERANGE NOT NULL, ruleset_version TEXT NOT NULL,
-                    status CHECK IN ('running','completed','failed'), started_at, finished_at,
-                    CHECK (finished_at set exactly when completed or failed),
+                    status CHECK IN ('running','completed','failed','superseded'),
+                    started_at, finished_at, CHECK (finished_at set exactly when not running),
                     EXCLUDE USING gist (ruleset_version WITH =, period WITH &&)
-                        WHERE (status <> 'failed'))   -- live runs never share a day (ADR-0016)
+                        WHERE (status = 'running'),
+                    EXCLUDE USING gist (ruleset_version WITH =, period WITH &&)
+                        WHERE (status = 'completed'))
+                    -- two running or two completed runs never share a day (ADR-0016, ADR-0021)
 
 match_groups(id PK, run_id FK, rule_code TEXT NOT NULL, UNIQUE (id, run_id))
 
@@ -127,6 +130,8 @@ discrepancies(id PK, run_id FK, type REFERENCES ref.discrepancy_types, severity,
               expected_minor BIGINT, actual_minor BIGINT, currency,
               delta_minor BIGINT GENERATED ALWAYS AS (actual_minor - expected_minor) STORED,
               fingerprint CHAR(64) NOT NULL, status CHECK IN ('detected','superseded'), detected_at,
+              superseded_by UUID UNIQUE REFERENCES discrepancies,  -- migration 0005
+              CHECK (superseded_by IS NULL OR status = 'superseded'),
               UNIQUE (run_id, fingerprint))
 
 discrepancy_records(id PK, discrepancy_id FK, <the six member columns> | authorization_id,
@@ -143,7 +148,8 @@ Notes:
 - Reconciliation reads Ingestion's canonical tables with read-only SQL; its foreign keys point upstream only.
 - A run writes its groups and discrepancies in one transaction, reading its input under `REPEATABLE READ`; when it fails, the run row is set to `failed` in a separate transaction and nothing else remains. A later run of the same period and ruleset may start.
 - A run keeps the discrepancies whose latest record anchor date, and the groups whose batch date, fall in its period (ADR-0016). A run fails when a fee of its period has no fee schedule or a year of its period has no calendar.
-- `fingerprint` is unique per run; idempotency comes from one live run per period and ruleset. A second ruleset may reconcile the same period; retiring the first run's discrepancies (`DiscrepancySuperseded`) is not built yet.
+- `fingerprint` is unique per run; idempotency comes from one live run per period and ruleset. A second ruleset may reconcile the same period.
+- Replacing a completed run (ADR-0021) is explicit (`recon-reconcile --replace`, `"replace": true`). The replacing run is `running` next to the completed one; in the transaction that completes it, the old run becomes `superseded` and each of its discrepancies `superseded`, with `superseded_by` naming the replacing run's discrepancy of the same fingerprint, or `NULL` when it was not found again. A replacement that fails leaves the old run and its discrepancies as they were.
 - The fee rates rules need are relational (`fee_schedules`), not text parsed by an LLM. The policy document is linked for attribution only.
 - A discrepancy has no investigation lifecycle. That status lives on `investigation.cases`. Storing it twice would create a transitive dependency.
 
@@ -156,12 +162,17 @@ cases(id UUID PK, discrepancy_id UUID NOT NULL UNIQUE REFERENCES recon.discrepan
       status TEXT NOT NULL CHECK IN ('open','investigating','awaiting_approval','resolved','escalated'),
       priority TEXT NOT NULL CHECK IN ('low','medium','high'), assignee_id TEXT CHECK (<> ''),
       opened_at TIMESTAMPTZ NOT NULL, closed_at TIMESTAMPTZ, version INT NOT NULL CHECK (>= 1),
-      CHECK ((status IN ('resolved','escalated')) = (closed_at IS NOT NULL)))
+      close_reason TEXT CHECK IN ('superseded'),  -- migration 0005
+      CHECK ((status IN ('resolved','escalated')) = (closed_at IS NOT NULL)),
+      CHECK (close_reason IS NULL OR status = 'resolved'))
 outbox(id BIGINT IDENTITY PK, event_type, event_version, payload JSONB, created_at, published_at)
 -- Every outbox (ingestion, recon, investigation) also has, from migration 0004: actor_type,
 -- actor_id (NOT NULL, ADR-0018), aggregate_type, aggregate_id.
 -- A case opens with priority = its discrepancy's severity. OpenCase inserts with
 -- ON CONFLICT (discrepancy_id) DO NOTHING, so concurrent openings leave one case and one event.
+-- Across a run replacement (D3, ADR-0021) a case moves to the discrepancy that supersedes its
+-- own, keeping status, assignee and version (CaseCarriedOver), or resolves with close_reason
+-- 'superseded' (CaseResolved) when none does.
 
 agent_runs(id PK, case_id FK, thread_id TEXT NOT NULL UNIQUE, graph_version TEXT NOT NULL,
            model TEXT NOT NULL, prompt_version TEXT NOT NULL, trace_id TEXT, status,

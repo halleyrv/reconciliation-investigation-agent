@@ -89,7 +89,7 @@ Small aggregates, referenced by ID. A large collection never lives inside an agg
 |-------|----------|-----------|
 | `BatchImported`, `SourceConflictDetected` | Ingestion | Reconciliation (trigger run), Audit |
 | `DiscrepancyDetected`, `DiscrepancySuperseded` | Reconciliation | Investigation, Audit |
-| `CaseOpened`, `FindingRecorded`, `CaseEscalated`, `CaseResolved` | Investigation | Audit, read models |
+| `CaseOpened`, `CaseUpdated`, `CaseCarriedOver`, `FindingRecorded`, `CaseEscalated`, `CaseResolved` | Investigation | Audit, read models |
 | `ActionProposed`, `ActionApproved`, `ActionRejected`, `ActionExecuted` | Resolution | Investigation, Audit |
 
 Events are frozen dataclasses with an `event_version`. Their payload shape is a contract and changes only by adding a new version.

@@ -77,6 +77,7 @@ Changes approved by the owner after the original text above. The original is nev
 | 2026-11-10 | **Case update for AC-2c.5**: the API surface adds `PATCH /cases/{id}`, which changes only `priority` and `assignee_id`. The expected version travels in `If-Match`; a stale version returns `409` and changes nothing. Case status transitions stay with the investigation agent and approval phases | Owner |
 | 2026-11-10 | **Actor of each event without authentication** (ADR-0018, AC-2c.6): commands and event handlers act as `system`, named after themselves; API endpoints act as `system:api`; `PATCH /cases/{id}` requires `X-Actor-Id` (a claimed, unverified user until authentication arrives). The actor travels on each outbox row into `audit.events` | Owner |
 | 2026-11-11 | **Cases across a run replacement** (D3): when a rerun supersedes a discrepancy and detects the same one again (same `fingerprint`), its case moves to the new discrepancy and keeps its status, assignee, version and history (`CaseCarriedOver`). A case whose discrepancy is not detected again closes as `resolved` with the close reason `superseded` (migration 0005) | Owner |
+| 2026-11-12 | **Run replacement is explicit** (ADR-0021): a completed run is replaced only when the caller asks for it, `recon-reconcile --replace` or `POST /reconciliation-runs` with `"replace": true`; without it a rerun still returns the completed run (AC-2b.5) | Owner |
 
 ### Amendment 2026-11-09: assumptions, catalog and acceptance criteria
 

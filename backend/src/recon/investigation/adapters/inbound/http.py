@@ -13,7 +13,11 @@ from fastapi import APIRouter, Header, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from recon.investigation.application.case_queries import GetCaseDetail, GetCaseHistory, ListCases
-from recon.investigation.application.open_case import DiscrepancyNotFound, OpenCase
+from recon.investigation.application.open_case import (
+    DiscrepancyNotFound,
+    DiscrepancyRetired,
+    OpenCase,
+)
 from recon.investigation.application.ports import CaseFilter, DiscrepancySnapshot
 from recon.investigation.application.update_case import (
     UNCHANGED,
@@ -48,6 +52,7 @@ class Case(BaseModel):
     assignee_id: str | None
     opened_at: datetime
     closed_at: datetime | None
+    close_reason: str | None  # "superseded": no replacing run found its discrepancy again
     version: int
 
 
@@ -105,6 +110,7 @@ def _case(case: ReconciliationCase) -> Case:
         assignee_id=case.assignee_id,
         opened_at=case.opened_at,
         closed_at=case.closed_at,
+        close_reason=None if case.close_reason is None else case.close_reason.value,
         version=case.version,
     )
 
@@ -175,6 +181,8 @@ def cases_router(
             opened = open_case()(body.discrepancy_id)
         except DiscrepancyNotFound as exc:
             raise HTTPException(404, str(exc)) from exc
+        except DiscrepancyRetired as exc:  # its case, if any, moved on or closed
+            raise HTTPException(409, str(exc)) from exc
         if opened.created:
             response.status_code = 201
             after_write()

@@ -28,10 +28,14 @@ class State:
     runs: dict[uuid.UUID, ReconciliationRun] = field(default_factory=dict)
     groups: dict[uuid.UUID, tuple[uuid.UUID, MatchGroup]] = field(default_factory=dict)
     discrepancies: dict[uuid.UUID, tuple[uuid.UUID, Discrepancy, str]] = field(default_factory=dict)
+    superseded: dict[uuid.UUID, uuid.UUID | None] = field(default_factory=dict)  # -> found again
     events: list[DomainEvent] = field(default_factory=list)
     fee_schedules: dict[uuid.UUID, FeeSchedule] = field(default_factory=dict)
     holidays: frozenset[date] = frozenset()
     calendar_years: frozenset[int] = frozenset()
+
+
+_LIVE = (RunStatus.RUNNING, RunStatus.COMPLETED)
 
 
 class _Runs:
@@ -42,15 +46,12 @@ class _Runs:
         pass  # one thread: nothing to serialize
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
-        return next(
-            (
-                r
-                for r in self._state.runs.values()
-                if (r.period, r.ruleset_version) == (period, ruleset_version)
-                and r.status is not RunStatus.FAILED
-            ),
-            None,
-        )
+        live = [
+            r
+            for r in self._state.runs.values()
+            if (r.period, r.ruleset_version) == (period, ruleset_version) and r.status in _LIVE
+        ]
+        return min(live, key=lambda r: r.status is not RunStatus.RUNNING, default=None)
 
     def find_overlapping(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
         return next(
@@ -58,7 +59,7 @@ class _Runs:
                 r
                 for r in self._state.runs.values()
                 if r.ruleset_version == ruleset_version
-                and r.status is not RunStatus.FAILED
+                and r.status in _LIVE
                 and r.period != period
                 and r.period.start <= period.end
                 and period.start <= r.period.end
@@ -74,17 +75,30 @@ class _Runs:
         ]
 
     def add(self, run: ReconciliationRun) -> None:
-        if run.status is not RunStatus.FAILED and (
-            self.find_live(run.period, run.ruleset_version)
-            or self.find_overlapping(run.period, run.ruleset_version)
-        ):
-            raise UniqueViolation("a live run of this ruleset covers part of the period")
+        self._check_alone(run)
         self._state.runs[run.id] = run
 
     def save(self, run: ReconciliationRun) -> None:
         if self._state.runs[run.id].status is not RunStatus.RUNNING:
             raise InvalidRunTransition(f"run {run.id} is no longer running")
+        self._check_alone(run)
         self._state.runs[run.id] = run
+
+    def supersede(self, run: ReconciliationRun) -> None:
+        if self._state.runs[run.id].status is not RunStatus.COMPLETED:
+            raise InvalidRunTransition(f"run {run.id} is no longer completed")
+        self._state.runs[run.id] = run
+
+    def _check_alone(self, run: ReconciliationRun) -> None:
+        """Migration 0005: running runs of a ruleset never share a day, nor completed ones."""
+        if run.status in _LIVE and any(
+            r.id != run.id
+            and (r.ruleset_version, r.status) == (run.ruleset_version, run.status)
+            and r.period.start <= run.period.end
+            and run.period.start <= r.period.end
+            for r in self._state.runs.values()
+        ):
+            raise UniqueViolation(f"a {run.status} run of this ruleset covers part of the period")
 
 
 class InMemoryRunLiveness:
@@ -178,6 +192,16 @@ class _Results:
         if (run_id, fingerprint) in {(r, f) for r, _, f in self._state.discrepancies.values()}:
             raise UniqueViolation(f"fingerprint {fingerprint} exists in run {run_id}")
         self._state.discrepancies[discrepancy_id] = (run_id, discrepancy, fingerprint)
+
+    def detected(self, run_id: uuid.UUID) -> dict[str, uuid.UUID]:
+        return {
+            f: i
+            for i, (r, _, f) in self._state.discrepancies.items()
+            if r == run_id and i not in self._state.superseded
+        }
+
+    def supersede(self, discrepancy_id: uuid.UUID, by: uuid.UUID | None) -> None:
+        self._state.superseded[discrepancy_id] = by
 
 
 class _Outputs:

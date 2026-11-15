@@ -27,6 +27,7 @@ class CaseRow(Base):
     assignee_id: Mapped[str | None]
     opened_at: Mapped[datetime]
     closed_at: Mapped[datetime | None]
+    close_reason: Mapped[str | None]
     version: Mapped[int]
 
 

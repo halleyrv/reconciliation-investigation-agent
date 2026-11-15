@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
-from tests.integration.api.conftest import assert_problem, scalar, second_run
+from tests.integration.api.conftest import OCTOBER, assert_problem, scalar, second_run
 
 CASE_KEYS = {
     "id",
@@ -18,6 +18,7 @@ CASE_KEYS = {
     "assignee_id",
     "opened_at",
     "closed_at",
+    "close_reason",
     "version",
 }
 USER = {"X-Actor-Id": "analyst-7"}
@@ -145,6 +146,21 @@ def test_posting_an_unknown_discrepancy_is_404(client: TestClient) -> None:
     body = assert_problem(client.post("/cases", json={"discrepancy_id": str(uuid.uuid4())}), 404)
 
     assert "discrepancy" in body["detail"]
+
+
+def test_posting_a_case_for_a_superseded_discrepancy_is_409(
+    reconciled: dict[str, Any], imported: TestClient, engine: Engine
+) -> None:
+    replaced = scalar(engine, "SELECT id FROM recon.discrepancies ORDER BY id LIMIT 1")
+    assert (
+        imported.post("/reconciliation-runs", json={**OCTOBER, "replace": True}).status_code == 200
+    )
+    before = scalar(engine, "SELECT count(*) FROM investigation.cases")
+
+    body = assert_problem(imported.post("/cases", json={"discrepancy_id": str(replaced)}), 409)
+
+    assert "superseded" in body["detail"]
+    assert scalar(engine, "SELECT count(*) FROM investigation.cases") == before
 
 
 @pytest.mark.parametrize("body", [{}, {"discrepancy_id": "nope"}])

@@ -1,6 +1,7 @@
 """In-memory unit of work for application tests. It keeps one case per discrepancy."""
 
 import copy
+import dataclasses
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -51,6 +52,23 @@ class _Cases:
         stored = self._state.cases.get(case.id)
         if self._updated_concurrently or stored is None or stored.version != expected_version:
             return False
+        # like the SQL adapter: only these fields, so a stale read cannot undo a carry-over
+        self._state.cases[case.id] = dataclasses.replace(
+            stored, priority=case.priority, assignee_id=case.assignee_id, version=case.version
+        )
+        return True
+
+    def carry_over(self, case: ReconciliationCase, from_discrepancy_id: uuid.UUID) -> bool:
+        stored = self._state.cases.get(case.id)
+        if stored is None or stored.discrepancy_id != from_discrepancy_id:
+            return False
+        self._state.cases[case.id] = dataclasses.replace(stored, discrepancy_id=case.discrepancy_id)
+        return True
+
+    def close(self, case: ReconciliationCase, expected_version: int) -> bool:
+        stored = self._state.cases.get(case.id)
+        if self._updated_concurrently or stored is None or stored.version != expected_version:
+            return False
         self._state.cases[case.id] = case
         return True
 
@@ -61,6 +79,9 @@ class _Discrepancies:
 
     def get(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
         return self._views.get(discrepancy_id)
+
+    def predecessor(self, discrepancy_id: uuid.UUID) -> uuid.UUID | None:
+        return next((v.id for v in self._views.values() if v.superseded_by == discrepancy_id), None)
 
 
 class InMemoryInvestigationUnitOfWork:

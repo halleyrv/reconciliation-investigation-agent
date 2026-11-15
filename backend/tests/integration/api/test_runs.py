@@ -52,6 +52,30 @@ def test_reposting_the_period_returns_the_same_run_and_writes_nothing(
     assert scalar(engine, WRITES) == before
 
 
+def test_posting_with_replace_supersedes_the_completed_run_and_keeps_its_cases(
+    reconciled: dict[str, Any], imported: TestClient, engine: Engine
+) -> None:
+    response = imported.post("/reconciliation-runs", json={**OCTOBER, "replace": True})
+
+    assert response.status_code == 200
+    replacing = response.json()
+    assert replacing["id"] != reconciled["id"]
+    assert (replacing["period"], replacing["status"]) == (OCTOBER, "completed")
+    old = imported.get(f"/reconciliation-runs/{reconciled['id']}").json()
+    assert (old["status"], old["finished_at"]) == ("superseded", reconciled["finished_at"])
+    # the same data: every case moved to the discrepancy found again, none opened or closed
+    assert scalar(engine, "SELECT count(*) FROM investigation.cases") == 41
+    assert (
+        scalar(
+            engine,
+            "SELECT count(*) FROM investigation.cases c JOIN recon.discrepancies d"
+            " ON d.id = c.discrepancy_id WHERE d.run_id = :run AND c.status = 'open'",
+            run=replacing["id"],
+        )
+        == 41
+    )
+
+
 def test_get_run_returns_it_with_its_summary(
     reconciled: dict[str, Any], imported: TestClient, engine: Engine
 ) -> None:
