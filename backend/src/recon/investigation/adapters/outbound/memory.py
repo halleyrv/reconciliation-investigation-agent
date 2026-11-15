@@ -77,7 +77,7 @@ class _Discrepancies:
     def __init__(self, views: Iterable[DiscrepancyView]) -> None:
         self._views = {v.id: v for v in views}
 
-    def get(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
+    def lock_for_case(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
         return self._views.get(discrepancy_id)
 
     def predecessor(self, discrepancy_id: uuid.UUID) -> uuid.UUID | None:

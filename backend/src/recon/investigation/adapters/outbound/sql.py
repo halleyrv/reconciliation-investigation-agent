@@ -123,7 +123,7 @@ class SqlDiscrepancies:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
+    def lock_for_case(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
         # FOR SHARE: a replacement superseding it waits until a case opened on it commits,
         # so the replacement's delivery carries that case over instead of opening another
         row = self._session.execute(
