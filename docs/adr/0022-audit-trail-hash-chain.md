@@ -1,6 +1,6 @@
 # ADR-0022: The audit trail is an append-only hash chain guarded by a trigger
 
-- **Status:** Accepted (records the design built in P2c T3 and checked by the 2c phase review; the owner confirms it at the 2c report)
+- **Status:** Accepted (records the design built in P2c T3 and checked by the 2c phase review; confirmed by the owner at the 2c report, 2026-11-15: "si")
 - **Date:** 2026-11-15
 - **Related:** ADR-0001, ADR-0018, docs/architecture/data-model.md (`audit`, R16, R17), docs/roadmap/phase-2-backend-and-reconciliation-engine.md (AC-2c.6)
 - **Kind:** Technical (audit trail) and security (tamper evidence)
