@@ -1,12 +1,12 @@
 # Backend
 
-The reconciliation backend: a modular monolith (ADR-0001) with one package and one PostgreSQL schema per bounded context. Phase 2a delivers the **Ingestion** context: it imports a simulator export into typed canonical tables, idempotently and in one transaction per file. Phase 2b adds the **Reconciliation** context (in progress): reference data, the deterministic matching engine and its runs.
+The reconciliation backend: a modular monolith (ADR-0001) with one package and one PostgreSQL schema per bounded context. Phase 2a delivers the **Ingestion** context: it imports a simulator export into typed canonical tables, idempotently and in one transaction per file. Phase 2b adds the **Reconciliation** context: reference data, the deterministic matching engine and its runs. Phase 2c adds the **Investigation** context (one case per discrepancy), the **Audit** context (a hash-chained history of every event) and the HTTP API.
 
-Architecture rules live in [`docs/architecture/`](../docs/architecture/README.md); the 2a tasks and evidence in [`odd/tasks/p2a-ingestion.md`](../odd/tasks/p2a-ingestion.md).
+Architecture rules live in [`docs/architecture/`](../docs/architecture/README.md); the tasks and evidence of each sub-phase in [`odd/tasks/p2a-ingestion.md`](../odd/tasks/p2a-ingestion.md), [`p2b-reconciliation-engine.md`](../odd/tasks/p2b-reconciliation-engine.md) and [`p2c-cases-audit-api.md`](../odd/tasks/p2c-cases-audit-api.md).
 
 ## Run it
 
-Every command below runs from the repository root and was run while building 2a and 2b.
+Every command below runs from the repository root and was run, in this order and on a fresh database, while closing 2c.
 
 ```bash
 docker compose up -d --wait db                          # PostgreSQL 18 + pgvector on 127.0.0.1:55432
@@ -64,11 +64,15 @@ run 93ee173f-d4f2-4080-b9a9-34c40ad4b27e (v1, 2026-10-01 to 2026-10-31): complet
 | 2 | Nothing was run: an invalid period, a period overlapping another live run, a period whose last payouts are not imported yet, or a run of it still in progress in a live process. A run whose process died (a crash, a killed container) blocks nothing: the next reconcile of its ruleset marks it `failed` first |
 | 3 | The database is unreachable or not migrated: one line on stderr, `<command>: database unavailable: <reason>`; anything committed before the failure stays |
 
-`recon-reconcile --from 2026-10-01 --to 2026-10-31 --replace` replaces the completed run of the period instead of returning it (ADR-0021): a new run starts beside it and, once it completes, the old run becomes `superseded`, together with each of its discrepancies. A case whose discrepancy the new run finds again (same fingerprint) moves to the new discrepancy and keeps its status, assignee, version and history; a case whose discrepancy is not found again is resolved with close reason `superseded`. A replacement that fails leaves the completed run as it was. With no completed run, `--replace` is an ordinary run. While a replacement runs, every reconcile of its period, with or without `--replace`, exits 2 as a run in progress, and `recon-evaluate` finds no completed run until it ends. A database holding a replaced run cannot be downgraded below revision 0005 (`downgrade` refuses and changes nothing); recreate it instead.
+```bash
+uv run --locked recon-reconcile --from 2026-10-01 --to 2026-10-31 --replace
+```
+
+This replaces the completed run of the period instead of returning it (ADR-0021): a new run starts beside it and, once it completes, the old run becomes `superseded`, together with each of its discrepancies. A case whose discrepancy the new run finds again (same fingerprint) moves to the new discrepancy and keeps its status, assignee, version and history; a case whose discrepancy is not found again is resolved with close reason `superseded`. A replacement that fails leaves the completed run as it was. With no completed run, `--replace` is an ordinary run. While a replacement runs, every reconcile of its period, with or without `--replace`, exits 2 as a run in progress, and `recon-evaluate` finds no completed run until it ends. A database holding a replaced run cannot be downgraded below revision 0005: `downgrade` exits 1 with `a replaced run exists; revision 0004 cannot hold it` and changes nothing; recreate the database instead.
 
 After `recon-import` or `recon-reconcile` exits 0, it delivers the events their run wrote (`ingestion.outbox`, `recon.outbox`, `investigation.outbox`) in-process: each `DiscrepancyDetected` opens its discrepancy's case in `investigation.cases`, one case per discrepancy (AC-2c.1). An event whose handler fails, or every event when the database fails during delivery, stays unpublished, is reported on stderr as a warning without changing the exit code, and is delivered by the next successful command.
 
-Every delivered event is also appended to `audit.events` with its actor (`system` and the command or handler that wrote it, ADR-0018) and the aggregate it belongs to. Each entry's SHA-256 covers its content and the previous entry's hash, and a trigger rejects any `UPDATE` or `DELETE` of the table. A redelivered event is audited once. The trail is tamper-evident for changed or reordered entries, not for entries removed from its end, and not tamper-proof: the table owner can disable the trigger or `TRUNCATE` it and rebuild a chain that still verifies, until the application connects with its own `INSERT`/`SELECT`-only role (deployment follow-up).
+Every delivered event is also appended to `audit.events` with its actor (`system` and the command or handler that wrote it, ADR-0018) and the aggregate it belongs to. Each entry's SHA-256 covers its content and the previous entry's hash, and a trigger rejects any `UPDATE` or `DELETE` of the table. A redelivered event is audited once. The trail is tamper-evident for changed or reordered entries, not for entries removed from its end, and not tamper-proof: the table owner can disable the trigger or `TRUNCATE` it and rebuild a chain that still verifies (`VerifyChain`, run by the audit integration tests; no command exposes it yet), until the application connects with its own `INSERT`/`SELECT`-only role (deployment follow-up).
 
 `recon-evaluate` is the only code that reads `ground_truth.json` (AS1). It scores the completed run of the period against the export's known answer and writes a Markdown report: precision and recall per discrepancy type, clean-link precision and recall, and every missed, unexpected or wrong-delta finding. A detected discrepancy matches an expected one when type and involved records are equal; its delta is compared separately. The seed-42 report is [`docs/evaluation/p2b-seed-42-orders-200.md`](../docs/evaluation/p2b-seed-42-orders-200.md):
 
@@ -116,8 +120,10 @@ Errors are Problem Details (`application/problem+json`: `type`, `title`, `status
 | Status | When |
 |--------|------|
 | `422` | Invalid request (field errors in `errors`), import path outside the root or not an export, manifest mismatch, period ending before it starts, malformed cursor, a run that failed (its ID in `run_id`) |
-| `404` | Unknown batch, run or path |
-| `409` | The period overlaps a live run, a run of it is still running, or its bank data does not reach the last payout due date |
+| `404` | Unknown batch, run, discrepancy, case or path |
+| `409` | The period overlaps a live run, a run of it is still running, or its bank data does not reach the last payout due date; a stale `If-Match` version; a case opened for a discrepancy a replacing run superseded |
+| `412` | `If-Match` holds a weak (`W/`) tag |
+| `428` | `If-Match` is missing or `*` |
 | `500` | Anything unexpected, with a generic detail |
 
 ## What an import guarantees

@@ -12,9 +12,12 @@ from sqlalchemy.orm import sessionmaker
 from recon.ingestion.adapters.outbound.simulator_files import read_export
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport
-from recon.investigation.adapters.outbound.sql import SqlAlchemyInvestigationUnitOfWork
+from recon.investigation.adapters.outbound.sql import (
+    SqlAlchemyCases,
+    SqlAlchemyInvestigationUnitOfWork,
+)
 from recon.investigation.application.open_case import DiscrepancyNotFound, OpenCase
-from recon.investigation.domain.case import Priority
+from recon.investigation.domain.case import Priority, ReconciliationCase
 from recon.reconciliation.adapters.inbound.reference_file import read_reference_file
 from recon.reconciliation.adapters.outbound.sql import (
     PostgresRunLiveness,
@@ -173,3 +176,49 @@ def test_an_update_whose_version_another_writer_took_writes_nothing(reconciled: 
         "SELECT priority, assignee_id, version FROM investigation.cases WHERE id = :id",
         id=case.id,
     ) == [("high", "a", 2)]
+
+
+def test_a_replacement_waits_for_an_opening_in_flight_so_its_case_moves_on(
+    reconciled: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    discrepancy_id, _ = _a_discrepancy(reconciled)
+    paused, resume = threading.Event(), threading.Event()
+    add = SqlAlchemyCases.add
+
+    def add_after_a_pause(self: SqlAlchemyCases, case: ReconciliationCase) -> bool:
+        if threading.current_thread().name == "opening":
+            paused.set()
+            resume.wait(timeout=10)
+        return add(self, case)
+
+    def replace_and_deliver() -> None:  # like POST /reconciliation-runs: replace, then drain
+        uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(reconciled), actor=Actor.system("t"))
+        ReconcilePeriod(uow, PostgresRunLiveness(reconciled), SystemClock(), UuidIdGenerator())(
+            Period(date(2026, 10, 1), date(2026, 10, 31)), replace=True
+        )
+        [(successor,)] = _rows(
+            reconciled,
+            "SELECT superseded_by FROM recon.discrepancies WHERE id = :id",
+            id=discrepancy_id,
+        )
+        assert isinstance(successor, uuid.UUID)
+        _open_case(reconciled)(successor)  # its DiscrepancyDetected
+
+    monkeypatch.setattr(SqlAlchemyCases, "add", add_after_a_pause)
+    opening = threading.Thread(
+        target=_open_case(reconciled), args=(discrepancy_id,), name="opening"
+    )
+    opening.start()
+    assert paused.wait(timeout=10)  # it read the discrepancy as detected, and has not inserted
+    replacing = threading.Thread(target=replace_and_deliver)
+    replacing.start()
+    replacing.join(timeout=1)
+    resume.set()
+    opening.join(timeout=10)
+    replacing.join(timeout=10)
+
+    assert _rows(
+        reconciled,
+        "SELECT d.status, c.status FROM investigation.cases c"
+        " JOIN recon.discrepancies d ON d.id = c.discrepancy_id",
+    ) == [("detected", "open")]

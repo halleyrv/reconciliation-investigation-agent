@@ -68,6 +68,24 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
+# AC-2c.7: Phase 2 ships no LangGraph or LLM SDK; phase 3 narrows this to the agent adapter.
+name = "Backend has no LangGraph or LLM SDK dependency"
+type = "forbidden"
+source_modules = ["recon"]
+forbidden_modules = [
+    "langgraph",
+    "langchain",
+    "langchain_core",
+    "langchain_anthropic",
+    "langchain_openai",
+    "anthropic",
+    "openai",
+    "google",
+    "mistralai",
+    "litellm",
+]
+
+[[tool.importlinter.contracts]]
 name = "Ingestion layers: adapters > api > application > domain"
 type = "layers"
 containers = ["recon.ingestion"]

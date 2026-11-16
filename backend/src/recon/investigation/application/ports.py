@@ -19,7 +19,10 @@ class DiscrepancyView:
 
 
 class DiscrepancyReader(Protocol):
-    def get(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None: ...
+    def lock_for_case(self, discrepancy_id: uuid.UUID) -> DiscrepancyView | None:
+        """Read the discrepancy and hold it until the transaction ends, so a replacement
+        cannot supersede it while its case is being opened."""
+        ...
 
     def predecessor(self, discrepancy_id: uuid.UUID) -> uuid.UUID | None:
         """The discrepancy of the replaced run this one was found again for, if any."""

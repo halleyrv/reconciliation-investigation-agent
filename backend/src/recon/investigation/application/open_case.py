@@ -37,7 +37,7 @@ class OpenCase:
             existing = uow.cases.find_by_discrepancy(discrepancy_id)
             if existing is not None:
                 return Opened(existing, created=False)
-            discrepancy = uow.discrepancies.get(discrepancy_id)
+            discrepancy = uow.discrepancies.lock_for_case(discrepancy_id)
             if discrepancy is None:
                 raise DiscrepancyNotFound(f"discrepancy {discrepancy_id} does not exist")
             if discrepancy.superseded:
