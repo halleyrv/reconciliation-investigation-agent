@@ -1,0 +1,47 @@
+# P3 Hybrid RAG and evidence verification
+
+Objective: the Knowledge context: a versioned, chunked policy corpus in PostgreSQL, hybrid retrieval (full-text + pgvector, fused and reranked) published as `knowledge.api.retrieve(query, filters)`, explicit evidence verification, and a labeled retrieval evaluation that chooses the models (ADR-0006). Spec: `docs/roadmap/phase-3-hybrid-rag-and-evidence-verification.md` (with its amendments).
+Branch: `feat/p3-hybrid-rag-and-evidence-verification`. Delivery: same as 2c (`AGENTS.md` quality-gate rules 4-6, chained-pr strategy `feature-branch-chain`): one PR per task from `feat/p3-tX-<name>` into the phase branch; one final PR into `main` after the phase review and the owner report. Test runner: `pytest` through `uv run --locked`; integration tests on PostgreSQL (`pgvector/pgvector:pg18` from `compose.yaml`). Migrations 0001-0005 are on `main`: every schema change is a new revision.
+
+## Specs
+
+Quoted verbatim from the phase file.
+
+- **S1** "Implement the financial policy retrieval system." Requirements: "PostgreSQL full-text search." "pgvector semantic search." "Hybrid retrieval." "Reciprocal Rank Fusion or another justified fusion strategy." "Cross-encoder reranking where appropriate."
+- **S2** "Document chunking with metadata." "Source attribution." "Document versioning."
+- **S3** "Create synthetic financial policies covering:" "Refund authorization." "Refund limits." "Payment settlement periods." "Gateway fees." "Dispute handling." "Transaction reconciliation." Amendment 2026-11-09: "the policy corpus is the one the simulator already generates (Phase 1 AS10, invariant I9). This phase adds only policies the simulator does not produce (refund limits, dispute handling), generated from the same config. Dispute handling has no matching records in the simulator data, so it is retrievable but no case exercises it."
+- **S4** "Implement retrieval tools for the LangGraph agent." Amendment 2026-11-09: "retrieval is published as `knowledge.api.retrieve(query, filters)` with chunk IDs, document version and scores, tested without LangGraph. Phase 4 wraps it as an agent tool. LangGraph is not a dependency of this phase."
+- **S5** "The agent must distinguish:" "Retrieved facts." "Policy interpretations." "Hypotheses." "Unknown information." "Every policy-based conclusion must include a source reference."
+- **S6** "Evaluate retrieval quality using a labeled test dataset."
+- **S7** "Do not claim that RAG guarantees factual correctness. Implement explicit evidence verification."
+- **S8** Amendment 2026-11-09: "The embedding model, reranker and `VECTOR(N)` are chosen in this phase by the retrieval evaluation (ADR-0006)."
+
+### Agent assumptions (to confirm with the owner)
+
+- **A1** "Transaction reconciliation" is a policy the simulator does not produce today (it generates fee schedule, refund authorization and settlement). It is added like refund limits and dispute handling, from the same config. Assumption: S3's "adds only policies the simulator does not produce" covers it.
+- **A2** S5 is met in this phase as a domain contract without an agent: a typed claim (`retrieved_fact`, `policy_interpretation`, `hypothesis`, `unknown`) where facts and interpretations must cite at least one retrieved chunk, plus a verifier that checks each cited chunk exists in the cited document version and that the quoted span appears in it. Phase 4 produces the claims.
+- **A3** No acceptance criteria are written in the phase file. The tasks below derive them from S1-S8; the owner may amend them.
+
+### Open decisions (owner)
+
+- **D1** (decided by the owner on 2026-11-18, L3) Local model runtime for embeddings and reranking (ADR-0006): `fastembed` (ONNX). The evaluation in T4 picks the concrete models among those it ships.
+
+## Tasks
+
+| ID | Specs | Route | Status | Evidence |
+|----|-------|-------|--------|----------|
+| T1 | S3, A1: simulator writes the missing policies (refund limits, dispute handling, transaction reconciliation) from its config; byte-identical output per seed | inline | pending | |
+| T2 | S2: Knowledge domain: `Document` aggregate with versions, content hash, chunking with metadata (section, ordinal, offsets), contiguous ordinals | inline | pending | |
+| T3 | S6: labeled retrieval dataset (query -> relevant chunks) over the corpus, and the metrics (recall@k, MRR, nDCG) as pure functions | inline | pending | |
+| T4 | S8, D1: embedding and reranker adapters behind `EmbeddingProvider`/`Reranker` (fakes for tests); evaluation picks the models; ADR fixes `VECTOR(N)` | inline | pending | |
+| T5 | S1, S2: migration 0006 (`vector` extension, `knowledge.documents`, `knowledge.document_chunks`, GIN + HNSW), corpus ingest command, full-text and vector search adapters | inline | pending | |
+| T6 | S1, S4: hybrid retrieval with RRF and reranking, `knowledge.api.retrieve(query, filters)` returning chunk IDs, document version and scores | inline | pending | |
+| T7 | S5, S7, A2: claim types and explicit evidence verification with source references | inline | pending | |
+| T8 | S6: retrieval evaluation report (lexical vs vector vs hybrid vs hybrid + rerank), committed | inline | pending | |
+| T9 | Phase closure: `docs/process/phase-review.md`, docs and ADR index, owner report | inline | pending | |
+
+## Log
+
+- **L1** (2026-11-17) Owner: "arranca la fase 3"
+- **L2** (2026-11-17) Phase branch `feat/p3-hybrid-rag-and-evidence-verification` cut from `main` at `04ac691`. Baseline `scripts/check.sh`: exit 0, 410 passed, 268 s. Checked on PyPI: `onnxruntime` 1.32.0 and `torch` 2.15.0 ship cp314 wheels; `fastembed` 0.9.1 and `sentence-transformers` 6.3.0 are pure Python. D1 asked to the owner. Next: T1 after D1 (T1-T3 do not depend on it).
+- **L3** (2026-11-18) Owner: "dale con fastembed, arranca con T1"
