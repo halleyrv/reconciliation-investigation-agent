@@ -28,7 +28,7 @@ Same seed and config produce byte-identical files (same SHA-256 in the manifest)
 | File | Content |
 |------|---------|
 | `<type>.csv`, `<type>.json` | One pair per record type: `orders`, `payments`, `fees`, `refunds`, `authorizations`, `settlements`, `bank_transactions`. Both hold the same records |
-| `policies/*.md` | Fee schedule, refund authorization policy, settlement and cut-off policy. Their numbers come from the config |
+| `policies/*.md` | Fee schedule, refund authorization, refund limits, settlement and cut-off, dispute handling and transaction reconciliation policies. Their numbers come from the config and the generator. No simulated record is a dispute |
 | `ground_truth.json` | Injected anomalies and expected links for clean records |
 | `manifest.json` | Simulator version, seed, resolved config, its SHA-256, the affected-order counts (`affected_orders`, ADR-0015) and the SHA-256 of every other file |
 
@@ -88,7 +88,7 @@ A run with every anomaly rate at 0 satisfies all of them (checked by `simulate-v
 | I6 | Order ≤ payment ≤ settlement batch ≤ bank value date, and every refund is after its payment |
 | I7 | External IDs are unique per source |
 | I8 | Every monetary value is positive with exactly 2 decimals |
-| I9 | The numbers and bank holidays in the policy documents equal the config |
+| I9 | The numbers, bank holidays and refund window in the policy documents equal the config and the generator |
 | I10 | Every order has exactly one payment (v1 scope: split payments are out of scope, ADR-0012) |
 
 ## Anomaly catalog

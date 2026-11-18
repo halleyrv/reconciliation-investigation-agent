@@ -24,6 +24,7 @@ from jsonschema import Draft202012Validator
 from simulator.business_days import add_business_days
 from simulator.config import Config, parse_config
 from simulator.records import RECORD_TYPES
+from simulator.sim import REFUND_WINDOW_DAYS
 
 type RecordRef = tuple[str, str]
 type Row = dict[str, Any]
@@ -42,6 +43,7 @@ SETTLEMENT_REF = re.compile(r"\bSTL-[0-9]{6}\b")
 FEE_ROW = re.compile(r"^\| (\S+) \| ([0-9]+) \| ([0-9.]+) \|$", re.MULTILINE)
 LAG_LINE = re.compile(r"^Settlement lag: ([0-9]+) business days$", re.MULTILINE)
 HOLIDAYS_LINE = re.compile(r"^Bank holidays: (.+)$", re.MULTILINE)
+REFUND_WINDOW_LINE = re.compile(r"^Refund window: ([0-9]+) calendar days$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -275,26 +277,34 @@ def _i8(run: _Run) -> list[Violation]:
 
 def _i9(run: _Run) -> list[Violation]:
     policies = run.out / "policies"
+
+    def text(name: str) -> str:
+        return (policies / name).read_text(encoding="utf-8")
+
     found = []
-    fee_text = (policies / "fee_schedule.md").read_text(encoding="utf-8")
-    stated = {name: (int(bps), Decimal(fixed)) for name, bps, fixed in FEE_ROW.findall(fee_text)}
+    stated = {
+        name: (int(bps), Decimal(fixed))
+        for name, bps, fixed in FEE_ROW.findall(text("fee_schedule.md"))
+    }
     expected = {n: (g.percentage_bps, g.fixed_fee) for n, g in run.config.gateways.items()}
     if stated != expected:
         found.append(
             Violation("I9", (("policies", "fee_schedule.md"),), f"{stated} != config {expected}")
         )
-    lag_text = (policies / "settlement_policy.md").read_text(encoding="utf-8")
-    lag = LAG_LINE.search(lag_text)
-    if lag is None or int(lag.group(1)) != run.config.settlement_lag_business_days:
-        found.append(
-            Violation("I9", (("policies", "settlement_policy.md"),), "settlement lag differs")
-        )
-    holidays = HOLIDAYS_LINE.search(lag_text)
-    expected_holidays = ", ".join(h.isoformat() for h in run.config.holidays) or "none"
-    if holidays is None or holidays.group(1) != expected_holidays:
-        found.append(
-            Violation("I9", (("policies", "settlement_policy.md"),), "bank holidays differ")
-        )
+    lag = str(run.config.settlement_lag_business_days)
+    holidays = ", ".join(h.isoformat() for h in run.config.holidays) or "none"
+    window = str(REFUND_WINDOW_DAYS)
+    lines = (
+        ("settlement_policy.md", LAG_LINE, lag, "settlement lag differs"),
+        ("transaction_reconciliation.md", LAG_LINE, lag, "settlement lag differs"),
+        ("settlement_policy.md", HOLIDAYS_LINE, holidays, "bank holidays differ"),
+        ("dispute_handling.md", HOLIDAYS_LINE, holidays, "bank holidays differ"),
+        ("refund_limits.md", REFUND_WINDOW_LINE, window, "refund window differs"),
+    )
+    for name, pattern, value, message in lines:
+        match = pattern.search(text(name))
+        if match is None or match.group(1) != value:
+            found.append(Violation("I9", (("policies", name),), message))
     return found
 
 

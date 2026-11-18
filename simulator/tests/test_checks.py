@@ -182,6 +182,34 @@ def test_checker_detects_a_holiday_list_that_differs_from_the_config(
     assert [v.invariant for v in find_violations(out)] == ["I9"]
 
 
+def test_checker_detects_a_refund_window_that_differs_from_the_generator(
+    clean_run: Path, tmp_path: Path
+) -> None:
+    out = _copy(clean_run, tmp_path)
+    policy = out / "policies" / "refund_limits.md"
+    assert "Refund window: 5 calendar days\n" in policy.read_text()
+    policy.write_text(policy.read_text().replace("5 calendar days", "30 calendar days"))
+    assert [v.invariant for v in find_violations(out)] == ["I9"]
+
+
+def test_checker_detects_a_reconciliation_lag_that_differs_from_the_config(
+    clean_run: Path, tmp_path: Path
+) -> None:
+    out = _copy(clean_run, tmp_path)
+    policy = out / "policies" / "transaction_reconciliation.md"
+    assert "Settlement lag: 2 business days\n" in policy.read_text()
+    policy.write_text(policy.read_text().replace("Settlement lag: 2", "Settlement lag: 3"))
+    assert [v.invariant for v in find_violations(out)] == ["I9"]
+
+
+def test_dispute_policy_counts_business_days_with_the_configured_holidays(
+    clean_run: Path,
+) -> None:
+    policy = (clean_run / "policies" / "dispute_handling.md").read_text()
+    assert "Response window: 7 business days\n" in policy
+    assert "Bank holidays: 2026-10-09, 2026-10-20, 2026-10-28\n" in policy
+
+
 def test_explain_reports_a_second_violation_of_a_declared_invariant(
     anomalous_run: Path, tmp_path: Path
 ) -> None:
