@@ -1,0 +1,38 @@
+import uuid
+from dataclasses import dataclass
+from typing import ClassVar
+
+from recon.shared_kernel.events import DomainEvent
+
+
+@dataclass(frozen=True, kw_only=True)
+class CaseOpened(DomainEvent):
+    aggregate: ClassVar[tuple[str, str]] = ("ReconciliationCase", "case_id")
+    case_id: uuid.UUID
+    discrepancy_id: uuid.UUID
+    priority: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class CaseUpdated(DomainEvent):
+    aggregate: ClassVar[tuple[str, str]] = ("ReconciliationCase", "case_id")
+    case_id: uuid.UUID
+    version: int
+    priority: str
+    assignee_id: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CaseCarriedOver(DomainEvent):
+    aggregate: ClassVar[tuple[str, str]] = ("ReconciliationCase", "case_id")
+    case_id: uuid.UUID
+    from_discrepancy_id: uuid.UUID
+    to_discrepancy_id: uuid.UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class CaseResolved(DomainEvent):
+    aggregate: ClassVar[tuple[str, str]] = ("ReconciliationCase", "case_id")
+    case_id: uuid.UUID
+    version: int
+    close_reason: str

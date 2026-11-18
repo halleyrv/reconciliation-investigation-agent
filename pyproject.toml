@@ -68,6 +68,24 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
+# AC-2c.7: Phase 2 ships no LangGraph or LLM SDK; phase 3 narrows this to the agent adapter.
+name = "Backend has no LangGraph or LLM SDK dependency"
+type = "forbidden"
+source_modules = ["recon"]
+forbidden_modules = [
+    "langgraph",
+    "langchain",
+    "langchain_core",
+    "langchain_anthropic",
+    "langchain_openai",
+    "anthropic",
+    "openai",
+    "google",
+    "mistralai",
+    "litellm",
+]
+
+[[tool.importlinter.contracts]]
 name = "Ingestion layers: adapters > api > application > domain"
 type = "layers"
 containers = ["recon.ingestion"]
@@ -78,6 +96,51 @@ name = "Reconciliation layers: adapters > api > application > domain"
 type = "layers"
 containers = ["recon.reconciliation"]
 layers = ["adapters", "api", "application", "domain"]
+
+[[tool.importlinter.contracts]]
+name = "Investigation layers: adapters > api > application > domain"
+type = "layers"
+containers = ["recon.investigation"]
+layers = ["adapters", "api", "application", "domain"]
+
+[[tool.importlinter.contracts]]
+name = "Investigation integrates with upstream contexts only through their api module"
+type = "forbidden"
+# the api module is the gate: it may re-export upstream types, a direct import stays forbidden
+allow_indirect_imports = true
+source_modules = ["recon.investigation"]
+forbidden_modules = [
+    "recon.ingestion.domain",
+    "recon.ingestion.application",
+    "recon.ingestion.adapters",
+    "recon.reconciliation.domain",
+    "recon.reconciliation.application",
+    "recon.reconciliation.adapters",
+]
+
+[[tool.importlinter.contracts]]
+name = "Upstream contexts do not depend on Investigation"
+type = "forbidden"
+source_modules = ["recon.ingestion", "recon.reconciliation"]
+forbidden_modules = ["recon.investigation"]
+
+[[tool.importlinter.contracts]]
+name = "Audit layers: adapters > api > application > domain"
+type = "layers"
+containers = ["recon.audit"]
+layers = ["adapters", "api", "application", "domain"]
+
+[[tool.importlinter.contracts]]
+name = "Audit is a conformist consumer: it imports no other context"
+type = "forbidden"
+source_modules = ["recon.audit"]
+forbidden_modules = ["recon.ingestion", "recon.reconciliation", "recon.investigation"]
+
+[[tool.importlinter.contracts]]
+name = "No context depends on Audit"
+type = "forbidden"
+source_modules = ["recon.ingestion", "recon.reconciliation", "recon.investigation"]
+forbidden_modules = ["recon.audit"]
 
 [[tool.importlinter.contracts]]
 name = "Contexts integrate only through each other's api module"
@@ -103,6 +166,12 @@ forbidden_modules = [
     "recon.reconciliation.application",
     "recon.reconciliation.adapters",
     "recon.reconciliation.api",
+    "recon.investigation.application",
+    "recon.investigation.adapters",
+    "recon.investigation.api",
+    "recon.audit.application",
+    "recon.audit.adapters",
+    "recon.audit.api",
     "alembic",
     "fastapi",
     "psycopg",

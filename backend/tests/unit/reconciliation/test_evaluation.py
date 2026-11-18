@@ -2,7 +2,10 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from recon.reconciliation.adapters.outbound.memory import InMemoryReconciliationUnitOfWork
+from recon.reconciliation.adapters.outbound.memory import (
+    InMemoryReconciliationUnitOfWork,
+    InMemoryRunLiveness,
+)
 from recon.reconciliation.application.evaluate_run import EvaluateRun, NoCompletedRun
 from recon.reconciliation.application.evaluation import Finding, Link, evaluate
 from recon.reconciliation.application.reconcile_period import ReconcilePeriod
@@ -84,7 +87,9 @@ def test_evaluate_run_scores_the_completed_run_of_the_period() -> None:
     links = {Link(f"ORD-00000{n}", f"PAY-00000{n}", "STL-000001", "BNK-000001") for n in (1, 3)}
     with pytest.raises(NoCompletedRun, match="no completed v1 run"):
         EvaluateRun(uow)(COVERED, [expected_fee], links)
-    run = ReconcilePeriod(uow, FixedClock(NOW), SequenceIdGenerator())(COVERED)
+    run = ReconcilePeriod(uow, InMemoryRunLiveness(), FixedClock(NOW), SequenceIdGenerator())(
+        COVERED
+    )
 
     evaluated, result = EvaluateRun(uow)(COVERED, [expected_fee], links)
 

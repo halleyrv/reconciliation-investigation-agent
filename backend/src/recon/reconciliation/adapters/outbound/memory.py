@@ -3,6 +3,8 @@ one live run per period and ruleset, unique fingerprints, a record in one group 
 
 import copy
 import uuid
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from types import TracebackType
@@ -12,7 +14,7 @@ from recon.reconciliation.application.evaluation import Finding, Link
 from recon.reconciliation.domain.fees import FeeSchedule
 from recon.reconciliation.domain.records import RecordRef, Source
 from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
-from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
+from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
 from recon.reconciliation.domain.snapshot import Snapshot
 from recon.shared_kernel.events import DomainEvent
 
@@ -26,10 +28,14 @@ class State:
     runs: dict[uuid.UUID, ReconciliationRun] = field(default_factory=dict)
     groups: dict[uuid.UUID, tuple[uuid.UUID, MatchGroup]] = field(default_factory=dict)
     discrepancies: dict[uuid.UUID, tuple[uuid.UUID, Discrepancy, str]] = field(default_factory=dict)
+    superseded: dict[uuid.UUID, uuid.UUID | None] = field(default_factory=dict)  # -> found again
     events: list[DomainEvent] = field(default_factory=list)
     fee_schedules: dict[uuid.UUID, FeeSchedule] = field(default_factory=dict)
     holidays: frozenset[date] = frozenset()
     calendar_years: frozenset[int] = frozenset()
+
+
+_LIVE = (RunStatus.RUNNING, RunStatus.COMPLETED)
 
 
 class _Runs:
@@ -40,15 +46,12 @@ class _Runs:
         pass  # one thread: nothing to serialize
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
-        return next(
-            (
-                r
-                for r in self._state.runs.values()
-                if (r.period, r.ruleset_version) == (period, ruleset_version)
-                and r.status is not RunStatus.FAILED
-            ),
-            None,
-        )
+        live = [
+            r
+            for r in self._state.runs.values()
+            if (r.period, r.ruleset_version) == (period, ruleset_version) and r.status in _LIVE
+        ]
+        return min(live, key=lambda r: r.status is not RunStatus.RUNNING, default=None)
 
     def find_overlapping(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
         return next(
@@ -56,7 +59,7 @@ class _Runs:
                 r
                 for r in self._state.runs.values()
                 if r.ruleset_version == ruleset_version
-                and r.status is not RunStatus.FAILED
+                and r.status in _LIVE
                 and r.period != period
                 and r.period.start <= period.end
                 and period.start <= r.period.end
@@ -64,27 +67,71 @@ class _Runs:
             None,
         )
 
+    def running(self, ruleset_version: str) -> list[ReconciliationRun]:
+        return [
+            r
+            for r in self._state.runs.values()
+            if r.ruleset_version == ruleset_version and r.status is RunStatus.RUNNING
+        ]
+
     def add(self, run: ReconciliationRun) -> None:
-        if run.status is not RunStatus.FAILED and (
-            self.find_live(run.period, run.ruleset_version)
-            or self.find_overlapping(run.period, run.ruleset_version)
-        ):
-            raise UniqueViolation("a live run of this ruleset covers part of the period")
+        self._check_alone(run)
         self._state.runs[run.id] = run
 
     def save(self, run: ReconciliationRun) -> None:
+        if self._state.runs[run.id].status is not RunStatus.RUNNING:
+            raise InvalidRunTransition(f"run {run.id} is no longer running")
+        self._check_alone(run)
         self._state.runs[run.id] = run
+
+    def supersede(self, run: ReconciliationRun) -> None:
+        if self._state.runs[run.id].status is not RunStatus.COMPLETED:
+            raise InvalidRunTransition(f"run {run.id} is no longer completed")
+        self._state.runs[run.id] = run
+
+    def _check_alone(self, run: ReconciliationRun) -> None:
+        """Migration 0005: running runs of a ruleset never share a day, nor completed ones."""
+        if run.status in _LIVE and any(
+            r.id != run.id
+            and (r.ruleset_version, r.status) == (run.ruleset_version, run.status)
+            and r.period.start <= run.period.end
+            and run.period.start <= r.period.end
+            for r in self._state.runs.values()
+        ):
+            raise UniqueViolation(f"a {run.status} run of this ruleset covers part of the period")
+
+
+class InMemoryRunLiveness:
+    """``held`` is the set of runs whose process is alive; a test leaves a run out to crash it."""
+
+    def __init__(self) -> None:
+        self.held: set[uuid.UUID] = set()
+
+    @contextmanager
+    def hold(self, run_id: uuid.UUID) -> Iterator[None]:
+        self.held.add(run_id)
+        try:
+            yield
+        finally:
+            self.held.discard(run_id)
+
+    def is_alive(self, run_id: uuid.UUID) -> bool:
+        return run_id in self.held
 
 
 class _Sources:
-    def __init__(self, snapshot: Snapshot) -> None:
+    def __init__(self, snapshot: Snapshot, statements: Sequence[tuple[date, date]] | None) -> None:
         self._snapshot = snapshot
+        days = [b.value_date for b in snapshot.bank_transactions]
+        # by default every bank transaction of the snapshot came in one statement
+        default = [(min(days), max(days))] if days else []
+        self._statements = list(default if statements is None else statements)
 
     def snapshot(self, currency: str) -> Snapshot:
         return self._snapshot
 
-    def latest_bank_date(self) -> date | None:
-        return max((b.value_date for b in self._snapshot.bank_transactions), default=None)
+    def bank_statements(self) -> list[tuple[date, date]]:
+        return list(self._statements)
 
 
 class _Reference:
@@ -146,6 +193,16 @@ class _Results:
             raise UniqueViolation(f"fingerprint {fingerprint} exists in run {run_id}")
         self._state.discrepancies[discrepancy_id] = (run_id, discrepancy, fingerprint)
 
+    def detected(self, run_id: uuid.UUID) -> dict[str, uuid.UUID]:
+        return {
+            f: i
+            for i, (r, _, f) in self._state.discrepancies.items()
+            if r == run_id and i not in self._state.superseded
+        }
+
+    def supersede(self, discrepancy_id: uuid.UUID, by: uuid.UUID | None) -> None:
+        self._state.superseded[discrepancy_id] = by
+
 
 class _Outputs:
     def __init__(self, state: State, snapshot: Snapshot) -> None:
@@ -204,6 +261,7 @@ class InMemoryReconciliationUnitOfWork:
         holidays: frozenset[date] = frozenset(),
         fail_on_discrepancy: int | None = None,
         calendar_years: frozenset[int] | None = None,
+        bank_statements: Sequence[tuple[date, date]] | None = None,
     ) -> None:
         self.committed = State(
             fee_schedules={uuid.UUID(int=n): s for n, s in enumerate(fee_schedules, 1)},
@@ -213,7 +271,7 @@ class InMemoryReconciliationUnitOfWork:
                 frozenset({d.year for d in holidays}) if calendar_years is None else calendar_years
             ),
         )
-        self.sources = _Sources(snapshot)
+        self.sources = _Sources(snapshot, bank_statements)
         self._snapshot = snapshot
         self.fail_on_discrepancy = fail_on_discrepancy  # test hook, read by each transaction
 

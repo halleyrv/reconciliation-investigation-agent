@@ -10,7 +10,7 @@ Each table belongs to exactly one category. The category decides who may write i
 |----------|---------|------------|----------|
 | **Reference** | Lookup data with attributes | Migrations only | `ref.currencies`, `ref.fee_types`, `ref.discrepancy_types` |
 | **Source facts** | What a source said, normalized | Insert-only | `ingestion.payments`, `ingestion.bank_transactions` |
-| **Operational** | Current state of aggregates | Updated through aggregate methods only | `investigation.cases`, `resolution.proposed_actions` |
+| **Operational** | Current state of aggregates | Updated through aggregate methods only | `investigation.cases`, `recon.reconciliation_runs`, `recon.discrepancies` (only its `status` and `superseded_by`, once, when a replacing run supersedes it), `resolution.proposed_actions` |
 | **Historical snapshot** | Frozen copy of something at a point in time, kept for audit | Insert-only, never updated | `ingestion.raw_records`, `investigation.evidence.snapshot`, `audit.events` |
 | **Read model** | Query-optimized projection | Rebuildable. Never written by use cases | `read.case_queue`, `read.reconciliation_summary` |
 | **Library-owned** | Tables a framework manages | Opaque to the domain | `agent_runtime.*` (LangGraph checkpoints) |
@@ -29,7 +29,8 @@ Each table belongs to exactly one category. The category decides who may write i
 | Extensible reference sets | Lookup table in `ref`, used when values carry attributes (for example a default severity) |
 | Natural keys | Always backed by a `UNIQUE` constraint, for example `(source_id, external_id)` |
 | Cross-context FKs | Allowed only **upstream** in the context map, toward rows that are never deleted: `ref`, Ingestion canonical records, `recon.discrepancies`, `knowledge.document_chunks`. Never downstream, never sideways |
-| Outbox | Every context that emits events has its own `<schema>.outbox` with the shape shown in `resolution` |
+| Outbox | Every context that emits events has its own `<schema>.outbox` with the shape shown in `investigation`, actor and aggregate columns included (migration 0004) |
+| Trivial checks | Text identifiers carry `CHECK (<> '')` and hashes a lowercase-hex `CHECK`. The schema blocks below leave these out; the migrations have them |
 
 ## Cross-source references are claims, not foreign keys
 
@@ -86,6 +87,7 @@ authorizations(... , subject_kind CHECK IN ('refund','write_off'), subject_exter
 source_conflicts(id PK, source_id, record_type TEXT CHECK IN (<the seven types>), external_id,
                  existing_raw_record_id, incoming_raw_record_id UNIQUE, incoming_payload_sha256,
                  detected_at,
+                 CHECK (existing_raw_record_id <> incoming_raw_record_id),
                  UNIQUE (source_id, record_type, external_id, incoming_payload_sha256),
                  FOREIGN KEY (incoming_raw_record_id, incoming_payload_sha256)
                    REFERENCES raw_records(id, payload_sha256),
@@ -109,10 +111,13 @@ holidays(day DATE PK)                 -- business calendar (ADR-0014), loaded by
 calendar_years(year SMALLINT PK)      -- years whose holiday list is loaded; a run of another year fails (ADR-0016)
 
 reconciliation_runs(id PK, period DATERANGE NOT NULL, ruleset_version TEXT NOT NULL,
-                    status CHECK IN ('running','completed','failed'), started_at, finished_at,
-                    CHECK (finished_at set exactly when completed or failed),
+                    status CHECK IN ('running','completed','failed','superseded'),
+                    started_at, finished_at, CHECK (finished_at set exactly when not running),
                     EXCLUDE USING gist (ruleset_version WITH =, period WITH &&)
-                        WHERE (status <> 'failed'))   -- live runs never share a day (ADR-0016)
+                        WHERE (status = 'running'),
+                    EXCLUDE USING gist (ruleset_version WITH =, period WITH &&)
+                        WHERE (status = 'completed'))
+                    -- two running or two completed runs never share a day (ADR-0016, ADR-0021)
 
 match_groups(id PK, run_id FK, rule_code TEXT NOT NULL, UNIQUE (id, run_id))
 
@@ -127,6 +132,8 @@ discrepancies(id PK, run_id FK, type REFERENCES ref.discrepancy_types, severity,
               expected_minor BIGINT, actual_minor BIGINT, currency,
               delta_minor BIGINT GENERATED ALWAYS AS (actual_minor - expected_minor) STORED,
               fingerprint CHAR(64) NOT NULL, status CHECK IN ('detected','superseded'), detected_at,
+              superseded_by UUID UNIQUE REFERENCES discrepancies,  -- migration 0005
+              CHECK (superseded_by IS NULL OR status = 'superseded'),
               UNIQUE (run_id, fingerprint))
 
 discrepancy_records(id PK, discrepancy_id FK, <the six member columns> | authorization_id,
@@ -143,15 +150,31 @@ Notes:
 - Reconciliation reads Ingestion's canonical tables with read-only SQL; its foreign keys point upstream only.
 - A run writes its groups and discrepancies in one transaction, reading its input under `REPEATABLE READ`; when it fails, the run row is set to `failed` in a separate transaction and nothing else remains. A later run of the same period and ruleset may start.
 - A run keeps the discrepancies whose latest record anchor date, and the groups whose batch date, fall in its period (ADR-0016). A run fails when a fee of its period has no fee schedule or a year of its period has no calendar.
-- `fingerprint` is unique per run; idempotency comes from one live run per period and ruleset. A second ruleset may reconcile the same period; retiring the first run's discrepancies (`DiscrepancySuperseded`) is not built yet.
+- `fingerprint` is unique per run; idempotency comes from one live run per period and ruleset. A second ruleset may reconcile the same period.
+- Replacing a completed run (ADR-0021) is explicit (`recon-reconcile --replace`, `"replace": true`). The replacing run is `running` next to the completed one; in the transaction that completes it, the old run becomes `superseded` and each of its discrepancies `superseded`, with `superseded_by` naming the replacing run's discrepancy of the same fingerprint, or `NULL` when it was not found again. A replacement that fails leaves the old run and its discrepancies as they were.
 - The fee rates rules need are relational (`fee_schedules`), not text parsed by an LLM. The policy document is linked for attribution only.
 - A discrepancy has no investigation lifecycle. That status lives on `investigation.cases`. Storing it twice would create a transitive dependency.
 
 ### `investigation`
 
 ```sql
-cases(id PK, discrepancy_id UUID NOT NULL UNIQUE REFERENCES recon.discrepancies, status, priority,
-      assignee_id, opened_at, closed_at, version INT NOT NULL)
+-- Built in migration 0003 (Phase 2c): cases and outbox. The other tables arrive with the
+-- investigation agent phase.
+cases(id UUID PK, discrepancy_id UUID NOT NULL UNIQUE REFERENCES recon.discrepancies,
+      status TEXT NOT NULL CHECK IN ('open','investigating','awaiting_approval','resolved','escalated'),
+      priority TEXT NOT NULL CHECK IN ('low','medium','high'), assignee_id TEXT CHECK (<> ''),
+      opened_at TIMESTAMPTZ NOT NULL, closed_at TIMESTAMPTZ, version INT NOT NULL CHECK (>= 1),
+      close_reason TEXT CHECK IN ('superseded'),  -- migration 0005
+      CHECK ((status IN ('resolved','escalated')) = (closed_at IS NOT NULL)),
+      CHECK (close_reason IS NULL OR status = 'resolved'))
+outbox(id BIGINT IDENTITY PK, event_type, event_version, payload JSONB, created_at, published_at)
+-- Every outbox (ingestion, recon, investigation) also has, from migration 0004: actor_type,
+-- actor_id (NOT NULL, ADR-0018), aggregate_type, aggregate_id.
+-- A case opens with priority = its discrepancy's severity. OpenCase inserts with
+-- ON CONFLICT (discrepancy_id) DO NOTHING, so concurrent openings leave one case and one event.
+-- Across a run replacement (D3, ADR-0021) a case moves to the discrepancy that supersedes its
+-- own, keeping status, assignee and version (CaseCarriedOver), or resolves with close_reason
+-- 'superseded' (CaseResolved) when none does.
 
 agent_runs(id PK, case_id FK, thread_id TEXT NOT NULL UNIQUE, graph_version TEXT NOT NULL,
            model TEXT NOT NULL, prompt_version TEXT NOT NULL, trace_id TEXT, status,
@@ -216,10 +239,21 @@ The composite FK `(action_id, action_type)` guarantees that a detail row matches
 ### `audit`
 
 ```sql
-events(id BIGINT GENERATED ALWAYS AS IDENTITY PK, occurred_at, actor_type CHECK IN ('user','agent','system'),
-       actor_id TEXT NOT NULL, aggregate_type TEXT, aggregate_id UUID, event_type TEXT,
-       event_version INT, payload JSONB NOT NULL, prev_sha256 CHAR(64), sha256 CHAR(64) NOT NULL UNIQUE)
--- The application role gets INSERT and SELECT only. UPDATE and DELETE are revoked.
+-- Migration 0004 (Phase 2c, ADR-0018).
+events(id BIGINT GENERATED ALWAYS AS IDENTITY PK, source TEXT NOT NULL, source_event_id BIGINT NOT NULL,
+       occurred_at TIMESTAMPTZ NOT NULL, actor_type TEXT NOT NULL CHECK IN ('user','agent','system'),
+       actor_id TEXT NOT NULL CHECK (<> ''), aggregate_type TEXT, aggregate_id UUID,
+       event_type TEXT NOT NULL, event_version INT NOT NULL, payload JSONB NOT NULL,
+       prev_sha256 CHAR(64) UNIQUE, sha256 CHAR(64) NOT NULL UNIQUE,
+       UNIQUE (source, source_event_id))
+INDEX (aggregate_type, aggregate_id)
+-- source = the outbox the event came from ('recon.outbox', ...), source_event_id its row ID:
+-- an event delivered twice is audited once.
+-- sha256 = SHA-256 over the canonical JSON of the entry's content and prev_sha256; the first
+-- entry has prev_sha256 NULL. Appends are serialized by an advisory lock, so the chain is linear (ADR-0022).
+-- A BEFORE UPDATE OR DELETE trigger rejects every change for every role, the application's
+-- included. TRUNCATE is not blocked (test cleanup); a separate INSERT/SELECT-only application
+-- role is a follow-up for deployment.
 ```
 
 ### `read` (read models)
@@ -244,6 +278,9 @@ Views or materialized views only, for example `case_queue` (case + discrepancy +
 | R12 | `source_conflicts.incoming_payload_sha256` | Same as the incoming raw record's `payload_sha256` | Part of the conflict's natural key, so a re-delivered conflict is rejected by `UNIQUE` | Composite FK `(incoming_raw_record_id, incoming_payload_sha256)` to `raw_records(id, payload_sha256)` makes drift impossible |
 | R13 | `import_batches.row_count` | `count(*)` of the batch's `raw_records` | Batch summary for `GET /imports/{id}` without counting rows | Set once, in the transaction that inserts the rows; a completed batch is immutable |
 | R14 | `discrepancies.severity` | `ref.discrepancy_types.default_severity` at detection | A discrepancy's severity can later differ from its type's default (triage) without changing history | Copied once by the insert; the type default only seeds it |
+| R15 | `investigation.cases.priority` | The discrepancy's `severity` when the case opens | A case's priority is triaged on its own (`PATCH /cases/{id}`) without changing the discrepancy | Copied once by `OpenCase`; the severity only seeds it |
+| R16 | `audit.events.occurred_at`, `actor_type`, `actor_id`, `aggregate_type`, `aggregate_id`, `event_type`, `event_version`; `outbox.aggregate_type`, `aggregate_id` | Copies of the outbox row's envelope; the aggregate ID also sits in the payload | The audit trail outlives and outranks the outbox, and the case history is queried by aggregate | Insert-only; copied once from the outbox row when the entry is appended, `UNIQUE (source, source_event_id)` |
+| R17 | `audit.events.sha256`, `prev_sha256` | `sha256` is computable from the entry; `prev_sha256` repeats the previous entry's `sha256` | Tamper evidence: a changed or reordered entry breaks the chain (ADR-0022) | Written once under an advisory lock that serializes appends; `UNIQUE` on both; `VerifyChain` recomputes the chain |
 
 ## Constraints worth testing
 
@@ -254,4 +291,4 @@ Integration tests run against a real PostgreSQL and assert that the database its
 - An evidence row pointing to zero or two targets.
 - Overlapping fee schedule periods.
 - An action detail row whose type differs from its parent's type.
-- `UPDATE` or `DELETE` on `audit.events` by the application role.
+- `UPDATE` or `DELETE` on `audit.events` by any role (a trigger; a separate `INSERT`/`SELECT`-only application role is a deployment follow-up).

@@ -89,6 +89,7 @@ class DiscrepancyRow(Base):
     fingerprint: Mapped[str]
     status: Mapped[str]
     detected_at: Mapped[datetime]
+    superseded_by: Mapped[uuid.UUID | None]
 
 
 class DiscrepancyRecordRow(_OneRecord, Base):
@@ -106,3 +107,7 @@ class OutboxRow(Base):
     payload: Mapped[dict[str, object]]
     created_at: Mapped[datetime]
     published_at: Mapped[datetime | None]
+    actor_type: Mapped[str]
+    actor_id: Mapped[str]
+    aggregate_type: Mapped[str | None]
+    aggregate_id: Mapped[uuid.UUID | None]

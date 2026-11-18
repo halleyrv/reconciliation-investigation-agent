@@ -1,10 +1,13 @@
 import uuid
+from collections.abc import Mapping
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
 from recon.reconciliation.application.evaluation import Finding, Link
 from recon.reconciliation.domain.fees import FeeSchedule
-from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
+from recon.reconciliation.domain.results import Discrepancy, DiscrepancyType, MatchGroup, Period
 from recon.reconciliation.domain.run import ReconciliationRun
 from recon.reconciliation.domain.snapshot import Snapshot
 from recon.shared_kernel.ports import UnitOfWork
@@ -16,16 +19,40 @@ class RunRepository(Protocol):
         ...
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
-        """The running or completed run of this period and ruleset, if any."""
+        """The running run of this period and ruleset, else its completed run, if any. A run
+        replacing the completed one is running next to it."""
         ...
 
     def find_overlapping(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
         """A live run of this ruleset whose different period shares a day with ``period``."""
         ...
 
+    def running(self, ruleset_version: str) -> list[ReconciliationRun]:
+        """Every run of this ruleset still marked running, whether its process lives or not."""
+        ...
+
     def add(self, run: ReconciliationRun) -> None: ...
 
-    def save(self, run: ReconciliationRun) -> None: ...
+    def save(self, run: ReconciliationRun) -> None:
+        """Record a finished run. Raises ``InvalidRunTransition`` when it is no longer running,
+        e.g. recovered as dead while its process was in fact still finishing."""
+        ...
+
+    def supersede(self, run: ReconciliationRun) -> None:
+        """Record a completed run as superseded. Raises ``InvalidRunTransition`` when it is no
+        longer completed."""
+        ...
+
+
+class RunLiveness(Protocol):
+    """Whether the process that started a run still lives (B7). Outside the unit of work: it
+    spans the run's transactions, and a crash must end it without anyone cleaning up."""
+
+    def hold(self, run_id: uuid.UUID) -> AbstractContextManager[None]:
+        """Mark the run alive until the block exits or the process dies."""
+        ...
+
+    def is_alive(self, run_id: uuid.UUID) -> bool: ...
 
 
 class SourceRecordReader(Protocol):
@@ -33,8 +60,8 @@ class SourceRecordReader(Protocol):
         """Every canonical source record Ingestion holds, read-only."""
         ...
 
-    def latest_bank_date(self) -> date | None:
-        """The latest value date of any imported bank transaction: how far bank data reaches."""
+    def bank_statements(self) -> list[tuple[date, date]]:
+        """First and last value date of each imported bank statement (one import batch)."""
         ...
 
 
@@ -68,6 +95,14 @@ class ResultRepository(Protocol):
         detected_at: datetime,
     ) -> None: ...
 
+    def detected(self, run_id: uuid.UUID) -> dict[str, uuid.UUID]:
+        """The run's discrepancies still detected, by fingerprint."""
+        ...
+
+    def supersede(self, discrepancy_id: uuid.UUID, by: uuid.UUID | None) -> None:
+        """Retire a discrepancy, linked to the one a replacing run found again, if any."""
+        ...
+
 
 class RunOutputReader(Protocol):
     """A completed run's output, named by external IDs, for evaluation and reports."""
@@ -94,3 +129,46 @@ class ReconciliationUnitOfWork(UnitOfWork, Protocol):
 
     @property
     def outputs(self) -> RunOutputReader: ...
+
+
+@dataclass(frozen=True, slots=True)
+class RunSummary:
+    run: ReconciliationRun
+    match_groups: int
+    discrepancies_by_type: Mapping[str, int]
+
+
+@dataclass(frozen=True, slots=True)
+class DiscrepancyFilter:
+    """Every field is optional; the ones given all apply."""
+
+    run_id: uuid.UUID | None = None
+    type: DiscrepancyType | None = None
+    severity: str | None = None
+    min_abs_delta_minor: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DiscrepancyView:
+    id: uuid.UUID
+    run_id: uuid.UUID
+    type: str
+    severity: str
+    expected_minor: int
+    actual_minor: int
+    delta_minor: int
+    currency: str
+    status: str
+    detected_at: datetime
+
+
+class RunQueries(Protocol):
+    """What the API reads about runs and their discrepancies: views, not aggregates."""
+
+    def summary(self, run_id: uuid.UUID) -> RunSummary | None: ...
+
+    def discrepancies(
+        self, where: DiscrepancyFilter, after: uuid.UUID | None, limit: int
+    ) -> list[DiscrepancyView]:
+        """At most ``limit`` matching discrepancies whose ID is above ``after``, by ID."""
+        ...

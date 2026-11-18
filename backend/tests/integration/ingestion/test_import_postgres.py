@@ -15,6 +15,7 @@ from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport, ManifestMismatch
 from recon.ingestion.domain.batch import ImportBatch
 from recon.ingestion.domain.records import RecordType
+from recon.shared_kernel.actor import Actor
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
 AMOUNT_COLUMN = {
@@ -29,7 +30,7 @@ AMOUNT_FIELD = {
 
 
 def _import(engine: Engine, export_dir: Path) -> ImportExport:
-    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine))
+    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     return ImportExport(uow, SystemClock(), UuidIdGenerator())
 
 
@@ -221,7 +222,9 @@ def test_instants_are_stored_as_utc_whatever_the_session_time_zone(
     lima = create_engine(migrated_url, connect_args={"options": "-c timezone=America/Lima"})
     try:
         ImportExport(
-            SqlAlchemyIngestionUnitOfWork(sessionmaker(lima)), SystemClock(), UuidIdGenerator()
+            SqlAlchemyIngestionUnitOfWork(sessionmaker(lima), actor=Actor.system("test")),
+            SystemClock(),
+            UuidIdGenerator(),
         )(read_export(sample))
     finally:
         lima.dispose()

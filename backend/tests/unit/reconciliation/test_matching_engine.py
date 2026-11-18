@@ -8,6 +8,8 @@ import random
 from dataclasses import replace
 from datetime import date, timedelta
 
+import pytest
+
 from recon.reconciliation.domain.records import BankTransaction, Order, Source, SourceConflict
 
 from .book import CALENDAR, MONDAY, Book, at, clean_book, found, linked_orders, ref, usd
@@ -333,6 +335,18 @@ def test_overpayment() -> None:
     records = frozenset({ref(ORD, "ORD-000003"), ref(PAY, "PAY-000003")})
     assert found(result) == [("overpayment", records, 7_000 - 5_050)]
     assert linked_orders(result) == ALL - {"ORD-000003"}
+
+
+@pytest.mark.parametrize(("paid", "expected"), [(5_050, []), (5_051, [1])])
+def test_overpayment_starts_one_cent_above_the_order_total(paid: int, expected: list[int]) -> None:
+    book = clean_book()
+    book.payments.pop(2)
+    book.fees.pop(2)
+    book.pay("PAY-000003", "ORD-000003", paid, at(MONDAY, 10), batch="STL-000001")
+    book.close()
+
+    records = frozenset({ref(ORD, "ORD-000003"), ref(PAY, "PAY-000003")})
+    assert found(book.run()) == [("overpayment", records, d) for d in expected]
 
 
 def test_a_credit_exactly_on_the_due_date_is_on_time() -> None:

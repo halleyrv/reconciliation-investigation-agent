@@ -19,6 +19,7 @@ An AI-powered financial reconciliation and investigation system. It ingests reco
 | Relational model and denormalization register | [`docs/architecture/data-model.md`](docs/architecture/data-model.md) |
 | Folder layout, layer rules, port inventory | [`docs/architecture/project-structure.md`](docs/architecture/project-structure.md) |
 | How a phase is reviewed before it closes | [`docs/process/phase-review.md`](docs/process/phase-review.md) |
+| Step-by-step cycle of a task and of the phase closure, with known traps | [`.agents/skills/odd-task-cycle/SKILL.md`](.agents/skills/odd-task-cycle/SKILL.md) (agent skill; `.claude/skills/` links to it) |
 | Why a decision was made | [`docs/adr/README.md`](docs/adr/README.md) (index with area and one-line decision) |
 
 ## Non-negotiable principles
@@ -60,6 +61,10 @@ One script validates that the repository works: formatting, lint, import contrac
 2. **Before closing a task:** run `scripts/check.sh` again. A task is not done while it fails.
 3. **Never bypass it:** no `--no-verify`, no skipped or deleted tests to get green. A failure you cannot fix is reported to the owner as a blocker.
 4. **Branches:** each phase is developed on its own branch (`feat/pN-<name>`), never directly on `main`.
+5. **One PR per task:** each task produces one focused, independently reviewable PR (target: about 400 authored lines across code, tests and docs; generated files such as lockfiles and evaluation reports do not count). A larger PR is allowed only with an explicit justification in its description. Never split one coherent behavior across PRs only to meet the size target.
+   - The task branch is created from the latest phase branch, never from another open task branch, and its PR targets the phase branch.
+   - Each PR is integrable on its own: it merges into the phase branch as it is and passes `scripts/check.sh` there, relying only on work already merged. Building on an earlier task that is merged is expected; relying on an unmerged one is not.
+6. **One PR per phase into `main`:** the phase branch reaches `main` in a single final PR, after the phase review and the report to the owner.
 
 Commands (run on this repository):
 

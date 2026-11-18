@@ -1,14 +1,17 @@
-"""Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing."""
+"""Use case: reconcile a period. Idempotent by (period, ruleset version), all or nothing,
+unless the caller asks to replace its completed run (ADR-0021)."""
 
+import uuid
+from contextlib import ExitStack, suppress
 from datetime import date
 
-from recon.reconciliation.application.ports import ReconciliationUnitOfWork
+from recon.reconciliation.application.ports import ReconciliationUnitOfWork, RunLiveness
 from recon.reconciliation.domain.calendar import BusinessCalendar
 from recon.reconciliation.domain.engine import MatchingEngine, default_engine
-from recon.reconciliation.domain.events import DiscrepancyDetected
+from recon.reconciliation.domain.events import DiscrepancyDetected, DiscrepancySuperseded
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.rules import Ruleset
-from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
+from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
 from recon.reconciliation.domain.snapshot import Snapshot
 from recon.shared_kernel.ports import Clock, IdGenerator
 
@@ -21,7 +24,7 @@ CURRENCY = "USD"
 
 
 class RunInProgress(Exception):
-    """A run of this period and ruleset is still running, or was left running by a crash."""
+    """A live process is still running this period and ruleset."""
 
     def __init__(self, run: ReconciliationRun) -> None:
         super().__init__(f"run {run.id} of {run.period} ({run.ruleset_version}) is still running")
@@ -47,7 +50,8 @@ class RunFailed(Exception):
 
 
 class PeriodNotClosed(Exception):
-    """The bank data does not reach the period's last payout due date yet (T+lag): running
+    """The bank data does not reach the period's last payout due date yet (T+lag), or a gap
+    between its bank statements stops it before (ADR-0020): running
     now would freeze false ``missing_in_bank`` findings for its last batches."""
 
     def __init__(self, period: Period, latest: date | None, due: date) -> None:
@@ -66,44 +70,75 @@ class ReconcilePeriod:
     def __init__(
         self,
         uow: ReconciliationUnitOfWork,
+        liveness: RunLiveness,
         clock: Clock,
         ids: IdGenerator,
         engine: MatchingEngine | None = None,
     ) -> None:
         self._uow = uow
+        self._liveness = liveness
         self._clock = clock
         self._ids = ids
         self._engine = engine or default_engine()
 
-    def __call__(self, period: Period, ruleset_version: str = RULESET_VERSION) -> ReconciliationRun:
+    def __call__(
+        self, period: Period, ruleset_version: str = RULESET_VERSION, *, replace: bool = False
+    ) -> ReconciliationRun:
         """Return the completed run of the period, or start one and record its whole output.
+        With ``replace`` a completed run is not returned: a new run starts, and only when it
+        completes does the old one become ``superseded``, each of its discrepancies linked to
+        the one found again (same fingerprint) or to none (``DiscrepancySuperseded``).
 
         A run that fails leaves status ``failed`` and nothing else (its transaction rolls
         back) and ``RunFailed`` is raised from the cause; a later call starts a new run. A
         run still running raises ``RunInProgress``, an overlapping one ``PeriodOverlaps``.
+        A run whose process died is failed first, so it blocks nothing (B7).
         """
+        self._fail_dead_runs(period, ruleset_version)
+        with ExitStack() as alive:
+            return self._run(period, ruleset_version, replace, alive)
+
+    def _fail_dead_runs(self, period: Period, ruleset_version: str) -> None:
+        """Committed on its own: a dead run is failed even when the new run is then refused."""
+        with self._uow as uow:
+            uow.runs.lock(period, ruleset_version)
+            for run in uow.runs.running(ruleset_version):
+                if not self._liveness.is_alive(run.id):
+                    # it may have finished between the read and the check: nothing to recover
+                    with suppress(InvalidRunTransition):
+                        uow.runs.save(run.failed(self._clock.now()))
+            uow.commit()
+
+    def _run(
+        self, period: Period, ruleset_version: str, replace: bool, alive: ExitStack
+    ) -> ReconciliationRun:
         with self._uow as uow:
             uow.runs.lock(period, ruleset_version)
             existing = uow.runs.find_live(period, ruleset_version)
             if existing is not None and existing.status is RunStatus.RUNNING:
                 raise RunInProgress(existing)
-            if existing is not None:
+            if existing is not None and not replace:
                 return existing
             overlapping = uow.runs.find_overlapping(period, ruleset_version)
             if overlapping is not None:
                 raise PeriodOverlaps(period, overlapping)
             due = _last_due_date(period, uow.reference.holidays())
-            latest = uow.sources.latest_bank_date()
+            calendar = BusinessCalendar(uow.reference.holidays())
+            latest = _bank_reach(uow.sources.bank_statements(), period.start, calendar)
             if latest is None or latest < due:
                 raise PeriodNotClosed(period, latest, due)
             run = ReconciliationRun.start(
                 self._ids.new(), period, ruleset_version, self._clock.now()
             )
             uow.runs.add(run)
+            # alive before it is committed: nobody sees it running with no live process
+            alive.enter_context(self._liveness.hold(run.id))
             uow.commit()
         try:
             with self._uow as uow:
-                self._record_output(uow, run)
+                self._record_output(uow, run, replaces=existing)
+                if existing is not None:  # before ``done``: completed runs never share a day
+                    uow.runs.supersede(existing.superseded())
                 done = run.completed(self._clock.now())
                 uow.runs.save(done)
                 uow.commit()
@@ -118,7 +153,12 @@ class ReconcilePeriod:
             raise failure from error
         return done
 
-    def _record_output(self, uow: ReconciliationUnitOfWork, run: ReconciliationRun) -> None:
+    def _record_output(
+        self,
+        uow: ReconciliationUnitOfWork,
+        run: ReconciliationRun,
+        replaces: ReconciliationRun | None,
+    ) -> None:
         snapshot = uow.sources.snapshot(CURRENCY)
         ruleset = Ruleset(
             fee_schedules=uow.reference.fee_schedules(),
@@ -130,8 +170,10 @@ class ReconcilePeriod:
         for group in result.groups:
             uow.results.add_group(run.id, self._ids.new(), group)
         now = self._clock.now()
+        found: dict[str, uuid.UUID] = {}
         for discrepancy in result.discrepancies:
             discrepancy_id = self._ids.new()
+            found[discrepancy.fingerprint(run.period)] = discrepancy_id
             uow.results.add_discrepancy(run.id, discrepancy_id, discrepancy, run.period, now)
             uow.add_event(
                 DiscrepancyDetected(
@@ -140,6 +182,16 @@ class ReconcilePeriod:
                     type=discrepancy.type.value,
                     delta_minor=discrepancy.delta_minor,
                     currency=discrepancy.actual.currency,
+                )
+            )
+        if replaces is None:
+            return
+        for fingerprint, old_id in sorted(uow.results.detected(replaces.id).items()):
+            successor = found.get(fingerprint)
+            uow.results.supersede(old_id, successor)
+            uow.add_event(
+                DiscrepancySuperseded(
+                    occurred_at=now, discrepancy_id=old_id, superseded_by=successor
                 )
             )
 
@@ -168,6 +220,19 @@ def _require_reference_data(
             f"no fee schedule for {gateway} {fee_type} on {day}"
             f" ({len(unscheduled)} fees unchecked); load it first"
         )
+
+
+def _bank_reach(
+    statements: list[tuple[date, date]], start: date, calendar: BusinessCalendar
+) -> date | None:
+    """How far the bank statements reach without a gap from the period start (ADR-0020): a
+    business day no statement covers stops the reach, whatever later statements hold."""
+    reach: date | None = None
+    for first, last in sorted(statements):
+        if reach is not None and reach >= start and first > calendar.add_business_days(reach, 1):
+            break
+        reach = last if reach is None else max(reach, last)
+    return reach
 
 
 def _last_due_date(period: Period, holidays: frozenset[date]) -> date:

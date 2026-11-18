@@ -1,6 +1,6 @@
 # ADR-0017: A period is reconciled only once its last payouts are in the bank data
 
-- **Status:** Accepted (owner, 2026-11-10: "dale, agregá el corte ahora en 2b y el reemplazo de runs en 2c")
+- **Status:** Superseded by ADR-0020 (accepted by the owner, 2026-11-10: "dale, agregá el corte ahora en 2b y el reemplazo de runs en 2c")
 - **Date:** 2026-11-10
 - **Related:** ADR-0014, ADR-0016, docs/roadmap/phase-2-backend-and-reconciliation-engine.md (2026-11-10 amendment)
 - **Kind:** Business (when a period can be closed) and technical (precondition of a run)

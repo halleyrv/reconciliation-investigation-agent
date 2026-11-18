@@ -5,7 +5,10 @@ from typing import Self
 import pytest
 
 from recon.reconciliation.adapters.inbound.cli import run_reconcile
-from recon.reconciliation.adapters.outbound.memory import InMemoryReconciliationUnitOfWork
+from recon.reconciliation.adapters.outbound.memory import (
+    InMemoryReconciliationUnitOfWork,
+    InMemoryRunLiveness,
+)
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import (
     MissingReferenceData,
@@ -15,7 +18,7 @@ from recon.reconciliation.application.reconcile_period import (
     RunFailed,
     RunInProgress,
 )
-from recon.reconciliation.domain.events import DiscrepancyDetected
+from recon.reconciliation.domain.events import DiscrepancyDetected, DiscrepancySuperseded
 from recon.reconciliation.domain.records import BankTransaction
 from recon.reconciliation.domain.results import Period
 from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
@@ -26,6 +29,7 @@ from .book import CALENDAR, MONDAY, SCHEDULE, Book, clean_book
 
 # The book's payouts are dated 2026-10-07, the due date of a period ending on Monday the 5th.
 COVERED = Period(date(2026, 10, 1), date(2026, 10, 5))
+OCT_30 = date(2026, 10, 30)
 NOW = datetime(2026, 11, 10, 8, tzinfo=UTC)
 
 
@@ -46,8 +50,15 @@ def _uow(fail_on_discrepancy: int | None = None) -> InMemoryReconciliationUnitOf
     )
 
 
-def _reconcile(uow: InMemoryReconciliationUnitOfWork) -> ReconcilePeriod:
-    return ReconcilePeriod(uow, FixedClock(NOW), SequenceIdGenerator())
+def _reconcile(
+    uow: InMemoryReconciliationUnitOfWork,
+    liveness: InMemoryRunLiveness | None = None,
+    ids: SequenceIdGenerator | None = None,
+) -> ReconcilePeriod:
+    """``ids``: share one across the runs of a test that writes after its first run."""
+    return ReconcilePeriod(
+        uow, liveness or InMemoryRunLiveness(), FixedClock(NOW), ids or SequenceIdGenerator()
+    )
 
 
 def test_a_run_records_groups_discrepancies_and_one_event_each_then_completes() -> None:
@@ -108,17 +119,79 @@ def test_a_failed_run_does_not_block_a_new_run_of_the_same_period() -> None:
     assert len(uow.committed.discrepancies) == 2
 
 
-def test_a_run_still_in_progress_is_reported_not_returned_as_a_result() -> None:
-    uow = _uow()
-    running = ReconciliationRun.start(uuid.uuid4(), COVERED, "v1", NOW)
+def _left_running(uow: InMemoryReconciliationUnitOfWork, period: Period) -> ReconciliationRun:
+    running = ReconciliationRun.start(uuid.uuid4(), period, "v1", NOW - timedelta(hours=1))
     with uow:
         uow.runs.add(running)
         uow.commit()
+    return running
 
-    with pytest.raises(RunInProgress, match=str(running.id)):
-        _reconcile(uow)(COVERED)
+
+def test_a_run_still_in_progress_is_reported_not_returned_as_a_result() -> None:
+    uow = _uow()
+    liveness = InMemoryRunLiveness()
+    running = _left_running(uow, COVERED)
+
+    with liveness.hold(running.id), pytest.raises(RunInProgress, match=str(running.id)):
+        _reconcile(uow, liveness)(COVERED)
 
     assert uow.committed.runs == {running.id: running}
+
+
+def test_a_run_whose_process_died_is_failed_and_its_period_runs_again() -> None:
+    uow = _uow()
+    liveness = InMemoryRunLiveness()
+    crashed = _left_running(uow, COVERED)
+
+    run = _reconcile(uow, liveness)(COVERED)
+
+    assert run.status is RunStatus.COMPLETED
+    assert uow.committed.runs == {crashed.id: crashed.failed(NOW), run.id: run}
+    assert len(uow.committed.discrepancies) == 2
+    assert liveness.held == set()
+
+
+def test_a_dead_run_of_an_overlapping_period_no_longer_blocks_it() -> None:
+    uow = _two_days_uow()
+    crashed = _left_running(uow, MONDAY_ONLY)
+
+    run = _reconcile(uow)(Period(MONDAY, TUESDAY_ONLY.end))
+
+    assert run.status is RunStatus.COMPLETED
+    assert uow.committed.runs[crashed.id] == crashed.failed(NOW)
+
+
+def test_a_dead_run_is_failed_even_when_the_new_run_is_refused() -> None:
+    uow = _uow()
+    not_closed = Period(date(2026, 10, 1), date(2026, 10, 6))
+    crashed = _left_running(uow, not_closed)
+
+    with pytest.raises(PeriodNotClosed):
+        _reconcile(uow)(not_closed)
+
+    assert uow.committed.runs == {crashed.id: crashed.failed(NOW)}
+
+
+class _Watched(InMemoryReconciliationUnitOfWork):
+    """Records which runs are alive at each commit."""
+
+    liveness = InMemoryRunLiveness()
+    alive_at_commit: list[set[uuid.UUID]]
+
+    def commit(self) -> None:
+        self.alive_at_commit.append(set(self.liveness.held))
+        super().commit()
+
+
+def test_a_run_is_alive_before_anyone_can_see_it_running_until_it_finishes() -> None:
+    uow = _Watched(_book_with_two_anomalies().snapshot(), (SCHEDULE,), CALENDAR.holidays)
+    uow.alive_at_commit = []
+
+    run = _reconcile(uow, uow.liveness)(COVERED)
+
+    # recovery, then the start (the run becomes visible), then its output
+    assert uow.alive_at_commit == [set(), {run.id}, {run.id}]
+    assert uow.liveness.held == set()
 
 
 class _DatabaseGone(InMemoryReconciliationUnitOfWork):
@@ -271,3 +344,158 @@ def test_a_period_with_no_bank_data_imported_is_refused() -> None:
         _reconcile(uow)(COVERED)
 
     assert uow.committed.runs == {}
+
+
+def _with_statements(*spans: tuple[date, date]) -> InMemoryReconciliationUnitOfWork:
+    return InMemoryReconciliationUnitOfWork(
+        _book_with_two_anomalies().snapshot(),
+        (SCHEDULE,),
+        CALENDAR.holidays,
+        bank_statements=spans,
+    )
+
+
+def test_a_gap_between_bank_statements_keeps_the_period_open() -> None:
+    # Nothing covers Tuesday the 6th, although a later statement reaches past the due date.
+    uow = _with_statements((date(2026, 10, 5), date(2026, 10, 5)), (date(2026, 10, 7), OCT_30))
+
+    with pytest.raises(PeriodNotClosed, match=r"bank data reaches 2026-10-05.* due 2026-10-07"):
+        _reconcile(uow)(COVERED)
+
+    assert uow.committed.runs == {}
+
+
+def test_bank_statements_imported_out_of_order_still_cover_the_period() -> None:
+    uow = _with_statements((date(2026, 10, 6), OCT_30), (date(2026, 10, 1), date(2026, 10, 5)))
+
+    assert _reconcile(uow)(COVERED).status is RunStatus.COMPLETED
+
+
+def test_only_business_days_between_bank_statements_count_as_a_gap() -> None:
+    # Friday the 9th is a bank holiday: Thursday the 8th and Monday the 12th are adjacent.
+    uow = _with_statements((date(2026, 10, 1), date(2026, 10, 8)), (date(2026, 10, 12), OCT_30))
+
+    assert _reconcile(uow)(Period(date(2026, 10, 1), date(2026, 10, 8))).status is (
+        RunStatus.COMPLETED
+    )
+
+
+def test_a_gap_before_the_period_does_not_keep_it_open() -> None:
+    uow = _with_statements((date(2026, 9, 1), date(2026, 9, 10)), (date(2026, 10, 1), OCT_30))
+
+    assert _reconcile(uow)(COVERED).status is RunStatus.COMPLETED
+
+
+def test_no_bank_statement_imported_keeps_the_period_open() -> None:
+    uow = _with_statements()
+
+    with pytest.raises(PeriodNotClosed, match="no bank data is imported"):
+        _reconcile(uow)(COVERED)
+
+
+def _book_with_the_refund_only() -> Book:
+    """The two-anomaly book after its fee was corrected: only the refund is still wrong."""
+    book = clean_book()
+    book.refund("RFD-000001", book.payments[0], 4_000, authorized=False)
+    book.close()
+    return book
+
+
+IDS = SequenceIdGenerator()  # shared: a replacing run must not reuse the first run's IDs
+
+
+def _later(
+    uow: InMemoryReconciliationUnitOfWork, book: Book, fail_on_discrepancy: int | None = None
+) -> InMemoryReconciliationUnitOfWork:
+    """The same database once the book reads differently: what was committed stays."""
+    later = InMemoryReconciliationUnitOfWork(
+        book.snapshot(), (SCHEDULE,), CALENDAR.holidays, fail_on_discrepancy=fail_on_discrepancy
+    )
+    later.committed = uow.committed
+    return later
+
+
+def test_replacing_a_completed_run_supersedes_it_and_links_each_discrepancy_found_again() -> None:
+    uow = _uow()
+    first = _reconcile(uow, ids=IDS)(COVERED)
+    old = {d.type.value: i for i, (_, d, _) in uow.committed.discrepancies.items()}
+    events_before = list(uow.committed.events)
+    later = _later(uow, _book_with_the_refund_only())
+
+    second = _reconcile(later, ids=IDS)(COVERED, replace=True)
+
+    state = later.committed
+    assert (second.status, second.period) == (RunStatus.COMPLETED, COVERED)
+    assert second.id != first.id
+    assert state.runs[first.id] == first.superseded()  # its finish time stays
+    assert state.runs[first.id].status is RunStatus.SUPERSEDED
+    [(new_id, (_, found_again, _))] = [
+        (i, row) for i, row in state.discrepancies.items() if row[0] == second.id
+    ]
+    assert found_again.type.value == "unauthorized_refund"
+    assert state.superseded == {old["unauthorized_refund"]: new_id, old["fee_mismatch"]: None}
+    assert state.events[: len(events_before)] == events_before
+    assert set(state.events[len(events_before) :]) == {
+        DiscrepancyDetected(
+            occurred_at=NOW,
+            discrepancy_id=new_id,
+            type="unauthorized_refund",
+            delta_minor=found_again.delta_minor,
+            currency="USD",
+        ),
+        DiscrepancySuperseded(
+            occurred_at=NOW, discrepancy_id=old["unauthorized_refund"], superseded_by=new_id
+        ),
+        DiscrepancySuperseded(
+            occurred_at=NOW, discrepancy_id=old["fee_mismatch"], superseded_by=None
+        ),
+    }
+
+
+def test_a_failed_replacement_leaves_the_completed_run_and_its_discrepancies_live() -> None:
+    uow = _uow()
+    first = _reconcile(uow, ids=IDS)(COVERED)
+    before = uow.committed
+    later = _later(uow, _book_with_two_anomalies(), fail_on_discrepancy=2)
+
+    with pytest.raises(RunFailed, match="injected failure"):
+        _reconcile(later, ids=IDS)(COVERED, replace=True)
+
+    state = later.committed
+    [failed] = [r for r in state.runs.values() if r.id != first.id]
+    assert failed.status is RunStatus.FAILED
+    assert state.runs[first.id] == first
+    assert (state.discrepancies, state.superseded, state.events) == (
+        before.discrepancies,
+        {},
+        before.events,
+    )
+    assert _reconcile(later, ids=IDS)(COVERED) == first  # still the run of the period
+
+
+def test_a_replacement_in_progress_is_reported_to_every_caller_of_the_period() -> None:
+    uow = _uow()
+    _reconcile(uow, ids=IDS)(COVERED)
+    liveness = InMemoryRunLiveness()
+    replacing = _left_running(uow, COVERED)
+
+    with liveness.hold(replacing.id):
+        for replace in (False, True):
+            with pytest.raises(RunInProgress, match=str(replacing.id)):
+                _reconcile(uow, liveness, IDS)(COVERED, replace=replace)
+
+
+def test_the_cli_replaces_the_completed_run_when_asked(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    uow = _uow()
+    first = _reconcile(uow, ids=IDS)(COVERED)
+    argv = ["--from", "2026-10-01", "--to", "2026-10-05"]
+
+    assert run_reconcile([*argv, "--replace"], lambda: _reconcile(uow, ids=IDS)) == 0
+
+    [second] = [r for r in uow.committed.runs.values() if r.id != first.id]
+    assert uow.committed.runs[first.id].status is RunStatus.SUPERSEDED
+    assert capsys.readouterr().out == (
+        f"run {second.id} (v1, 2026-10-01 to 2026-10-05): completed\n"
+    )

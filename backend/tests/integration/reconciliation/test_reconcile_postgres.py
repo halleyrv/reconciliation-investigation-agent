@@ -13,7 +13,10 @@ from recon.ingestion.adapters.outbound.simulator_files import read_export
 from recon.ingestion.adapters.outbound.sql import SqlAlchemyIngestionUnitOfWork
 from recon.ingestion.application.import_export import ImportExport
 from recon.reconciliation.adapters.inbound.reference_file import read_reference_file
-from recon.reconciliation.adapters.outbound.sql import SqlAlchemyReconciliationUnitOfWork
+from recon.reconciliation.adapters.outbound.sql import (
+    PostgresRunLiveness,
+    SqlAlchemyReconciliationUnitOfWork,
+)
 from recon.reconciliation.application.evaluation import Finding
 from recon.reconciliation.application.load_reference_data import LoadReferenceData
 from recon.reconciliation.application.reconcile_period import (
@@ -23,7 +26,8 @@ from recon.reconciliation.application.reconcile_period import (
     RunInProgress,
 )
 from recon.reconciliation.domain.results import DiscrepancyType, Period
-from recon.reconciliation.domain.run import RunStatus
+from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
+from recon.shared_kernel.actor import Actor
 from recon.shared_kernel.ports import SystemClock, UuidIdGenerator
 
 OCTOBER = Period(date(2026, 10, 1), date(2026, 10, 31))
@@ -37,16 +41,16 @@ def _rows(engine: Engine, sql: str, **params: object) -> list[tuple[object, ...]
 
 @pytest.fixture
 def loaded(engine: Engine, sample: Path) -> Engine:
-    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine))
+    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     ImportExport(uow, SystemClock(), UuidIdGenerator())(read_export(sample))
-    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     LoadReferenceData(reference, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
     return engine
 
 
 def _reconcile(engine: Engine) -> ReconcilePeriod:
-    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
-    return ReconcilePeriod(uow, SystemClock(), UuidIdGenerator())
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
+    return ReconcilePeriod(uow, PostgresRunLiveness(engine), SystemClock(), UuidIdGenerator())
 
 
 def test_reconciling_the_sample_persists_every_discrepancy_group_and_event(loaded: Engine) -> None:
@@ -141,7 +145,7 @@ def test_a_month_split_in_two_halves_reports_exactly_what_the_whole_month_report
     first = _reconcile(loaded)(Period(date(2026, 10, 1), date(2026, 10, 15)), "halves")
     second = _reconcile(loaded)(Period(date(2026, 10, 16), date(2026, 10, 31)), "halves")
 
-    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded))
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded), actor=Actor.system("test"))
     with uow:
         month = sorted(map(_comparable, uow.outputs.findings(whole.id)))
         halves = [sorted(map(_comparable, uow.outputs.findings(run.id))) for run in (first, second)]
@@ -154,12 +158,12 @@ def test_a_month_split_in_two_halves_reports_exactly_what_the_whole_month_report
 def test_a_run_without_reference_data_fails_and_succeeds_once_it_is_loaded(
     engine: Engine, sample: Path
 ) -> None:
-    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine))
+    uow = SqlAlchemyIngestionUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     ImportExport(uow, SystemClock(), UuidIdGenerator())(read_export(sample))
 
     with pytest.raises(RunFailed, match="no bank holiday calendar for 2026"):
         _reconcile(engine)(OCTOBER)
-    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine))
+    reference = SqlAlchemyReconciliationUnitOfWork(sessionmaker(engine), actor=Actor.system("test"))
     LoadReferenceData(reference, UuidIdGenerator())(*read_reference_file(REFERENCE_FILE))
 
     assert _reconcile(engine)(OCTOBER).status is RunStatus.COMPLETED
@@ -221,18 +225,22 @@ def test_the_database_rejects_overlapping_fee_schedule_periods(loaded: Engine) -
     assert _rows(loaded, "SELECT count(*) FROM recon.fee_schedules") == [(4,)]
 
 
-def test_the_database_keeps_live_runs_of_one_ruleset_from_sharing_a_day(engine: Engine) -> None:
+def test_the_database_keeps_two_running_or_two_completed_runs_from_sharing_a_day(
+    engine: Engine,
+) -> None:
     insert = text(
         "INSERT INTO recon.reconciliation_runs"
         " (id, period, ruleset_version, status, started_at, finished_at)"
         " VALUES (gen_random_uuid(), '[2026-10-01,2026-11-01)', 'v1', :status, now(), :finished)"
     )
-    with engine.begin() as connection:  # failed runs stay for the record, any number of them
-        for _ in range(2):
-            connection.execute(insert, {"status": "failed", "finished": date(2026, 11, 1)})
+    with engine.begin() as connection:  # failed and superseded runs stay for the record
+        for status in ("failed", "failed", "superseded", "superseded"):
+            connection.execute(insert, {"status": status, "finished": date(2026, 11, 1)})
+        connection.execute(insert, {"status": "completed", "finished": date(2026, 11, 1)})
+        # the run replacing it runs beside it (ADR-0021)
         connection.execute(insert, {"status": "running", "finished": None})
     with (
-        pytest.raises(IntegrityError, match="reconciliation_runs_live_period_excl"),
+        pytest.raises(IntegrityError, match="reconciliation_runs_completed_period_excl"),
         engine.begin() as connection,
     ):
         connection.execute(insert, {"status": "completed", "finished": date(2026, 11, 1)})
@@ -242,7 +250,7 @@ def test_the_database_keeps_live_runs_of_one_ruleset_from_sharing_a_day(engine: 
         " VALUES (gen_random_uuid(), :period, :ruleset, 'running', now())"
     )
     with (
-        pytest.raises(IntegrityError, match="reconciliation_runs_live_period_excl"),
+        pytest.raises(IntegrityError, match="reconciliation_runs_running_period_excl"),
         engine.begin() as connection,
     ):
         connection.execute(overlapping, {"period": "[2026-10-31,2026-12-01)", "ruleset": "v1"})
@@ -289,6 +297,88 @@ def test_concurrent_overlapping_periods_leave_one_live_run_and_a_clear_refusal(
         outcomes = sorted(pool.map(reconcile, periods))
 
     assert outcomes == ["completed", "overlaps"]
+
+
+def test_a_run_left_running_blocks_its_period_until_its_process_dies(loaded: Engine) -> None:
+    with loaded.begin() as connection:
+        run_id = connection.scalar(
+            text(
+                "INSERT INTO recon.reconciliation_runs"
+                " (id, period, ruleset_version, status, started_at)"
+                " VALUES (gen_random_uuid(), '[2026-10-01,2026-11-01)', 'v1', 'running', now())"
+                " RETURNING id"
+            )
+        )
+    with PostgresRunLiveness(loaded).hold(run_id):  # stands for the process running it
+        with pytest.raises(RunInProgress, match=str(run_id)):
+            _reconcile(loaded)(OCTOBER)
+        [(pid,)] = _rows(
+            loaded,
+            # pg_locks is cluster-wide: keep only this test database's locks
+            "SELECT pid FROM pg_locks WHERE locktype = 'advisory' AND granted"
+            " AND pid <> pg_backend_pid()"
+            " AND database = (SELECT oid FROM pg_database WHERE datname = current_database())",
+        )
+        _rows(loaded, "SELECT pg_terminate_backend(:pid)", pid=pid)  # the process crashes
+
+        run = _reconcile(loaded)(OCTOBER)
+
+    assert run.status is RunStatus.COMPLETED
+    assert _rows(
+        loaded,
+        "SELECT status, finished_at IS NOT NULL FROM recon.reconciliation_runs WHERE id = :id",
+        id=run_id,
+    ) == [("failed", True)]
+    assert _rows(loaded, "SELECT count(*) FROM recon.discrepancies") == [(41,)]
+
+
+class _FinishesWhileChecked(PostgresRunLiveness):
+    """The run's process completes it between the read of running runs and this check."""
+
+    def is_alive(self, run_id: uuid.UUID) -> bool:
+        with self._engine.begin() as connection:
+            connection.execute(
+                text(
+                    "UPDATE recon.reconciliation_runs"
+                    " SET status = 'completed', finished_at = now() WHERE id = :id"
+                ),
+                {"id": run_id},
+            )
+        return super().is_alive(run_id)
+
+
+def test_a_run_that_completes_while_recovery_checks_it_is_left_alone(loaded: Engine) -> None:
+    with loaded.begin() as connection:
+        run_id = connection.scalar(
+            text(
+                "INSERT INTO recon.reconciliation_runs"
+                " (id, period, ruleset_version, status, started_at)"
+                " VALUES (gen_random_uuid(), '[2026-10-01,2026-11-01)', 'v1', 'running', now())"
+                " RETURNING id"
+            )
+        )
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded), actor=Actor.system("test"))
+    reconcile = ReconcilePeriod(
+        uow, _FinishesWhileChecked(loaded), SystemClock(), UuidIdGenerator()
+    )
+
+    run = reconcile(OCTOBER)
+
+    assert (run.id, run.status) == (run_id, RunStatus.COMPLETED)
+    assert _rows(loaded, "SELECT status FROM recon.reconciliation_runs") == [("completed",)]
+
+
+def test_a_run_no_longer_running_is_not_finished_again(loaded: Engine) -> None:
+    done = _reconcile(loaded)(OCTOBER)
+    stale = ReconciliationRun(
+        done.id, done.period, done.ruleset_version, RunStatus.RUNNING, done.started_at
+    )
+    uow = SqlAlchemyReconciliationUnitOfWork(sessionmaker(loaded), actor=Actor.system("test"))
+
+    with uow, pytest.raises(InvalidRunTransition, match="no longer running"):
+        uow.runs.save(stale.failed(done.started_at))
+
+    assert _rows(loaded, "SELECT status FROM recon.reconciliation_runs") == [("completed",)]
 
 
 def test_the_reference_discrepancy_types_are_exactly_the_engine_catalog(engine: Engine) -> None:

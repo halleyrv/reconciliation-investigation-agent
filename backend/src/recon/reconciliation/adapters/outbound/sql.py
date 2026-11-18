@@ -6,11 +6,13 @@ Ingestion code is imported.
 """
 
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from types import TracebackType
 from typing import Any, Self
 
-from sqlalchemy import insert, select, text, update
+from sqlalchemy import Engine, func, insert, select, text, update
 from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -26,6 +28,11 @@ from recon.reconciliation.adapters.outbound.orm import (
     RunRow,
 )
 from recon.reconciliation.application.evaluation import Finding, Link
+from recon.reconciliation.application.ports import (
+    DiscrepancyFilter,
+    DiscrepancyView,
+    RunSummary,
+)
 from recon.reconciliation.domain.fees import FeeSchedule
 from recon.reconciliation.domain.records import (
     Authorization,
@@ -40,9 +47,10 @@ from recon.reconciliation.domain.records import (
     SourceConflict,
 )
 from recon.reconciliation.domain.results import Discrepancy, MatchGroup, Period
-from recon.reconciliation.domain.run import ReconciliationRun, RunStatus
+from recon.reconciliation.domain.run import InvalidRunTransition, ReconciliationRun, RunStatus
 from recon.reconciliation.domain.snapshot import Snapshot
-from recon.shared_kernel.events import DomainEvent, event_payload
+from recon.shared_kernel.actor import Actor
+from recon.shared_kernel.events import DomainEvent, outbox_columns
 from recon.shared_kernel.money import Money
 
 RECORD_COLUMN: dict[Source, str] = {
@@ -93,6 +101,9 @@ def _run_from_row(row: RunRow) -> ReconciliationRun:
     )
 
 
+_LIVE = (RunStatus.RUNNING.value, RunStatus.COMPLETED.value)
+
+
 class SqlAlchemyRuns:
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -106,11 +117,15 @@ class SqlAlchemyRuns:
 
     def find_live(self, period: Period, ruleset_version: str) -> ReconciliationRun | None:
         row = self._session.scalars(
-            select(RunRow).where(
+            select(RunRow)
+            .where(
                 RunRow.period == to_range(period),
                 RunRow.ruleset_version == ruleset_version,
-                RunRow.status != RunStatus.FAILED.value,
+                RunRow.status.in_(_LIVE),
             )
+            # a run replacing the completed one comes first
+            .order_by(RunRow.status != RunStatus.RUNNING.value)
+            .limit(1)
         ).one_or_none()
         return None if row is None else _run_from_row(row)
 
@@ -121,12 +136,21 @@ class SqlAlchemyRuns:
                 RunRow.period.overlaps(to_range(period)),
                 RunRow.period != to_range(period),
                 RunRow.ruleset_version == ruleset_version,
-                RunRow.status != RunStatus.FAILED.value,
+                RunRow.status.in_(_LIVE),
             )
             .order_by(RunRow.started_at)
             .limit(1)
         ).one_or_none()
         return None if row is None else _run_from_row(row)
+
+    def running(self, ruleset_version: str) -> list[ReconciliationRun]:
+        rows = self._session.scalars(
+            select(RunRow).where(
+                RunRow.ruleset_version == ruleset_version,
+                RunRow.status == RunStatus.RUNNING.value,
+            )
+        )
+        return [_run_from_row(row) for row in rows]
 
     def add(self, run: ReconciliationRun) -> None:
         self._session.add(
@@ -141,11 +165,59 @@ class SqlAlchemyRuns:
         )
 
     def save(self, run: ReconciliationRun) -> None:
-        self._session.execute(
+        saved = self._session.scalar(
             update(RunRow)
-            .where(RunRow.id == run.id)
+            .where(RunRow.id == run.id, RunRow.status == RunStatus.RUNNING.value)
             .values(status=run.status.value, finished_at=run.finished_at)
+            .returning(RunRow.id)
         )
+        if saved is None:
+            raise InvalidRunTransition(
+                f"run {run.id} is no longer running, cannot become {run.status}"
+            )
+
+    def supersede(self, run: ReconciliationRun) -> None:
+        saved = self._session.scalar(
+            update(RunRow)
+            .where(RunRow.id == run.id, RunRow.status == RunStatus.COMPLETED.value)
+            .values(status=run.status.value)
+            .returning(RunRow.id)
+        )
+        if saved is None:
+            raise InvalidRunTransition(f"run {run.id} is no longer completed, cannot be replaced")
+
+
+_ALIVE = text("SELECT pg_advisory_lock(hashtextextended(:key, 0))")
+_ALIVE_FREE = text("SELECT pg_try_advisory_xact_lock(hashtextextended(:key, 0))")
+
+
+class PostgresRunLiveness:
+    """A run is alive while its process holds a session advisory lock on its ID, on a
+    connection of its own. PostgreSQL drops the lock when that connection ends, so a process
+    that crashes frees its runs with no timeout to tune."""
+
+    def __init__(self, engine: Engine) -> None:
+        self._engine = engine
+
+    @contextmanager
+    def hold(self, run_id: uuid.UUID) -> Iterator[None]:
+        # autocommit: the connection is not left idle in a transaction for the whole run
+        connection = self._engine.connect().execution_options(isolation_level="AUTOCOMMIT")
+        try:
+            connection.execute(_ALIVE, {"key": _alive_key(run_id)})
+            yield
+        finally:
+            connection.invalidate()  # closed, never pooled: a pooled connection keeps the lock
+            connection.close()
+
+    def is_alive(self, run_id: uuid.UUID) -> bool:
+        # a transaction-level try lock is released at commit: checking leaves nothing behind
+        with self._engine.begin() as connection:
+            return not connection.scalar(_ALIVE_FREE, {"key": _alive_key(run_id)})
+
+
+def _alive_key(run_id: uuid.UUID) -> str:
+    return f"recon.run-alive:{run_id}"
 
 
 class SqlSourceRecords:
@@ -160,11 +232,14 @@ class SqlSourceRecords:
         self.row_ids.update({RecordRef(source, r.external_id): r.id for r in rows})
         return rows
 
-    def latest_bank_date(self) -> date | None:
-        latest: date | None = self._session.execute(
-            text("SELECT max(value_date) FROM ingestion.bank_transactions")
-        ).scalar_one()
-        return latest
+    def bank_statements(self) -> list[tuple[date, date]]:
+        rows = self._session.execute(
+            text(
+                "SELECT min(t.value_date), max(t.value_date) FROM ingestion.bank_transactions t"
+                " JOIN ingestion.raw_records r ON r.id = t.raw_record_id GROUP BY r.batch_id"
+            )
+        )
+        return [(first, last) for first, last in rows]
 
     def snapshot(self, currency: str) -> Snapshot:
         # One consistent view of every table: an import committing between these queries must
@@ -352,6 +427,21 @@ class SqlAlchemyResults:
             ],
         )
 
+    def detected(self, run_id: uuid.UUID) -> dict[str, uuid.UUID]:
+        rows = self._session.execute(
+            select(DiscrepancyRow.fingerprint, DiscrepancyRow.id).where(
+                DiscrepancyRow.run_id == run_id, DiscrepancyRow.status == "detected"
+            )
+        )
+        return {fingerprint: discrepancy_id for fingerprint, discrepancy_id in rows}
+
+    def supersede(self, discrepancy_id: uuid.UUID, by: uuid.UUID | None) -> None:
+        self._session.execute(
+            update(DiscrepancyRow)
+            .where(DiscrepancyRow.id == discrepancy_id)
+            .values(status="superseded", superseded_by=by)
+        )
+
 
 _RECORD_JOINS = " ".join(
     f"LEFT JOIN ingestion.{table} {alias} ON {alias}.id = r.{column}"
@@ -410,6 +500,62 @@ class SqlRunOutputs:
         return {Link(*row) for row in rows}
 
 
+class SqlRunQueries:
+    """Read-only: each call is its own short transaction."""
+
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def summary(self, run_id: uuid.UUID) -> RunSummary | None:
+        with self._session_factory() as session:
+            row = session.get(RunRow, run_id)
+            if row is None:
+                return None
+            groups = session.scalar(
+                select(func.count())
+                .select_from(MatchGroupRow)
+                .where(MatchGroupRow.run_id == run_id)
+            )
+            per_type = session.execute(
+                select(DiscrepancyRow.type, func.count())
+                .where(DiscrepancyRow.run_id == run_id)
+                .group_by(DiscrepancyRow.type)
+            ).all()
+            return RunSummary(_run_from_row(row), groups or 0, dict(per_type))
+
+    def discrepancies(
+        self, where: DiscrepancyFilter, after: uuid.UUID | None, limit: int
+    ) -> list[DiscrepancyView]:
+        query = select(DiscrepancyRow).order_by(DiscrepancyRow.id).limit(limit)
+        if after is not None:
+            query = query.where(DiscrepancyRow.id > after)
+        if where.run_id is not None:
+            query = query.where(DiscrepancyRow.run_id == where.run_id)
+        if where.type is not None:
+            query = query.where(DiscrepancyRow.type == where.type.value)
+        if where.severity is not None:
+            query = query.where(DiscrepancyRow.severity == where.severity)
+        if where.min_abs_delta_minor is not None:
+            delta = DiscrepancyRow.actual_minor - DiscrepancyRow.expected_minor
+            query = query.where(func.abs(delta) >= where.min_abs_delta_minor)
+        with self._session_factory() as session:
+            return [
+                DiscrepancyView(
+                    id=row.id,
+                    run_id=row.run_id,
+                    type=row.type,
+                    severity=row.severity,
+                    expected_minor=row.expected_minor,
+                    actual_minor=row.actual_minor,
+                    delta_minor=row.actual_minor - row.expected_minor,
+                    currency=row.currency,
+                    status=row.status,
+                    detected_at=row.detected_at,
+                )
+                for row in session.scalars(query)
+            ]
+
+
 class SqlAlchemyReconciliationUnitOfWork:
     """One database transaction per ``with`` block; leaving it without ``commit`` rolls back."""
 
@@ -419,8 +565,9 @@ class SqlAlchemyReconciliationUnitOfWork:
     results: SqlAlchemyResults
     outputs: SqlRunOutputs
 
-    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+    def __init__(self, session_factory: sessionmaker[Session], *, actor: Actor) -> None:
         self._session_factory = session_factory
+        self._actor = actor  # stamped on every event this unit of work writes (ADR-0018)
 
     def __enter__(self) -> Self:
         self._session = self._session_factory()
@@ -444,11 +591,4 @@ class SqlAlchemyReconciliationUnitOfWork:
         self._session.commit()
 
     def add_event(self, event: DomainEvent) -> None:
-        self._session.add(
-            OutboxRow(
-                event_type=event.event_type,
-                event_version=event.event_version,
-                payload=event_payload(event),
-                created_at=event.occurred_at,
-            )
-        )
+        self._session.add(OutboxRow(**outbox_columns(event, self._actor)))
