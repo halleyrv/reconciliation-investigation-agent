@@ -40,32 +40,47 @@ def _heading(block: str) -> str | None:
     return first_line.lstrip("#").strip() if _HEADING.match(first_line) else None
 
 
+type Span = tuple[int, int]
+
+
+def _sections(content: str) -> list[tuple[str, list[Span]]]:
+    """The blocks of the text grouped under the heading they follow."""
+    sections: list[tuple[str, list[Span]]] = []
+    for match in _BLOCK.finditer(content):
+        span = (match.start(), match.start() + len(match.group().rstrip()))
+        heading = _heading(content[span[0] : span[1]])
+        if heading is None and sections:
+            sections[-1][1].append(span)
+            continue
+        sections.append((heading or "", [span]))
+    return sections
+
+
+def _pack(blocks: list[Span], max_chars: int, starts_with_heading: bool) -> list[Span]:
+    """Packs consecutive blocks while the span stays within ``max_chars``."""
+    if starts_with_heading and len(blocks) > 1:
+        blocks = [(blocks[0][0], blocks[1][1]), *blocks[2:]]  # a heading never stands alone
+    packed = [blocks[0]]
+    for start, end in blocks[1:]:
+        if end - packed[-1][0] > max_chars:
+            packed.append((start, end))
+            continue
+        packed[-1] = (packed[-1][0], end)
+    return packed
+
+
 def chunk_markdown(content: str, max_chars: int = DEFAULT_MAX_CHUNK_CHARS) -> tuple[Chunk, ...]:
     """Chunks never cross a heading and never split a block. Blocks of a section are packed
     while the span stays within ``max_chars``; a heading always travels with the block after
     it, and a single block longer than the limit stays whole."""
-    spans: list[tuple[str, int, int]] = []
-    section = ""
-    current: tuple[int, int] | None = None
-    glued = False  # the open chunk holds only a heading so far
-    for match in _BLOCK.finditer(content):
-        start, end = match.start(), match.start() + len(match.group().rstrip())
-        heading = _heading(content[start:end])
-        if heading is not None or current is None:
-            if current is not None:
-                spans.append((section, *current))
-            section = heading if heading is not None else section
-            current, glued = (start, end), heading is not None
-        elif glued or end - current[0] <= max_chars:
-            current, glued = (current[0], end), False
-        else:
-            spans.append((section, *current))
-            current = (start, end)
-    if current is not None:
-        spans.append((section, *current))
+    spans = [
+        (section, span)
+        for section, blocks in _sections(content)
+        for span in _pack(blocks, max_chars, starts_with_heading=bool(section))
+    ]
     return tuple(
-        Chunk(ordinal=i, section=s, start=a, end=b, content=content[a:b])
-        for i, (s, a, b) in enumerate(spans)
+        Chunk(ordinal=i, section=section, start=a, end=b, content=content[a:b])
+        for i, (section, (a, b)) in enumerate(spans)
     )
 
 
