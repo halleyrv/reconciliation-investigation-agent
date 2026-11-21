@@ -125,6 +125,12 @@ source_modules = ["recon.ingestion", "recon.reconciliation"]
 forbidden_modules = ["recon.investigation"]
 
 [[tool.importlinter.contracts]]
+name = "Knowledge decides nothing: it imports no other context"
+type = "forbidden"
+source_modules = ["recon.knowledge"]
+forbidden_modules = ["recon.ingestion", "recon.reconciliation", "recon.investigation", "recon.audit"]
+
+[[tool.importlinter.contracts]]
 name = "Audit layers: adapters > api > application > domain"
 type = "layers"
 containers = ["recon.audit"]
