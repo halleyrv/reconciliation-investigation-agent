@@ -12,8 +12,11 @@ from simulator import __version__
 from simulator.config import Config
 from simulator.generator import Dataset
 from simulator.records import RECORD_TYPES, to_row
+from simulator.sim import REFUND_WINDOW_DAYS
 
 RECORD_SCHEMA_VERSION = "1.0.0"
+# No simulated record is a dispute: the policy is retrievable, but no case exercises it.
+DISPUTE_RESPONSE_BUSINESS_DAYS = 7
 
 
 def dumps(value: Any) -> str:
@@ -57,6 +60,17 @@ def policy_documents(config: Config) -> dict[str, str]:
             "One authorization covers exactly one refund.\n\n"
             "The total refunded for a payment never exceeds the captured amount.\n"
         ),
+        "refund_limits.md": (
+            "# Refund Limits Policy\n\n"
+            "A refund is issued after its payment is captured and within the refund window "
+            "counted in calendar days from the capture.\n\n"
+            f"Refund window: {REFUND_WINDOW_DAYS} calendar days\n\n"
+            f"A payment is refunded at most once, fully or partially, in {config.currency}. "
+            "The refunded amount is at least 0.01 and never exceeds the captured amount of the "
+            "payment. A second refund of the same payment is not allowed.\n\n"
+            "A refund is netted in a later settlement batch of the gateway that captured the "
+            "payment, never in the batch of the payment itself.\n"
+        ),
         "settlement_policy.md": (
             "# Settlement and Cut-off Policy\n\n"
             "Each gateway settles one batch per calendar day (cut-off 23:59:59 UTC). A batch "
@@ -67,6 +81,36 @@ def policy_documents(config: Config) -> dict[str, str]:
             "Each batch is paid out as exactly one bank credit, dated the batch date plus the "
             "settlement lag. Business days are Monday to Friday, except the bank holidays "
             "listed above.\n"
+        ),
+        "dispute_handling.md": (
+            "# Dispute Handling Policy\n\n"
+            "A dispute is a customer's challenge of a captured payment raised through the "
+            "gateway. The merchant answers each dispute with its evidence (order, payment, "
+            "refund and authorization records) within the response window, counted in "
+            "business days from the day the gateway reports the dispute.\n\n"
+            f"Response window: {DISPUTE_RESPONSE_BUSINESS_DAYS} business days\n\n"
+            f"Bank holidays: {holidays}\n\n"
+            "While a dispute is open, the disputed amount is not refunded a second time and "
+            "no adjustment is booked for it. An unanswered dispute is lost by default.\n"
+        ),
+        "transaction_reconciliation.md": (
+            "# Transaction Reconciliation Policy\n\n"
+            "Reconciliation compares independent sources record by record: orders from the "
+            "shop, payments, refunds, fees and settlement batches from the gateway, "
+            "authorizations from the back office and credits from the bank statement.\n\n"
+            "- Every order has exactly one captured payment, and the payment amount equals the "
+            "order total.\n"
+            "- Every refund has an approved authorization that covers its amount.\n"
+            "- Every fee equals the gateway's fee schedule applied to its payment.\n"
+            "- A settlement batch nets its payments minus the refunds it absorbs and the fees "
+            "of its payments.\n"
+            "- Each batch is paid out as exactly one bank credit for its net amount, dated the "
+            "batch date plus the settlement lag in business days.\n\n"
+            f"Settlement lag: {lag} business days\n\n"
+            f"Amounts are compared exactly in {config.currency} cents: there is no tolerance. "
+            "A record that one source has and another lacks, an amount that differs, or a "
+            "reference that points to the wrong record is a discrepancy to investigate, not an "
+            "error to correct automatically.\n"
         ),
     }
 

@@ -36,7 +36,10 @@ def test_cli_writes_every_output_and_the_manifest_hashes_them(anomalous_run: Pat
     expected = {f"{name}.{ext}" for name in RECORD_FILES for ext in ("csv", "json")} | {
         "policies/fee_schedule.md",
         "policies/refund_authorization.md",
+        "policies/refund_limits.md",
         "policies/settlement_policy.md",
+        "policies/dispute_handling.md",
+        "policies/transaction_reconciliation.md",
         "ground_truth.json",
     }
     manifest = _manifest(anomalous_run)
