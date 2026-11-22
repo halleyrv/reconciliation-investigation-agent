@@ -25,6 +25,7 @@ Quoted verbatim from the phase file.
 ### Open decisions (owner)
 
 - **D1** (decided by the owner on 2026-11-18, L3) Local model runtime for embeddings and reranking (ADR-0006): `fastembed` (ONNX). The evaluation in T4 picks the concrete models among those it ships.
+- **D2** (decided by the owner on 2026-11-22, L9) The chunk size is chosen by the retrieval evaluation, not fixed by hand: T4 compares several maximum chunk sizes (for example 200, 400 and 800 characters) with recall@k and MRR, and the winner is recorded in the models ADR together with `VECTOR(N)`. Until then `DEFAULT_MAX_CHUNK_CHARS = 400` is provisional.
 
 ## Tasks
 
@@ -33,7 +34,7 @@ Quoted verbatim from the phase file.
 | T1 | S3, A1: simulator writes the missing policies (refund limits, dispute handling, transaction reconciliation) from its config; byte-identical output per seed | inline | done | L4 |
 | T2 | S2: Knowledge domain: `Document` aggregate with versions, content hash, chunking with metadata (section, ordinal, offsets), contiguous ordinals | inline | done | L6 |
 | T3 | S6: labeled retrieval dataset (query -> relevant chunks) over the corpus, and the metrics (recall@k, MRR, nDCG) as pure functions | inline | pending | |
-| T4 | S8, D1: embedding and reranker adapters behind `EmbeddingProvider`/`Reranker` (fakes for tests); evaluation picks the models; ADR fixes `VECTOR(N)` | inline | pending | |
+| T4 | S8, D1, D2: embedding and reranker adapters behind `EmbeddingProvider`/`Reranker` (fakes for tests); evaluation picks the models and the chunk size; ADR fixes `VECTOR(N)` and the chunk size | inline | pending | |
 | T5 | S1, S2: migration 0006 (`vector` extension, `knowledge.documents`, `knowledge.document_chunks`, GIN + HNSW), corpus ingest command, full-text and vector search adapters | inline | pending | |
 | T6 | S1, S4: hybrid retrieval with RRF and reranking, `knowledge.api.retrieve(query, filters)` returning chunk IDs, document version and scores | inline | pending | |
 | T7 | S5, S7, A2: claim types and explicit evidence verification with source references | inline | pending | |
@@ -56,3 +57,4 @@ Quoted verbatim from the phase file.
   - R3-dispute-holidays-untested and R2-dispute-constant-unchecked: I9 also checks the dispute response window against `DISPUTE_RESPONSE_BUSINESS_DAYS`; the tests import the constant and tamper both dispute numbers.
   - Not fixed: R3-i9-missing-file-crash (the checker read its earlier policy files the same way; outputs written before T1 are not a supported input).
   RED: `uv run --locked pytest -q backend/tests/unit/knowledge simulator/tests/test_checks.py` -> 5 failed (heading after a paragraph, empty heading glue and title, empty-chunks message, response window not checked); the dispute-holidays tamper test passed at once, since I9 already checked that line. GREEN: `uv run --locked pytest -q backend/tests/unit/knowledge simulator/tests` -> 77 passed. Differential run of the previous and new `chunk_markdown` over the six sample policies at five sizes: 30 cases, identical (the corpus always has blank lines around headings).
+- **L9** (2026-11-22) Review-fix slice `b61cdcc..1e3a121`: the stop hook offered a START; `gentle-ai review assess` -> risk `medium`, not due (`under_budget`); not started. Owner, PR #21 comment on `document.py:17`: "porque pusiste ese limite como máximo , en que te basas?". Answered in the PR thread: 400 is provisional, not measured (at 1000, five of the six sample policies were one chunk; at 400 each splits into one to three chunks of about one idea). Owner: "si" to replying, then "si" to adding the chunk-size comparison to T4 (D2).
