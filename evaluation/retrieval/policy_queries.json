@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0.0",
   "corpus": "simulator/samples/orders-200-seed-42/policies",
+  "labeling_rule": "A passage is relevant when it is needed to answer the query completely and correctly. Being about the same topic is not enough. Every chunk without a label counts as not relevant.",
   "queries": [
     {
       "id": "Q01",
