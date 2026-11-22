@@ -1,0 +1,187 @@
+{
+  "schema_version": "1.0.0",
+  "corpus": "simulator/samples/orders-200-seed-42/policies",
+  "queries": [
+    {
+      "id": "Q01",
+      "query": "How many days after a payment is captured can it still be refunded?",
+      "relevant": [{"document": "refund_limits", "passage": "Refund window: 5 calendar days"}]
+    },
+    {
+      "id": "Q02",
+      "query": "Can the same payment be refunded twice?",
+      "relevant": [
+        {"document": "refund_limits", "passage": "A second refund of the same payment is not allowed."}
+      ]
+    },
+    {
+      "id": "Q03",
+      "query": "Is a partial refund allowed, and what is the smallest amount that can be refunded?",
+      "relevant": [
+        {"document": "refund_limits", "passage": "A payment is refunded at most once, fully or partially, in USD."},
+        {"document": "refund_limits", "passage": "The refunded amount is at least 0.01"}
+      ]
+    },
+    {
+      "id": "Q04",
+      "query": "Can the refunded total be larger than what the customer paid?",
+      "relevant": [
+        {"document": "refund_authorization", "passage": "The total refunded for a payment never exceeds the captured amount."},
+        {"document": "refund_limits", "passage": "never exceeds the captured amount of the payment"}
+      ]
+    },
+    {
+      "id": "Q05",
+      "query": "Does a refund need approval before it is issued?",
+      "relevant": [
+        {"document": "refund_authorization", "passage": "Every refund requires an internal authorization record approved before the refund is issued."}
+      ]
+    },
+    {
+      "id": "Q06",
+      "query": "Can a single approval be reused for several refunds?",
+      "relevant": [
+        {"document": "refund_authorization", "passage": "One authorization covers exactly one refund."}
+      ]
+    },
+    {
+      "id": "Q07",
+      "query": "What happens when the authorized maximum is lower than the refunded amount?",
+      "relevant": [
+        {"document": "refund_authorization", "passage": "The authorized maximum amount must cover the refunded amount."},
+        {"document": "transaction_reconciliation", "passage": "Every refund has an approved authorization that covers its amount."}
+      ]
+    },
+    {
+      "id": "Q08",
+      "query": "In which settlement batch is a refund deducted?",
+      "relevant": [
+        {"document": "refund_limits", "passage": "A refund is netted in a later settlement batch of the gateway that captured the payment, never in the batch of the payment itself."}
+      ]
+    },
+    {
+      "id": "Q09",
+      "query": "What percentage and fixed fee does gateway_b charge?",
+      "relevant": [{"document": "fee_schedule", "passage": "| gateway_b | 250 | 0.25 |"}]
+    },
+    {
+      "id": "Q10",
+      "query": "gateway_a fee in basis points",
+      "relevant": [{"document": "fee_schedule", "passage": "| gateway_a | 290 | 0.30 |"}]
+    },
+    {
+      "id": "Q11",
+      "query": "How is a gateway fee rounded?",
+      "relevant": [
+        {"document": "fee_schedule", "passage": "rounded once to cents with ROUND_HALF_EVEN"}
+      ]
+    },
+    {
+      "id": "Q12",
+      "query": "Is the fee given back when the payment is refunded?",
+      "relevant": [
+        {"document": "fee_schedule", "passage": "Fees are not returned when a payment is refunded."}
+      ]
+    },
+    {
+      "id": "Q13",
+      "query": "How many business days does it take for a settlement to reach the bank?",
+      "relevant": [
+        {"document": "settlement_policy", "passage": "Settlement lag: 2 business days"},
+        {"document": "transaction_reconciliation", "passage": "Settlement lag: 2 business days"}
+      ]
+    },
+    {
+      "id": "Q14",
+      "query": "What time is the daily cut-off for settlement batches?",
+      "relevant": [
+        {"document": "settlement_policy", "passage": "Each gateway settles one batch per calendar day (cut-off 23:59:59 UTC)."}
+      ]
+    },
+    {
+      "id": "Q15",
+      "query": "Which days are bank holidays this period?",
+      "relevant": [
+        {"document": "settlement_policy", "passage": "Bank holidays: 2026-10-09, 2026-10-20, 2026-10-28"},
+        {"document": "dispute_handling", "passage": "Bank holidays: 2026-10-09, 2026-10-20, 2026-10-28"}
+      ]
+    },
+    {
+      "id": "Q16",
+      "query": "Is a settlement batch paid out in several bank transfers?",
+      "relevant": [
+        {"document": "settlement_policy", "passage": "Each batch is paid out as exactly one bank credit, dated the batch date plus the settlement lag."},
+        {"document": "transaction_reconciliation", "passage": "Each batch is paid out as exactly one bank credit for its net amount"}
+      ]
+    },
+    {
+      "id": "Q17",
+      "query": "Do weekends count as business days for payouts?",
+      "relevant": [
+        {"document": "settlement_policy", "passage": "Business days are Monday to Friday, except the bank holidays listed above."}
+      ]
+    },
+    {
+      "id": "Q18",
+      "query": "How is the net amount of a settlement batch computed?",
+      "relevant": [
+        {"document": "settlement_policy", "passage": "A batch nets the day's captured payments minus the refunds it absorbs and the fees of its payments."},
+        {"document": "transaction_reconciliation", "passage": "A settlement batch nets its payments minus the refunds it absorbs and the fees of its payments."}
+      ]
+    },
+    {
+      "id": "Q19",
+      "query": "How long does the merchant have to answer a chargeback?",
+      "relevant": [{"document": "dispute_handling", "passage": "Response window: 7 business days"}]
+    },
+    {
+      "id": "Q20",
+      "query": "What happens if a dispute is never answered?",
+      "relevant": [
+        {"document": "dispute_handling", "passage": "An unanswered dispute is lost by default."}
+      ]
+    },
+    {
+      "id": "Q21",
+      "query": "What evidence does the merchant send to contest a dispute?",
+      "relevant": [
+        {"document": "dispute_handling", "passage": "The merchant answers each dispute with its evidence (order, payment, refund and authorization records)"}
+      ]
+    },
+    {
+      "id": "Q22",
+      "query": "Can a disputed payment be refunded while the dispute is still open?",
+      "relevant": [
+        {"document": "dispute_handling", "passage": "While a dispute is open, the disputed amount is not refunded a second time and no adjustment is booked for it."}
+      ]
+    },
+    {
+      "id": "Q23",
+      "query": "Is a difference of one cent between two sources tolerated?",
+      "relevant": [
+        {"document": "transaction_reconciliation", "passage": "Amounts are compared exactly in USD cents: there is no tolerance."}
+      ]
+    },
+    {
+      "id": "Q24",
+      "query": "Should a mismatch between sources be corrected automatically?",
+      "relevant": [
+        {"document": "transaction_reconciliation", "passage": "is a discrepancy to investigate, not an error to correct automatically."}
+      ]
+    },
+    {
+      "id": "Q25",
+      "query": "How many payments should one order have, and for what amount?",
+      "relevant": [
+        {"document": "transaction_reconciliation", "passage": "Every order has exactly one captured payment, and the payment amount equals the order total."}
+      ]
+    },
+    {
+      "id": "Q26",
+      "query": "Which sources are compared during reconciliation?",
+      "relevant": [
+        {"document": "transaction_reconciliation", "passage": "Reconciliation compares independent sources record by record"}
+      ]
+    }
+  ]
+}

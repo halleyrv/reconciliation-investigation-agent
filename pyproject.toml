@@ -178,6 +178,8 @@ forbidden_modules = [
     "recon.audit.application",
     "recon.audit.adapters",
     "recon.audit.api",
+    "recon.knowledge.application",
+    "recon.knowledge.adapters",
     "alembic",
     "fastapi",
     "psycopg",
