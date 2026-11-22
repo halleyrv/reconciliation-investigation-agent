@@ -30,7 +30,7 @@ backend/
     contract/                   import-linter config, event schema snapshots
   migrations/                   Alembic, one revision chain, schema-qualified tables
 simulator/                      independent package. Imports nothing from backend
-evaluation/                     offline: reads simulator ground truth + read models
+evaluation/                     offline: reads simulator ground truth + read models; retrieval/ holds the labeled policy queries
 frontend/                       Next.js
 docs/architecture/              these documents
 ```
