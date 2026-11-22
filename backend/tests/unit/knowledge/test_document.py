@@ -94,6 +94,7 @@ def test_revising_with_the_same_content_makes_no_new_version() -> None:
         ("", "a document needs content"),
         ("   \n", "a document needs content"),
         ("No heading here.\n", "a document starts with a '# ' title"),
+        ("# \n\nA heading without text.\n", "a document starts with a '# ' title"),
     ],
 )
 def test_a_document_without_content_or_title_is_rejected(content: str, message: str) -> None:
@@ -106,6 +107,8 @@ def test_a_document_rejects_chunks_that_break_its_invariants() -> None:
     gap = (document.chunks[0], dataclasses.replace(document.chunks[1], ordinal=2))
     with pytest.raises(InvalidDocument, match="chunk ordinals are contiguous from 0"):
         dataclasses.replace(document, chunks=gap)
+    with pytest.raises(InvalidDocument, match="a document has at least one chunk"):
+        dataclasses.replace(document, chunks=())
     edited = (dataclasses.replace(document.chunks[0], content="edited"), document.chunks[1])
     with pytest.raises(InvalidDocument, match="chunk 0 is not the document text at its span"):
         dataclasses.replace(document, chunks=edited)
@@ -113,3 +116,16 @@ def test_a_document_rejects_chunks_that_break_its_invariants() -> None:
         dataclasses.replace(document, content_sha256="0" * 64)
     with pytest.raises(InvalidDocument, match="a document version starts at 1"):
         dataclasses.replace(document, version=0)
+
+
+def test_a_heading_right_after_a_paragraph_still_starts_its_own_section() -> None:
+    text = "# Policy\n\nIntro line.\n## Limits\nAt most once.\n"
+    chunks = chunk_markdown(text)
+    assert [c.section for c in chunks] == ["Policy", "Limits"]
+    assert chunks[0].content == "# Policy\n\nIntro line."
+    assert chunks[1].content == "## Limits\nAt most once."
+
+
+def test_a_heading_without_text_still_travels_with_the_next_block() -> None:
+    chunks = chunk_markdown("# Policy\n\nIntro.\n\n## \n\nBody.\n", max_chars=5)
+    assert [c.content for c in chunks] == ["# Policy\n\nIntro.", "## \n\nBody."]

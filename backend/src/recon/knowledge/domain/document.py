@@ -8,9 +8,11 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-# A block is a run of non-blank lines: a heading, a paragraph, a list or a table.
-_BLOCK = re.compile(r"(?:^[ \t]*\S.*(?:\n|$))+", re.MULTILINE)
-_HEADING = re.compile(r"#{1,6} ")
+# A block is a heading line, or a run of non-blank lines that are not headings: a paragraph,
+# a list or a table. A heading interrupts a paragraph even without a blank line before it.
+_HEADING_LINE = r"#{1,6}(?: .*)?$"
+_BLOCK = re.compile(rf"^{_HEADING_LINE}|(?:^(?!{_HEADING_LINE})[ \t]*\S.*(?:\n|$))+", re.MULTILINE)
+_HEADING = re.compile(_HEADING_LINE)
 # shortcut: a fixed size for the first corpus, T4 tunes it with the retrieval evaluation.
 DEFAULT_MAX_CHUNK_CHARS = 400
 
@@ -43,16 +45,23 @@ def _heading(block: str) -> str | None:
 type Span = tuple[int, int]
 
 
-def _sections(content: str) -> list[tuple[str, list[Span]]]:
+@dataclass(frozen=True, slots=True)
+class _Section:
+    title: str
+    has_heading: bool  # False only for text before the first heading
+    blocks: list[Span]
+
+
+def _sections(content: str) -> list[_Section]:
     """The blocks of the text grouped under the heading they follow."""
-    sections: list[tuple[str, list[Span]]] = []
+    sections: list[_Section] = []
     for match in _BLOCK.finditer(content):
         span = (match.start(), match.start() + len(match.group().rstrip()))
         heading = _heading(content[span[0] : span[1]])
         if heading is None and sections:
-            sections[-1][1].append(span)
+            sections[-1].blocks.append(span)
             continue
-        sections.append((heading or "", [span]))
+        sections.append(_Section(heading or "", heading is not None, [span]))
     return sections
 
 
@@ -74,9 +83,9 @@ def chunk_markdown(content: str, max_chars: int = DEFAULT_MAX_CHUNK_CHARS) -> tu
     while the span stays within ``max_chars``; a heading always travels with the block after
     it, and a single block longer than the limit stays whole."""
     spans = [
-        (section, span)
-        for section, blocks in _sections(content)
-        for span in _pack(blocks, max_chars, starts_with_heading=bool(section))
+        (section.title, span)
+        for section in _sections(content)
+        for span in _pack(section.blocks, max_chars, section.has_heading)
     ]
     return tuple(
         Chunk(ordinal=i, section=section, start=a, end=b, content=content[a:b])
@@ -109,7 +118,9 @@ class Document:
             raise InvalidDocument("a document needs a key")
         if self.content_sha256 != sha256_of(self.content):
             raise InvalidDocument("the content hash does not match the content")
-        if [c.ordinal for c in self.chunks] != list(range(len(self.chunks))) or not self.chunks:
+        if not self.chunks:
+            raise InvalidDocument("a document has at least one chunk")
+        if [c.ordinal for c in self.chunks] != list(range(len(self.chunks))):
             raise InvalidDocument("chunk ordinals are contiguous from 0")
         for chunk in self.chunks:
             if self.content[chunk.start : chunk.end] != chunk.content or not chunk.content:
@@ -159,7 +170,7 @@ class Document:
             raise InvalidDocument("a document needs content")
         chunks = chunk_markdown(content, max_chunk_chars)
         title = _heading(chunks[0].content)
-        if title is None or not chunks[0].content.startswith("# "):
+        if not title or not chunks[0].content.startswith("# "):
             raise InvalidDocument("a document starts with a '# ' title")
         return cls(
             id=id,

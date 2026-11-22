@@ -23,6 +23,7 @@ from jsonschema import Draft202012Validator
 
 from simulator.business_days import add_business_days
 from simulator.config import Config, parse_config
+from simulator.export import DISPUTE_RESPONSE_BUSINESS_DAYS
 from simulator.records import RECORD_TYPES
 from simulator.sim import REFUND_WINDOW_DAYS
 
@@ -44,6 +45,7 @@ FEE_ROW = re.compile(r"^\| (\S+) \| ([0-9]+) \| ([0-9.]+) \|$", re.MULTILINE)
 LAG_LINE = re.compile(r"^Settlement lag: ([0-9]+) business days$", re.MULTILINE)
 HOLIDAYS_LINE = re.compile(r"^Bank holidays: (.+)$", re.MULTILINE)
 REFUND_WINDOW_LINE = re.compile(r"^Refund window: ([0-9]+) calendar days$", re.MULTILINE)
+RESPONSE_WINDOW_LINE = re.compile(r"^Response window: ([0-9]+) business days$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -294,12 +296,14 @@ def _i9(run: _Run) -> list[Violation]:
     lag = str(run.config.settlement_lag_business_days)
     holidays = ", ".join(h.isoformat() for h in run.config.holidays) or "none"
     window = str(REFUND_WINDOW_DAYS)
+    response = str(DISPUTE_RESPONSE_BUSINESS_DAYS)
     lines = (
         ("settlement_policy.md", LAG_LINE, lag, "settlement lag differs"),
         ("transaction_reconciliation.md", LAG_LINE, lag, "settlement lag differs"),
         ("settlement_policy.md", HOLIDAYS_LINE, holidays, "bank holidays differ"),
         ("dispute_handling.md", HOLIDAYS_LINE, holidays, "bank holidays differ"),
         ("refund_limits.md", REFUND_WINDOW_LINE, window, "refund window differs"),
+        ("dispute_handling.md", RESPONSE_WINDOW_LINE, response, "response window differs"),
     )
     for name, pattern, value, message in lines:
         match = pattern.search(text(name))
