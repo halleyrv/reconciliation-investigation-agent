@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from simulator.checks import explain, find_violations, validate_files
 from simulator.cli import verify_main
-from simulator.export import columns, to_csv
+from simulator.export import DISPUTE_RESPONSE_BUSINESS_DAYS, columns, to_csv
 
 type Records = dict[str, list[dict[str, Any]]]
 
@@ -206,8 +206,28 @@ def test_dispute_policy_counts_business_days_with_the_configured_holidays(
     clean_run: Path,
 ) -> None:
     policy = (clean_run / "policies" / "dispute_handling.md").read_text()
-    assert "Response window: 7 business days\n" in policy
+    assert f"Response window: {DISPUTE_RESPONSE_BUSINESS_DAYS} business days\n" in policy
     assert "Bank holidays: 2026-10-09, 2026-10-20, 2026-10-28\n" in policy
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("2026-10-09", "2026-10-10"),
+        (
+            f"Response window: {DISPUTE_RESPONSE_BUSINESS_DAYS} ",
+            f"Response window: {DISPUTE_RESPONSE_BUSINESS_DAYS + 1} ",
+        ),
+    ],
+)
+def test_checker_detects_dispute_numbers_that_differ_from_the_generator(
+    clean_run: Path, tmp_path: Path, old: str, new: str
+) -> None:
+    out = _copy(clean_run, tmp_path)
+    policy = out / "policies" / "dispute_handling.md"
+    assert old in policy.read_text()
+    policy.write_text(policy.read_text().replace(old, new))
+    assert [v.invariant for v in find_violations(out)] == ["I9"]
 
 
 def test_explain_reports_a_second_violation_of_a_declared_invariant(
