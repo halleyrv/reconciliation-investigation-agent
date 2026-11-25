@@ -1,6 +1,6 @@
 # ADR-0023: Retrieval models and chunk size chosen by the labeled evaluation
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-11-25: "Aceptar")
 - **Date:** 2026-11-25
 - **Related:** ADR-0006, docs/roadmap/phase-3-hybrid-rag-and-evidence-verification.md (S8), odd/tasks/p3-hybrid-rag-and-evidence-verification.md (D1-D4)
 - **Kind:** Technical (retrieval quality)
