@@ -13,3 +13,24 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  # Local models (ADR-0006) in Linux: onnxruntime has no Intel macOS wheel for Python 3.14 (D4).
+  # docker compose run --rm models uv run --locked <command>
+  models:
+    profiles: [models]
+    image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim@sha256:7cf77f594be8042dab6daa9fe326f90962252268b4f120a7f5dccce4d947e6c1
+    working_dir: /repo
+    volumes:
+      - .:/repo
+      - models-cache:/cache
+    environment:
+      UV_PROJECT_ENVIRONMENT: /cache/venv # the host .venv belongs to the host platform
+      UV_CACHE_DIR: /cache/uv
+      FASTEMBED_CACHE_PATH: /cache/fastembed
+      RECON_DATABASE_URL: postgresql+psycopg://recon@db:5432/recon
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  models-cache:

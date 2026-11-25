@@ -6,6 +6,8 @@ requires-python = ">=3.14,<3.15"
 dependencies = [
     "alembic>=1.20.1",
     "fastapi>=0.162.2",
+    # onnxruntime ships no Intel macOS wheel for Python 3.14: models run in Linux there (D4).
+    "fastembed>=0.9.1; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "psycopg[binary]>=3.3.8",
     "pydantic>=2.14.3",
     "sqlalchemy>=2.1.8",
@@ -16,6 +18,7 @@ recon-import = "recon.bootstrap.cli:main"
 recon-reference = "recon.bootstrap.cli:reference_main"
 recon-reconcile = "recon.bootstrap.cli:reconcile_main"
 recon-evaluate = "recon.bootstrap.cli:evaluate_main"
+recon-compare-retrieval = "recon.bootstrap.cli:compare_retrieval_main"
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]

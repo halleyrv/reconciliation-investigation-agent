@@ -41,6 +41,11 @@ known-first-party = ["recon"]
 strict = true
 files = ["simulator/src", "simulator/tests", "backend/src", "backend/tests"]
 
+[[tool.mypy.overrides]]
+# Not installed on Intel macOS (D4); where it is installed it ships its own types.
+module = ["fastembed", "fastembed.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["simulator/tests", "backend/tests"]
 addopts = ["--strict-markers"]
