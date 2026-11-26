@@ -75,6 +75,7 @@ A port exists only with a named reason. If a row cannot fill the "reason" column
 | `HypothesisGenerator` | investigation | External LLM; test seam with scripted outputs | LLM adapter, scripted fake |
 | `EmbeddingProvider` | knowledge | External model; swappable (ADR-0006) | provider adapter, hash-based fake |
 | `Reranker` | knowledge | External model; swappable (ADR-0006) | provider adapter, identity fake |
+| `ChunkSearch` | knowledge | The hybrid retrieval use case fuses two SQL searches (full text, pgvector) without importing SQL; test seam for fusion and reranking | SQL over `knowledge.*`, scripted fake in the unit tests |
 | `ActionExecutor` | resolution | External side effect (fake gateway) | fake gateway adapter, recording fake |
 
 **Not ports, on purpose:**

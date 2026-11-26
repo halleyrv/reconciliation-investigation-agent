@@ -176,7 +176,7 @@ def test_vector_search_is_served_by_the_hnsw_index(engine: Engine) -> None:
         connection.execute(text("SET LOCAL enable_seqscan = off"))
         plan = connection.execute(
             text(f"EXPLAIN {VECTOR_SEARCH.text}"),
-            {"query": query, "model": "fake-hash", "limit": 2},
+            {"query": query, "model": "fake-hash", "limit": 2, "kinds": None, "keys": None},
         ).scalars()
         assert "document_chunks_embedding_idx" in "\n".join(plan)
 

@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from recon.knowledge.domain.document import Document
+from recon.knowledge.domain.document import Document, DocumentKind
 
 type Vector = tuple[float, ...]
 
@@ -47,4 +47,27 @@ class ChunkHit:
     document_key: str
     version: int
     ordinal: int
+    section: str
+    content: str
     score: float  # higher is more relevant; comparable only within one search
+
+
+@dataclass(frozen=True, slots=True)
+class RetrievalFilters:
+    """Narrows a search to some documents; ``None`` does not narrow."""
+
+    kinds: frozenset[DocumentKind] | None = None
+    document_keys: frozenset[str] | None = None
+
+
+NO_FILTERS = RetrievalFilters()
+
+
+class ChunkSearch(Protocol):
+    """First-stage searches over the current version of each document, best first."""
+
+    def full_text(self, query: str, limit: int, filters: RetrievalFilters) -> list[ChunkHit]: ...
+
+    def vector(
+        self, query: Vector, model: str, limit: int, filters: RetrievalFilters
+    ) -> list[ChunkHit]: ...
