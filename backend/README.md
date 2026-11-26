@@ -111,7 +111,7 @@ docker compose run --rm models uv run --locked recon-ingest-corpus \
 |-----------|---------|
 | 0 | Every document is stored or already current; one line per document, `<key>: version <n>, stored` or `unchanged` |
 | 2 | Nothing was ingested: no `.md` file in the directory, or a file is not a valid document (for example no `# ` title) |
-| 3 | The database is unreachable or not migrated, or fastembed is not installed on this platform |
+| 3 | The database is unreachable or not migrated, the model failed to load (for example its download), or fastembed is not installed on this platform. Each document is stored in its own transaction, so documents stored before the failure stay; re-running skips them and stores the rest |
 
 ## HTTP API
 

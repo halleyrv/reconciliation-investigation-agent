@@ -9,7 +9,11 @@ from sqlalchemy.exc import IntegrityError
 
 from recon.knowledge.adapters.inbound.ingest_corpus import run
 from recon.knowledge.adapters.outbound.fake_models import HashEmbeddings
-from recon.knowledge.adapters.outbound.sql import SqlChunkSearch, SqlDocumentRepository
+from recon.knowledge.adapters.outbound.sql import (
+    VECTOR_SEARCH,
+    SqlChunkSearch,
+    SqlDocumentRepository,
+)
 from recon.knowledge.application.ingest_corpus import IngestCorpus
 from recon.knowledge.domain.document import Document, DocumentKind
 from recon.shared_kernel.ports import UuidIdGenerator
@@ -163,3 +167,30 @@ def test_the_ingest_command_stores_nothing_from_a_corpus_it_cannot_read(
     assert err.startswith("recon-ingest-corpus: nothing ingested: ") and message in err
     with engine.connect() as connection:
         assert connection.execute(text("SELECT count(*) FROM knowledge.documents")).scalar() == 0
+
+
+def test_vector_search_is_served_by_the_hnsw_index(engine: Engine) -> None:
+    _stored(engine)
+    query = "[" + ",".join(["0.1"] * 384) + "]"
+    with engine.begin() as connection:
+        connection.execute(text("SET LOCAL enable_seqscan = off"))
+        plan = connection.execute(
+            text(f"EXPLAIN {VECTOR_SEARCH.text}"),
+            {"query": query, "model": "fake-hash", "limit": 2},
+        ).scalars()
+        assert "document_chunks_embedding_idx" in "\n".join(plan)
+
+
+def test_an_infrastructure_failure_while_ingesting_exits_3_and_says_what_stays_stored(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def ingest() -> IngestCorpus:
+        raise ConnectionError("model download failed")
+
+    assert run([str(SAMPLE / "policies")], ingest) == 3
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == (
+        "recon-ingest-corpus: ingest failed: model download failed;"
+        " documents stored before the failure stay, re-run to finish\n"
+    )

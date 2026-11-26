@@ -53,5 +53,6 @@ def upgrade() -> None:
     op.execute(UPGRADE)
 
 
+# The extension stays: the upgrade cannot tell whether it created it or found it installed.
 def downgrade() -> None:
-    op.execute("DROP SCHEMA knowledge CASCADE; DROP EXTENSION IF EXISTS vector;")
+    op.execute("DROP SCHEMA knowledge CASCADE;")

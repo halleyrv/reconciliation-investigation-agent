@@ -43,15 +43,25 @@ _FULL_TEXT = text(
     LIMIT :limit
     """
 )
-# shortcut: the model and current-version filters run after the HNSW scan, so a large share of
-# old versions or other models can return fewer than `limit` rows; partial indexes or
-# iterative scans (pgvector >= 0.8) fix it when the corpus grows.
-_VECTOR = text(
+# The nearest chunks come from the HNSW index alone, then the model and current-version filters
+# apply: joined first, the planner starts from documents and sorts every chunk instead. The
+# index returns at most hnsw.ef_search (default 40) rows per scan, so that is the candidate pool.
+# shortcut: when old versions or other models fill the pool, fewer than `limit` rows return;
+# raise ef_search or use iterative scans (pgvector >= 0.8) when the corpus grows.
+VECTOR_CANDIDATES = 40
+VECTOR_SEARCH = text(
     f"""
-    SELECT {_HIT}, 1 - (c.embedding <=> CAST(:query AS vector)) AS score
-    FROM knowledge.document_chunks c JOIN knowledge.documents d ON d.id = c.document_id
+    WITH nearest AS MATERIALIZED (
+        SELECT c.id, c.document_id, c.ordinal, c.embedding <=> CAST(:query AS vector) AS distance
+        FROM knowledge.document_chunks c
+        ORDER BY c.embedding <=> CAST(:query AS vector)
+        LIMIT {VECTOR_CANDIDATES}
+    )
+    SELECT c.id AS chunk_id, d.id AS document_id, d.key, d.version, c.ordinal,
+        1 - c.distance AS score
+    FROM nearest c JOIN knowledge.documents d ON d.id = c.document_id
     WHERE d.embedding_model = :model AND {_CURRENT}
-    ORDER BY c.embedding <=> CAST(:query AS vector), d.key, c.ordinal
+    ORDER BY c.distance, d.key, c.ordinal
     LIMIT :limit
     """
 )
@@ -134,7 +144,7 @@ class SqlChunkSearch:
     def vector(self, query: Vector, model: str, limit: int) -> list[ChunkHit]:
         """Nearest chunks by cosine similarity, among documents embedded with ``model``: a
         vector of another model is not comparable."""
-        return self._hits(_VECTOR, {"query": _literal(query), "model": model, "limit": limit})
+        return self._hits(VECTOR_SEARCH, {"query": _literal(query), "model": model, "limit": limit})
 
     def _hits(self, statement: TextClause, params: dict[str, object]) -> list[ChunkHit]:
         with self._engine.connect() as connection:

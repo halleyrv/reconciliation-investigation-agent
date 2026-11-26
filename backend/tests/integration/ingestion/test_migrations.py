@@ -73,3 +73,19 @@ def test_a_replaced_run_keeps_the_database_from_going_below_0005() -> None:
     finally:
         engine.dispose()
         drop_database(url)
+
+
+def test_downgrading_0006_keeps_a_vector_extension_installed_before_it() -> None:
+    url = create_database()
+    engine = create_engine(url)
+    extension = text("SELECT count(*) FROM pg_extension WHERE extname = 'vector'")
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("CREATE EXTENSION vector"))
+        upgrade(url)
+        downgrade(url, "0005")
+        with engine.connect() as connection:
+            assert connection.execute(extension).scalar_one() == 1
+    finally:
+        engine.dispose()
+        drop_database(url)
