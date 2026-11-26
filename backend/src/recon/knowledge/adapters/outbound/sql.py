@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from sqlalchemy import Engine, TextClause, text
 
 from recon.knowledge.adapters.outbound.full_text_ranking import OR_TERMS
-from recon.knowledge.application.ports import ChunkHit, Vector
+from recon.knowledge.application.ports import NO_FILTERS, ChunkHit, RetrievalFilters, Vector
 from recon.knowledge.domain.document import Chunk, Document, DocumentKind
 
 _LATEST = text(
@@ -32,13 +32,18 @@ _CURRENT = (
     "NOT EXISTS (SELECT FROM knowledge.documents newer"
     " WHERE newer.key = d.key AND newer.version > d.version)"
 )
-_HIT = "c.id AS chunk_id, d.id AS document_id, d.key, d.version, c.ordinal"
+# A NULL array does not narrow the search (RetrievalFilters: None).
+_FILTERS = (
+    "(CAST(:kinds AS text[]) IS NULL OR d.kind = ANY(CAST(:kinds AS text[])))"
+    " AND (CAST(:keys AS text[]) IS NULL OR d.key = ANY(CAST(:keys AS text[])))"
+)
+_HIT = "c.id AS chunk_id, d.id AS document_id, d.key, d.version, c.ordinal, c.section, c.content"
 _FULL_TEXT = text(
     f"""
     WITH {OR_TERMS}
     SELECT {_HIT}, ts_rank_cd(c.content_tsv, q.terms) AS score
     FROM knowledge.document_chunks c JOIN knowledge.documents d ON d.id = c.document_id, q
-    WHERE c.content_tsv @@ q.terms AND {_CURRENT}
+    WHERE c.content_tsv @@ q.terms AND {_CURRENT} AND {_FILTERS}
     ORDER BY score DESC, d.key, c.ordinal
     LIMIT :limit
     """
@@ -46,22 +51,23 @@ _FULL_TEXT = text(
 # The nearest chunks come from the HNSW index alone, then the model and current-version filters
 # apply: joined first, the planner starts from documents and sorts every chunk instead. The
 # index returns at most hnsw.ef_search (default 40) rows per scan, so that is the candidate pool.
-# shortcut: when old versions or other models fill the pool, fewer than `limit` rows return;
-# raise ef_search or use iterative scans (pgvector >= 0.8) when the corpus grows.
+# shortcut: when old versions, other models or filtered-out documents fill the pool, fewer
+# than `limit` rows return; raise ef_search or use iterative scans (pgvector >= 0.8) when the
+# corpus grows.
 VECTOR_CANDIDATES = 40
 VECTOR_SEARCH = text(
     f"""
     WITH nearest AS MATERIALIZED (
-        SELECT c.id, c.document_id, c.ordinal, c.embedding <=> CAST(:query AS vector) AS distance
+        SELECT c.id, c.embedding <=> CAST(:query AS vector) AS distance
         FROM knowledge.document_chunks c
         ORDER BY c.embedding <=> CAST(:query AS vector)
         LIMIT {VECTOR_CANDIDATES}
     )
-    SELECT c.id AS chunk_id, d.id AS document_id, d.key, d.version, c.ordinal,
-        1 - c.distance AS score
-    FROM nearest c JOIN knowledge.documents d ON d.id = c.document_id
-    WHERE d.embedding_model = :model AND {_CURRENT}
-    ORDER BY c.distance, d.key, c.ordinal
+    SELECT {_HIT}, 1 - n.distance AS score
+    FROM nearest n JOIN knowledge.document_chunks c ON c.id = n.id
+    JOIN knowledge.documents d ON d.id = c.document_id
+    WHERE d.embedding_model = :model AND {_CURRENT} AND {_FILTERS}
+    ORDER BY n.distance, d.key, c.ordinal
     LIMIT :limit
     """
 )
@@ -137,19 +143,37 @@ class SqlChunkSearch:
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
-    def full_text(self, query: str, limit: int) -> list[ChunkHit]:
+    def full_text(
+        self, query: str, limit: int, filters: RetrievalFilters = NO_FILTERS
+    ) -> list[ChunkHit]:
         """Chunks that share at least one stemmed term with the query."""
-        return self._hits(_FULL_TEXT, {"query": query, "limit": limit})
+        return self._hits(_FULL_TEXT, {"query": query, "limit": limit}, filters)
 
-    def vector(self, query: Vector, model: str, limit: int) -> list[ChunkHit]:
+    def vector(
+        self, query: Vector, model: str, limit: int, filters: RetrievalFilters = NO_FILTERS
+    ) -> list[ChunkHit]:
         """Nearest chunks by cosine similarity, among documents embedded with ``model``: a
         vector of another model is not comparable."""
-        return self._hits(VECTOR_SEARCH, {"query": _literal(query), "model": model, "limit": limit})
+        params = {"query": _literal(query), "model": model, "limit": limit}
+        return self._hits(VECTOR_SEARCH, params, filters)
 
-    def _hits(self, statement: TextClause, params: dict[str, object]) -> list[ChunkHit]:
+    def _hits(
+        self, statement: TextClause, params: dict[str, object], filters: RetrievalFilters
+    ) -> list[ChunkHit]:
+        kinds = None if filters.kinds is None else sorted(k.value for k in filters.kinds)
+        keys = None if filters.document_keys is None else sorted(filters.document_keys)
         with self._engine.connect() as connection:
-            rows = connection.execute(statement, params)
+            rows = connection.execute(statement, {**params, "kinds": kinds, "keys": keys})
             return [
-                ChunkHit(r.chunk_id, r.document_id, r.key, r.version, r.ordinal, float(r.score))
+                ChunkHit(
+                    r.chunk_id,
+                    r.document_id,
+                    r.key,
+                    r.version,
+                    r.ordinal,
+                    r.section,
+                    r.content,
+                    float(r.score),
+                )
                 for r in rows
             ]

@@ -42,7 +42,7 @@ Evaluation ◀── ground truth files + read models (Conformist, offline)
 | Simulator → Ingestion | Published Language | Versioned file formats (CSV/JSON) + `manifest.json`. Ingestion never imports simulator code |
 | Ingestion → Reconciliation | Published Language (Customer/Supplier) | Canonical record tables are read-only for Reconciliation. Cross-schema FKs point only upstream, to never-deleted rows (see `data-model.md` conventions) |
 | Reconciliation → Investigation | Domain event + Anti-Corruption Layer | `DiscrepancyDetected{discrepancy_id, type, delta, currency}`. Investigation translates it into a `Case` |
-| Investigation → Knowledge | Open Host Service | `knowledge.api.retrieve(query, filters) -> list[RetrievedChunk]` with chunk IDs and scores |
+| Investigation → Knowledge | Open Host Service | `HybridRetrieval.retrieve(query, filters) -> list[RetrievedChunk]` from `knowledge.api`: chunk ID, document version, section, text, first-stage ranks, RRF and rerank scores |
 | Investigation → Reconciliation / Ingestion | Open Host Service (queries) | Read-only queries through each context's `api` module. The agent's tools wrap these |
 | Investigation → Resolution | Command | `resolution.api.propose_action(case_id, action, idempotency_key)` |
 | Resolution → Investigation | Domain events | `ActionApproved`, `ActionRejected`, `ActionExecuted` update the case |
