@@ -123,3 +123,37 @@ def evaluate_main(argv: Sequence[str] | None = None) -> int:
         )
     finally:
         engine.dispose()
+
+
+def compare_retrieval_main(argv: Sequence[str] | None = None) -> int:
+    # Imported here: fastembed is missing on Intel macOS (D4), and the other commands must run.
+    from recon.knowledge.adapters.inbound.compare_retrieval import run
+
+    try:
+        from recon.knowledge.adapters.outbound.fastembed_models import (
+            FastembedEmbeddings,
+            FastembedReranker,
+        )
+    except ModuleNotFoundError:
+        print(
+            "recon-compare-retrieval: fastembed is not installed on this platform;"
+            " run it in Linux: docker compose run --rm models uv run --locked"
+            " recon-compare-retrieval",
+            file=sys.stderr,
+        )
+        return INFRASTRUCTURE_FAILURE
+    from recon.knowledge.adapters.outbound.full_text_ranking import rank_by_full_text
+
+    engine = create_engine(database_url())
+    try:
+        return _guarded(
+            "recon-compare-retrieval",
+            lambda: run(
+                argv,
+                full_text=lambda query, chunks: rank_by_full_text(engine, query, chunks),
+                embeddings=FastembedEmbeddings,
+                reranker=FastembedReranker,
+            ),
+        )
+    finally:
+        engine.dispose()

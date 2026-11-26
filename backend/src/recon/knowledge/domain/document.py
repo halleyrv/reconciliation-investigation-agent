@@ -13,7 +13,7 @@ from enum import StrEnum
 _HEADING_LINE = r"#{1,6}(?: .*)?$"
 _BLOCK = re.compile(rf"^{_HEADING_LINE}|(?:^(?!{_HEADING_LINE})[ \t]*\S.*(?:\n|$))+", re.MULTILINE)
 _HEADING = re.compile(_HEADING_LINE)
-# shortcut: a fixed size for the first corpus, T4 tunes it with the retrieval evaluation.
+# Chosen by the retrieval evaluation (ADR-0023): 200 ties it, 800 becomes document retrieval.
 DEFAULT_MAX_CHUNK_CHARS = 400
 
 

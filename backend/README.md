@@ -92,6 +92,14 @@ report: docs/evaluation/p2b-seed-42-orders-200.md (PASS)
 
 The database URL comes from `RECON_DATABASE_URL` (default: the Compose database, which uses trust auth on loopback and has no password).
 
+`recon-compare-retrieval` chooses the retrieval models and the chunk size by measurement (ADR-0006, ADR-0023). It scores the PostgreSQL full-text baseline, each embedding model and each embedding + reranker pair at each chunk size on the 26 labeled queries of `evaluation/retrieval/policy_queries.json`, and prints a Markdown table of recall@3, MRR, nDCG@3, recall@5 and the queries each one misses. It needs the database and downloads the models into the cache on first use. The ONNX runtime has no Intel macOS wheel for Python 3.14, so run it in Linux (on Intel macOS it exits 3 and says so):
+
+```bash
+docker compose run --rm models uv run --locked recon-compare-retrieval
+docker compose run --rm models uv run --locked recon-compare-retrieval --chunk-sizes 400 \
+    --embedding BAAI/bge-small-en-v1.5 --reranker Xenova/ms-marco-MiniLM-L-6-v2
+```
+
 ## HTTP API
 
 `recon.bootstrap.app:create_app` is the FastAPI application factory. No ASGI server is a dependency yet, so the API is exercised through `fastapi.testclient.TestClient` (`backend/tests/integration/api/`). This prints its paths:
