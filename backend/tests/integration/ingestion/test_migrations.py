@@ -5,7 +5,7 @@ from sqlalchemy.exc import DBAPIError
 from recon.bootstrap.migrations import downgrade, upgrade
 from tests.integration.conftest import create_database, drop_database
 
-CONTEXT_SCHEMAS = {"ref", "ingestion", "recon", "investigation", "audit"}
+CONTEXT_SCHEMAS = {"ref", "ingestion", "recon", "investigation", "audit", "knowledge"}
 
 
 def test_migrations_go_up_from_empty_and_back_to_base_with_every_table_in_its_schema() -> None:
@@ -19,6 +19,14 @@ def test_migrations_go_up_from_empty_and_back_to_base_with_every_table_in_its_sc
         upgrade(url)
         with engine.connect() as connection:
             after_upgrade = {tuple(row) for row in connection.execute(tables)}
+            chunk_indexes = connection.execute(
+                text(
+                    "SELECT am.amname FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid"
+                    " JOIN pg_am am ON am.oid = c.relam"
+                    " WHERE i.indrelid = 'knowledge.document_chunks'::regclass"
+                )
+            ).scalars()
+            assert {"gin", "hnsw"} <= set(chunk_indexes)
         downgrade(url)
         with engine.connect() as connection:
             after_downgrade = {tuple(row) for row in connection.execute(tables)}
@@ -38,6 +46,8 @@ def test_migrations_go_up_from_empty_and_back_to_base_with_every_table_in_its_sc
         ("investigation", "cases"),
         ("investigation", "outbox"),
         ("audit", "events"),
+        ("knowledge", "documents"),
+        ("knowledge", "document_chunks"),
     } <= after_upgrade
     assert after_downgrade == {("public", "alembic_version")}
 

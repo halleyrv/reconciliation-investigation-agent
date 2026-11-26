@@ -100,6 +100,19 @@ docker compose run --rm models uv run --locked recon-compare-retrieval --chunk-s
     --embedding BAAI/bge-small-en-v1.5 --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ```
 
+`recon-ingest-corpus` stores a directory of Markdown policies in `knowledge` (migration 0006): one document per file, keyed by its file name, chunked at 400 characters and embedded with `BAAI/bge-small-en-v1.5` (ADR-0023). A new key becomes version 1, a changed text the next version (earlier versions stay), and an unchanged text is reported and skipped, so re-running it is safe. `--effective-from YYYY-MM-DD` dates the new versions (default: today). It runs in Linux for the same reason:
+
+```bash
+docker compose run --rm models uv run --locked recon-ingest-corpus \
+    simulator/samples/orders-200-seed-42/policies --effective-from 2026-10-01
+```
+
+| Exit code | Meaning |
+|-----------|---------|
+| 0 | Every document is stored or already current; one line per document, `<key>: version <n>, stored` or `unchanged` |
+| 2 | Nothing was ingested: no `.md` file in the directory, or a file is not a valid document (for example no `# ` title) |
+| 3 | The database is unreachable or not migrated, or fastembed is not installed on this platform |
+
 ## HTTP API
 
 `recon.bootstrap.app:create_app` is the FastAPI application factory. No ASGI server is a dependency yet, so the API is exercised through `fastapi.testclient.TestClient` (`backend/tests/integration/api/`). This prints its paths:

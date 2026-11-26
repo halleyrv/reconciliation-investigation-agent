@@ -69,7 +69,7 @@ Small aggregates, referenced by ID. A large collection never lives inside an agg
 | Investigation | `Case` | State machine `open → investigating → awaiting_approval → resolved / escalated`. Optimistic version check on every change |
 | Investigation | `Finding` | Has at least one evidence link. Every amount it states equals a `calculation` evidence value |
 | Investigation | `AgentRun` | Ends exactly once. Records model, prompt version and trace ID |
-| Knowledge | `Document` (with its chunks) | Chunk ordinals contiguous. One embedding model per document version. Content hash unique |
+| Knowledge | `Document` (with its chunks) | Chunk ordinals contiguous. One embedding model per document version. Versions of a key numbered from 1; unchanged content makes no new version |
 | Resolution | `ProposedAction` (with its approvals) | Cannot execute without an approval. Approver ≠ proposer. Executes at most once (idempotency key). Approved amount is frozen |
 
 `Evidence` is an immutable entity owned by Investigation but not an aggregate root: it is created once and only referenced afterwards.

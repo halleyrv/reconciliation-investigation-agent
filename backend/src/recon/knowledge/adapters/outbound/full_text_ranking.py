@@ -9,12 +9,15 @@ from recon.knowledge.application.retrieval_evaluation import ChunkRef
 
 # plainto_tsquery ANDs every term, so a paraphrased query rarely matches; OR keeps any chunk
 # that shares a stemmed term, and ts_rank_cd ranks the ones that share more first.
-_RANK = text(
-    """
-    WITH q AS (
+OR_TERMS = """
+    q AS (
         SELECT NULLIF(replace(plainto_tsquery('english', :query)::text, ' & ', ' | '), '')::tsquery
             AS terms
     )
+"""
+_RANK = text(
+    f"""
+    WITH {OR_TERMS}
     SELECT c.i
     FROM unnest(CAST(:bodies AS text[])) WITH ORDINALITY AS c(body, i), q
     WHERE to_tsvector('english', c.body) @@ q.terms

@@ -8,6 +8,8 @@ from fastembed.rerank.cross_encoder import TextCrossEncoder
 
 from recon.knowledge.application.ports import Vector
 
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"  # ADR-0023; its 384 dimensions fix VECTOR(384)
+
 
 class FastembedEmbeddings:
     def __init__(self, model: str) -> None:
