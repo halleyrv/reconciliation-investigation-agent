@@ -201,14 +201,20 @@ Evidence uses one FK column per target type with `num_nonnulls(...) = 1`, never 
 ### `knowledge`
 
 ```sql
-documents(id PK, kind CHECK IN ('policy','contract','sop','correspondence'), title, version INT,
-          content_sha256 CHAR(64) UNIQUE, embedding_model TEXT NOT NULL, effective_from DATE)
-document_chunks(id PK, document_id FK, ordinal INT, content TEXT NOT NULL,
-                content_tsv TSVECTOR GENERATED ALWAYS AS (...) STORED,
-                embedding VECTOR(N) NOT NULL,          -- N fixed by ADR-0006
+-- Migration 0006 (Phase 3, ADR-0023).
+documents(id PK, key TEXT NOT NULL, kind CHECK IN ('policy','contract','sop','correspondence'),
+          title, version INT CHECK (>= 1), content TEXT NOT NULL, content_sha256 CHAR(64) NOT NULL,
+          embedding_model TEXT NOT NULL, effective_from DATE NOT NULL, UNIQUE (key, version))
+document_chunks(id UUID PK DEFAULT gen_random_uuid(), document_id FK, ordinal INT,
+                section TEXT NOT NULL, start_offset INT, end_offset INT CHECK (> start_offset),
+                content TEXT NOT NULL,
+                content_tsv TSVECTOR GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
+                embedding VECTOR(384) NOT NULL,        -- BAAI/bge-small-en-v1.5 (ADR-0023)
                 UNIQUE (document_id, ordinal))
--- Indexes: GIN (content_tsv), HNSW (embedding)
+-- Indexes: GIN (content_tsv), HNSW (embedding vector_cosine_ops)
 ```
+
+`key` names a document across its versions; the current version is the highest under its key, and earlier versions stay for attribution. `content_sha256` is not unique: a text that returns to an earlier version's text is a new version.
 
 `embedding_model` sits on the document, not on each chunk. Every chunk of a document version is embedded with the same model (an aggregate invariant).
 
@@ -281,6 +287,7 @@ Views or materialized views only, for example `case_queue` (case + discrepancy +
 | R15 | `investigation.cases.priority` | The discrepancy's `severity` when the case opens | A case's priority is triaged on its own (`PATCH /cases/{id}`) without changing the discrepancy | Copied once by `OpenCase`; the severity only seeds it |
 | R16 | `audit.events.occurred_at`, `actor_type`, `actor_id`, `aggregate_type`, `aggregate_id`, `event_type`, `event_version`; `outbox.aggregate_type`, `aggregate_id` | Copies of the outbox row's envelope; the aggregate ID also sits in the payload | The audit trail outlives and outranks the outbox, and the case history is queried by aggregate | Insert-only; copied once from the outbox row when the entry is appended, `UNIQUE (source, source_event_id)` |
 | R17 | `audit.events.sha256`, `prev_sha256` | `sha256` is computable from the entry; `prev_sha256` repeats the previous entry's `sha256` | Tamper evidence: a changed or reordered entry breaks the chain (ADR-0022) | Written once under an advisory lock that serializes appends; `UNIQUE` on both; `VerifyChain` recomputes the chain |
+| R18 | `documents.title`, `.content_sha256`; `document_chunks.section`, `.content` | Derivable from `documents.content` (the heading, the hash, the text at the chunk's offsets) | Search and attribution read a chunk without re-chunking its document; the hash detects an unchanged re-ingest | Written once from the `Document` aggregate, which rejects a title, hash or chunk that does not match its content; rows are never updated |
 
 ## Constraints worth testing
 
@@ -290,5 +297,6 @@ Integration tests run against a real PostgreSQL and assert that the database its
 - A record in two match groups of the same run.
 - An evidence row pointing to zero or two targets.
 - Overlapping fee schedule periods.
+- Two versions of a document with the same key and version number.
 - An action detail row whose type differs from its parent's type.
 - `UPDATE` or `DELETE` on `audit.events` by any role (a trigger; a separate `INSERT`/`SELECT`-only application role is a deployment follow-up).

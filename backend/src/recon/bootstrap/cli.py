@@ -125,8 +125,20 @@ def evaluate_main(argv: Sequence[str] | None = None) -> int:
         engine.dispose()
 
 
+def _without_fastembed(command: str) -> int:
+    print(
+        f"{command}: fastembed is not installed on this platform;"
+        f" run it in Linux: docker compose run --rm models uv run --locked {command}",
+        file=sys.stderr,
+    )
+    return INFRASTRUCTURE_FAILURE
+
+
+# The model commands import fastembed lazily: it is missing on Intel macOS (D4), and the other
+# commands must still run there.
+
+
 def compare_retrieval_main(argv: Sequence[str] | None = None) -> int:
-    # Imported here: fastembed is missing on Intel macOS (D4), and the other commands must run.
     from recon.knowledge.adapters.inbound.compare_retrieval import run
 
     try:
@@ -135,13 +147,7 @@ def compare_retrieval_main(argv: Sequence[str] | None = None) -> int:
             FastembedReranker,
         )
     except ModuleNotFoundError:
-        print(
-            "recon-compare-retrieval: fastembed is not installed on this platform;"
-            " run it in Linux: docker compose run --rm models uv run --locked"
-            " recon-compare-retrieval",
-            file=sys.stderr,
-        )
-        return INFRASTRUCTURE_FAILURE
+        return _without_fastembed("recon-compare-retrieval")
     from recon.knowledge.adapters.outbound.full_text_ranking import rank_by_full_text
 
     engine = create_engine(database_url())
@@ -153,6 +159,36 @@ def compare_retrieval_main(argv: Sequence[str] | None = None) -> int:
                 full_text=lambda query, chunks: rank_by_full_text(engine, query, chunks),
                 embeddings=FastembedEmbeddings,
                 reranker=FastembedReranker,
+            ),
+        )
+    finally:
+        engine.dispose()
+
+
+def ingest_corpus_main(argv: Sequence[str] | None = None) -> int:
+    from recon.knowledge.adapters.inbound.ingest_corpus import run
+
+    try:
+        from recon.knowledge.adapters.outbound.fastembed_models import (
+            EMBEDDING_MODEL,
+            FastembedEmbeddings,
+        )
+    except ModuleNotFoundError:
+        return _without_fastembed("recon-ingest-corpus")
+    from recon.knowledge.adapters.outbound.sql import SqlDocumentRepository
+    from recon.knowledge.application.ingest_corpus import IngestCorpus
+
+    engine = create_engine(database_url())
+    try:
+        return _guarded(
+            "recon-ingest-corpus",
+            lambda: run(
+                argv,
+                lambda: IngestCorpus(
+                    SqlDocumentRepository(engine),
+                    FastembedEmbeddings(EMBEDDING_MODEL),
+                    UuidIdGenerator(),
+                ),
             ),
         )
     finally:

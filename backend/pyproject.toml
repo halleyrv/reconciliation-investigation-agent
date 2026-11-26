@@ -19,6 +19,7 @@ recon-reference = "recon.bootstrap.cli:reference_main"
 recon-reconcile = "recon.bootstrap.cli:reconcile_main"
 recon-evaluate = "recon.bootstrap.cli:evaluate_main"
 recon-compare-retrieval = "recon.bootstrap.cli:compare_retrieval_main"
+recon-ingest-corpus = "recon.bootstrap.cli:ingest_corpus_main"
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]

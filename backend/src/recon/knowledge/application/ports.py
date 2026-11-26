@@ -1,7 +1,12 @@
-"""Ports to the retrieval models (ADR-0006): swappable, so tests run on fakes without a model."""
+"""Ports of the Knowledge context: the retrieval models (ADR-0006), swappable so tests run on
+fakes without a model, and the document store."""
 
+import uuid
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Protocol
+
+from recon.knowledge.domain.document import Document
 
 type Vector = tuple[float, ...]
 
@@ -21,3 +26,25 @@ class Reranker(Protocol):
     def score(self, query: str, texts: list[str]) -> list[float]:
         """One relevance score per text, in the order given; higher is more relevant."""
         ...
+
+
+class DocumentRepository(Protocol):
+    def latest(self, key: str) -> Document | None:
+        """The highest version stored under ``key``."""
+        ...
+
+    def add(self, document: Document, embedding_model: str, embeddings: Sequence[Vector]) -> None:
+        """Stores a version with one embedding per chunk, in chunk order, all or nothing."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class ChunkHit:
+    """A chunk found by a search, with what attributes it: its document version."""
+
+    chunk_id: uuid.UUID
+    document_id: uuid.UUID
+    document_key: str
+    version: int
+    ordinal: int
+    score: float  # higher is more relevant; comparable only within one search
